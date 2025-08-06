@@ -7,8 +7,8 @@ This guide covers testing your WhatsApp authentication endpoints using Hoppscotc
 ### 1. Deploy Functions First
 ```bash
 # Set environment variables in Supabase
-supabase secrets set TWILIO_ACCOUNT_SID=AC024bd1f12a1b088bb59155b65bc35365
-supabase secrets set TWILIO_AUTH_TOKEN=8e1cce2ce1e55369e481ea98ebe44581
+supabase secrets set TWILIO_ACCOUNT_SID=your_twilio_account_sid
+supabase secrets set TWILIO_AUTH_TOKEN=your_twilio_auth_token
 supabase secrets set TWILIO_WHATSAPP_NUMBER=whatsapp:+14155238886
 supabase secrets set ENVIRONMENT=development
 supabase secrets set SITE_URL=http://localhost:3000
