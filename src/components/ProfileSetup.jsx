@@ -244,55 +244,19 @@ const ProfileSetup = ({ onBack, onContinue, authData, isNewDependent = false, on
     setIsSubmitting(true);
     
     try {
-      // Get authentication session from stored auth data
-      const storedAuth = localStorage.getItem('netlife_auth');
-      let authSession = null;
+      // Get phone number from stored auth data or use fallback
+      let phoneNumber = authData?.phoneNumber || user?.phone || '+256700000000'; // fallback for testing
       
-      console.log('Stored auth data:', storedAuth);
-      
-      if (storedAuth) {
-        const authData = JSON.parse(storedAuth);
-        console.log('Parsed auth data:', authData);
-        authSession = authData.session;
-        console.log('Extracted session:', authSession ? 'Session found' : 'No session found');
-      }
-      
-      if (!authSession || !authSession.access_token) {
-        console.error('No valid authentication session found');
-        throw new Error('Authentication session not found. Please complete WhatsApp verification first.');
-      }
-      
-      console.log('Using authentication session for profile creation');
+      console.log('Using phone number for profile creation:', phoneNumber);
 
-      // Upload profile photo if provided
-      let profilePhotoUrl = null;
-      if (profileData.profilePhoto) {
-        // Generate a temporary user ID for photo upload
-        const tempUserId = crypto?.randomUUID?.() || `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        
-        // Convert data URL to File object for upload
-        const response = await fetch(profileData.profilePhoto);
-        const blob = await response.blob();
-        const file = new File([blob], 'profile-photo.jpg', { type: 'image/jpeg' });
-        
-        const photoResult = await profileService.uploadProfilePhoto(file, tempUserId);
-        if (photoResult.success) {
-          profilePhotoUrl = photoResult.url;
-        } else {
-          // Don't fail the entire process if photo upload fails
-          toast({
-            title: "Photo Upload Warning",
-            description: "Profile photo couldn't be uploaded, but your profile will still be created.",
-            variant: "default",
-          });
-        }
-      }
+      // Handle profile photo (already in base64 format for localStorage)
+      let profilePhotoUrl = profileData.profilePhoto; // Use the base64 data URL directly
 
-      // Complete profile via direct database insertion with authentication
+      // Complete profile using localStorage
       const profileResult = await profileService.completeProfile({
         ...profileData,
         profilePhotoUrl
-      }, authSession);
+      }, phoneNumber);
       
       if (!profileResult.success) {
         throw new Error(profileService.formatErrorMessage(profileResult.error));
@@ -301,18 +265,11 @@ const ProfileSetup = ({ onBack, onContinue, authData, isNewDependent = false, on
       // Success - show confirmation and proceed
       toast({
         title: "Profile Created Successfully",
-        description: "Your profile has been saved to the database successfully.",
+        description: "Your profile has been saved successfully.",
       });
 
-      // Store profile data locally for immediate use
-      const completeProfile = {
-        id: profileResult.data.id,
-        ...profileResult.data,
-        phoneNumber: profileResult.data.whatsapp_number,
-        createdAt: new Date().toISOString()
-      };
-      
-      localStorage.setItem('netlife_profile', JSON.stringify(completeProfile));
+      // Profile is already stored by the service, just use the returned data
+      const completeProfile = profileResult.data;
 
       if (onContinue) {
         onContinue(completeProfile);
@@ -323,24 +280,30 @@ const ProfileSetup = ({ onBack, onContinue, authData, isNewDependent = false, on
       
       toast({
         title: "Profile Creation Failed",
-        description: `Failed to save profile to database: ${error.message}`,
+        description: `Failed to save profile: ${error.message}`,
         variant: "destructive",
       });
 
-      // Fallback to localStorage for offline support
+      // Fallback to simple localStorage storage
       const fallbackProfile = {
         id: 'main',
-        ...profileData,
-        phoneNumber: authSession?.user?.phone || '',
-        createdAt: Date.now(),
-        needsSync: true // Flag for later synchronization
+        fullName: profileData.fullName,
+        username: profileData.username,
+        birthDate: profileData.birthDate,
+        gender: profileData.gender,
+        district: profileData.district,
+        subCounty: profileData.subCounty,
+        avatar: profileData.avatar,
+        profilePhoto: profileData.profilePhoto,
+        phoneNumber: phoneNumber || '',
+        createdAt: new Date().toISOString()
       };
       
-      localStorage.setItem('netlife_profile_backup', JSON.stringify(fallbackProfile));
+      localStorage.setItem('netlife_profile', JSON.stringify(fallbackProfile));
       
       toast({
-        title: "Saved Offline",
-        description: "Database connection failed. Profile saved locally and will sync when connection is restored.",
+        title: "Saved Locally",
+        description: "Profile saved locally. You can continue using the app.",
         variant: "default",
       });
 

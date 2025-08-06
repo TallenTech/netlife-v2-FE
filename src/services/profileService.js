@@ -1,103 +1,60 @@
-import { supabase } from '@/lib/supabase';
-
 /**
- * ProfileService - Handles all profile-related API operations
- * Direct integration with Supabase database
+ * ProfileService - Handles all profile-related operations using localStorage
+ * Simple local storage implementation without Supabase integration
  */
 export class ProfileService {
     constructor() {
-        this.baseUrl = import.meta.env.VITE_SUPABASE_URL;
-        this.anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        // No external dependencies - just localStorage
     }
 
     /**
-     * Complete user profile by directly inserting into the profiles table
+     * Complete user profile by storing in localStorage
      * @param {Object} profileData - Profile data to submit
-     * @param {Object} authSession - User's authentication session from WhatsApp verification
-     * @returns {Promise<Object>} API response
+     * @param {string} phoneNumber - User's WhatsApp phone number
+     * @returns {Promise<Object>} Success response
      */
-    async completeProfile(profileData, authSession) {
+    async completeProfile(profileData, phoneNumber) {
         try {
-            // Set the user session in Supabase client for RLS authentication
-            if (authSession && authSession.access_token) {
-                console.log('Setting user session for authenticated request');
-                await supabase.auth.setSession({
-                    access_token: authSession.access_token,
-                    refresh_token: authSession.refresh_token
-                });
-            } else {
-                throw new Error('No valid authentication session found. Please log in again.');
-            }
+            // Generate a simple ID for the profile
+            const profileId = `profile_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-            // Get the current user to use their ID and phone number
-            const { data: { user }, error: userError } = await supabase.auth.getUser();
+            console.log('Creating profile with phone number:', phoneNumber);
+            console.log('Generated profile ID:', profileId);
 
-            if (userError || !user) {
-                console.error('Error getting authenticated user:', userError);
-                throw new Error('Authentication failed. Please log in again.');
-            }
-
-            console.log('Authenticated user:', user);
-
-            // Use the authenticated user's ID and phone number
-            const dbData = {
-                id: user.id, // Use the authenticated user's ID
-                full_name: profileData.fullName,
-                whatsapp_number: user.phone || user.user_metadata?.phone,
+            // Create the complete profile object
+            const completeProfile = {
+                id: profileId,
+                fullName: profileData.fullName,
                 username: profileData.username,
-                date_of_birth: profileData.birthDate,
-                gender: profileData.gender.toLowerCase(),
+                birthDate: profileData.birthDate,
+                gender: profileData.gender,
                 district: profileData.district,
-                sub_county: profileData.subCounty || null,
-                profile_picture: profileData.profilePhotoUrl || null,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
+                subCounty: profileData.subCounty || null,
+                avatar: profileData.avatar || null,
+                profilePhoto: profileData.profilePhoto || null,
+                profilePhotoUrl: profileData.profilePhotoUrl || null,
+                phoneNumber: phoneNumber,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
             };
 
-            console.log('Inserting profile data with authenticated user context:', dbData);
+            console.log('Storing profile in localStorage:', completeProfile);
 
-            // Insert directly into the profiles table with authenticated context
-            const { data, error } = await supabase
-                .from('profiles')
-                .insert(dbData)
-                .select()
-                .single();
+            // Store in localStorage
+            localStorage.setItem('netlife_profile', JSON.stringify(completeProfile));
 
-            if (error) {
-                console.error('Supabase insert error:', error);
+            // Also store a backup
+            localStorage.setItem('netlife_profile_backup', JSON.stringify(completeProfile));
 
-                // Handle specific database errors
-                if (error.code === '23505' && error.message.includes('username')) {
-                    throw new Error('This username is already taken. Please choose a different one.');
-                }
-
-                if (error.code === '23505') {
-                    throw new Error('A profile with this information already exists.');
-                }
-
-                if (error.code === '23502') {
-                    throw new Error('Required profile information is missing. Please fill all required fields.');
-                }
-
-                // Handle RLS policy violations
-                if (error.message.includes('row-level security policy')) {
-                    throw new Error('Authentication failed. Please log in again.');
-                }
-
-                throw new Error(error.message || 'Failed to create profile in database');
-            }
-
-            console.log('Profile created successfully in database:', data);
+            console.log('Profile stored successfully in localStorage');
 
             return {
                 success: true,
-                data: data,
+                data: completeProfile,
                 message: 'Profile created successfully'
             };
         } catch (error) {
             console.error('Error creating profile:', error);
-            console.error('Error type:', error.constructor.name);
-            console.error('Error details:', error);
 
             return {
                 success: false,
@@ -107,7 +64,7 @@ export class ProfileService {
     }
 
     /**
-     * Check username availability in the profiles table
+     * Check username availability (simple local check)
      * @param {string} username - Username to check
      * @returns {Promise<Object>} Availability result
      */
@@ -130,151 +87,88 @@ export class ProfileService {
                 };
             }
 
-            // Check database for existing username
-            const { data, error } = await supabase
-                .from('profiles')
-                .select('username')
-                .eq('username', username)
-                .single();
-
-            if (error && error.code === 'PGRST116') {
-                // No rows returned - username is available
-                return { available: true };
-            }
-
-            if (error) {
-                console.error('Error checking username:', error);
-                // If there's an error, assume username is available to not block user
-                return { available: true };
-            }
-
-            // Username exists
-            return {
-                available: false,
-                error: 'Username is already taken. Please choose another.'
-            };
+            // For localStorage implementation, assume username is available
+            // (In a real app, you'd check against stored profiles)
+            return { available: true };
         } catch (error) {
             console.error('Error checking username:', error);
-            // If there's an error, assume username is available to not block user
-            return { available: true };
+            return {
+                available: false,
+                error: 'Unable to check username availability'
+            };
         }
     }
 
     /**
-     * Get list of districts from the backend using REST API
+     * Get list of districts (hardcoded fallback data)
      * @returns {Promise<Object>} Districts data
      */
     async getDistricts() {
         try {
-            console.log('Fetching districts from:', `${this.baseUrl}/rest/v1/districts?select=*`);
-
-            const response = await fetch(`${this.baseUrl}/rest/v1/districts?select=*`, {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${this.anonKey}`,
-                    'apikey': this.anonKey,
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            console.log('Districts response status:', response.status);
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('Districts API error:', errorText);
-                throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
-            }
-
-            const districts = await response.json();
-            console.log('Districts fetched successfully:', districts);
-
-            // If API returns empty array, use fallback data
-            if (!districts || districts.length === 0) {
-                console.log('Districts table is empty, using fallback data');
-                return {
-                    success: false,
-                    error: 'No districts found in database',
-                    data: [
-                        { id: 1, name: 'Kampala', region: 'Central' },
-                        { id: 2, name: 'Wakiso', region: 'Central' },
-                        { id: 3, name: 'Mukono', region: 'Central' },
-                        { id: 4, name: 'Jinja', region: 'Eastern' },
-                        { id: 5, name: 'Mbale', region: 'Eastern' },
-                        { id: 6, name: 'Gulu', region: 'Northern' },
-                        { id: 7, name: 'Lira', region: 'Northern' },
-                        { id: 8, name: 'Mbarara', region: 'Western' },
-                        { id: 9, name: 'Fort Portal', region: 'Western' }
-                    ]
-                };
-            }
+            // Return hardcoded districts for localStorage implementation
+            const districts = [
+                { id: 1, name: 'Kampala', region: 'Central' },
+                { id: 2, name: 'Wakiso', region: 'Central' },
+                { id: 3, name: 'Mukono', region: 'Central' },
+                { id: 4, name: 'Jinja', region: 'Eastern' },
+                { id: 5, name: 'Mbale', region: 'Eastern' },
+                { id: 6, name: 'Gulu', region: 'Northern' },
+                { id: 7, name: 'Lira', region: 'Northern' },
+                { id: 8, name: 'Mbarara', region: 'Western' },
+                { id: 9, name: 'Fort Portal', region: 'Western' },
+                { id: 10, name: 'Arua', region: 'Northern' },
+                { id: 11, name: 'Masaka', region: 'Central' },
+                { id: 12, name: 'Soroti', region: 'Eastern' }
+            ];
 
             return {
                 success: true,
-                data: districts.map(district => ({
-                    id: district.id,
-                    name: district.name,
-                    region: district.region || 'Unknown'
-                }))
+                data: districts
             };
         } catch (error) {
             console.error('Error fetching districts:', error);
-            // Fallback to hardcoded districts if API fails
             return {
                 success: false,
                 error: error.message,
-                data: [
-                    { id: 1, name: 'Kampala', region: 'Central' },
-                    { id: 2, name: 'Wakiso', region: 'Central' },
-                    { id: 3, name: 'Mukono', region: 'Central' },
-                    { id: 4, name: 'Jinja', region: 'Eastern' },
-                    { id: 5, name: 'Mbale', region: 'Eastern' },
-                    { id: 6, name: 'Gulu', region: 'Northern' },
-                    { id: 7, name: 'Lira', region: 'Northern' },
-                    { id: 8, name: 'Mbarara', region: 'Western' },
-                    { id: 9, name: 'Fort Portal', region: 'Western' }
-                ]
+                data: []
             };
         }
     }
 
     /**
-     * Get sub counties for a specific district using REST API
+     * Get sub counties for a specific district (hardcoded fallback data)
      * @param {number} districtId - District ID
      * @returns {Promise<Object>} Sub counties data
      */
     async getSubCounties(districtId) {
         try {
-            console.log('Fetching sub counties for district ID:', districtId);
-            const url = `${this.baseUrl}/rest/v1/sub_counties?select=*&district_id=eq.${districtId}`;
-            console.log('Sub counties URL:', url);
+            // Return hardcoded sub counties for localStorage implementation
+            const subCountiesMap = {
+                1: [ // Kampala
+                    { id: 1, name: 'Central Division', district_id: 1 },
+                    { id: 2, name: 'Kawempe Division', district_id: 1 },
+                    { id: 3, name: 'Makindye Division', district_id: 1 },
+                    { id: 4, name: 'Nakawa Division', district_id: 1 },
+                    { id: 5, name: 'Rubaga Division', district_id: 1 }
+                ],
+                2: [ // Wakiso
+                    { id: 6, name: 'Entebbe', district_id: 2 },
+                    { id: 7, name: 'Kira', district_id: 2 },
+                    { id: 8, name: 'Nansana', district_id: 2 },
+                    { id: 9, name: 'Makindye Ssabagabo', district_id: 2 }
+                ],
+                3: [ // Mukono
+                    { id: 10, name: 'Mukono Town Council', district_id: 3 },
+                    { id: 11, name: 'Lugazi', district_id: 3 },
+                    { id: 12, name: 'Njeru', district_id: 3 }
+                ]
+            };
 
-            const response = await fetch(url, {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${this.anonKey}`,
-                    'apikey': this.anonKey,
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            console.log('Sub counties response status:', response.status);
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('Sub counties API error:', errorText);
-                throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
-            }
-
-            const subCounties = await response.json();
-            console.log('Sub counties fetched successfully:', subCounties);
+            const subCounties = subCountiesMap[districtId] || [];
 
             return {
                 success: true,
-                data: subCounties.map(subCounty => ({
-                    id: subCounty.id,
-                    name: subCounty.name,
-                    district_id: subCounty.district_id
-                }))
+                data: subCounties
             };
         } catch (error) {
             console.error('Error fetching sub counties:', error);
@@ -287,10 +181,10 @@ export class ProfileService {
     }
 
     /**
-     * Upload profile photo to Supabase Storage
-     * @param {File} file - Image file to upload
-     * @param {string} userId - User ID for file organization
-     * @returns {Promise<Object>} Upload result
+     * Handle profile photo as base64 data URL (no external storage)
+     * @param {File} file - Image file to process
+     * @param {string} userId - User ID (not used in localStorage version)
+     * @returns {Promise<Object>} Processing result
      */
     async uploadProfilePhoto(file, userId) {
         try {
@@ -306,54 +200,20 @@ export class ProfileService {
                 throw new Error('File size too large. Please upload an image smaller than 5MB.');
             }
 
-            const fileExt = file.name.split('.').pop();
-            const fileName = `${userId}-${Date.now()}.${fileExt}`;
-            const filePath = `${userId}/${fileName}`;
-
-            const { data, error } = await supabase.storage
-                .from('profile-photos')
-                .upload(filePath, file, {
-                    cacheControl: '3600',
-                    upsert: false
-                });
-
-            if (error) throw error;
-
-            // Get public URL
-            const { data: { publicUrl } } = supabase.storage
-                .from('profile-photos')
-                .getPublicUrl(filePath);
-
-            return {
-                success: true,
-                url: publicUrl,
-                path: filePath
-            };
+            // Convert to base64 data URL for localStorage
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    resolve({
+                        success: true,
+                        url: reader.result, // base64 data URL
+                        path: `local_${userId}_${Date.now()}`
+                    });
+                };
+                reader.readAsDataURL(file);
+            });
         } catch (error) {
-            console.error('Error uploading profile photo:', error);
-            return {
-                success: false,
-                error: error.message
-            };
-        }
-    }
-
-    /**
-     * Delete profile photo from storage
-     * @param {string} filePath - Path to the file in storage
-     * @returns {Promise<Object>} Deletion result
-     */
-    async deleteProfilePhoto(filePath) {
-        try {
-            const { error } = await supabase.storage
-                .from('profile-photos')
-                .remove([filePath]);
-
-            if (error) throw error;
-
-            return { success: true };
-        } catch (error) {
-            console.error('Error deleting profile photo:', error);
+            console.error('Error processing profile photo:', error);
             return {
                 success: false,
                 error: error.message
@@ -419,26 +279,26 @@ export class ProfileService {
     }
 
     /**
-     * Get user profile from the profiles table
-     * @param {string} userId - User ID to get profile for
+     * Get user profile from localStorage
+     * @param {string} userId - User ID (not used in localStorage version)
      * @returns {Promise<Object>} Profile data
      */
     async getProfile(userId) {
         try {
-            const { data, error } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', userId)
-                .single();
+            const profileData = localStorage.getItem('netlife_profile');
 
-            if (error) {
-                console.error('Error getting profile:', error);
-                throw new Error(error.message);
+            if (!profileData) {
+                return {
+                    success: false,
+                    error: 'No profile found'
+                };
             }
+
+            const profile = JSON.parse(profileData);
 
             return {
                 success: true,
-                data: data
+                data: profile
             };
         } catch (error) {
             console.error('Error getting profile:', error);
@@ -450,53 +310,16 @@ export class ProfileService {
     }
 
     /**
-     * Update profile photo URL in the profiles table
-     * @param {string} userId - User ID
-     * @param {string} photoUrl - Photo URL to update
-     * @returns {Promise<Object>} Update result
-     */
-    async updateProfilePhoto(userId, photoUrl) {
-        try {
-            const { data, error } = await supabase
-                .from('profiles')
-                .update({
-                    profile_picture: photoUrl,
-                    updated_at: new Date().toISOString()
-                })
-                .eq('id', userId)
-                .select()
-                .single();
-
-            if (error) {
-                console.error('Error updating profile photo:', error);
-                throw new Error(error.message);
-            }
-
-            return {
-                success: true,
-                data: data
-            };
-        } catch (error) {
-            console.error('Error updating profile photo:', error);
-            return {
-                success: false,
-                error: error.message || 'Failed to update profile photo'
-            };
-        }
-    }
-
-    /**
      * Handle API errors and provide user-friendly messages
-     * @param {string} error - Error message from API
+     * @param {string} error - Error message
      * @returns {string} User-friendly error message
      */
     formatErrorMessage(error) {
         const errorMappings = {
             'Username must be 3-30 characters long and contain only letters, numbers, underscore, or hyphen': 'Please choose a username with 3-30 characters using only letters, numbers, underscore, or hyphen.',
             'This username is already taken. Please choose a different one.': 'This username is already taken. Please choose a different one.',
-            'A profile with this information already exists.': 'A profile with this information already exists.',
             'Required profile information is missing. Please fill all required fields.': 'Please fill in all required fields.',
-            'Failed to create profile in database': 'Unable to save profile. Please try again.',
+            'Failed to create profile': 'Unable to save profile. Please try again.',
         };
 
         return errorMappings[error] || error || 'An unexpected error occurred. Please try again.';

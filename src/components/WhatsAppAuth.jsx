@@ -1,7 +1,43 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronLeft, MessageCircle, Shield, UserPlus, LogIn, Loader2 } from 'lucide-react';
-import { whatsappAuth } from '@/lib/supabase';
+// Simple mock WhatsApp auth for localStorage implementation
+const whatsappAuth = {
+  async sendCode(phone) {
+    // Simulate API call delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Generate a mock code for testing
+    const mockCode = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    console.log('Mock WhatsApp code for', phone, ':', mockCode);
+    
+    return {
+      success: true,
+      message: 'OTP code sent successfully via WhatsApp',
+      code: mockCode // Include code for testing
+    };
+  },
+
+  async verifyCode(phone, code) {
+    // Simulate API call delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // For testing, accept any 6-digit code
+    if (code && code.length === 6) {
+      return {
+        success: true,
+        message: 'OTP code verified successfully',
+        user: { phoneNumber: phone, verified: true }
+      };
+    } else {
+      return {
+        success: false,
+        error: 'Invalid OTP code. Please check and try again.'
+      };
+    }
+  }
+};
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import NetLifeLogo from '@/components/NetLifeLogo';
@@ -290,13 +326,13 @@ const WhatsAppAuth = ({ onBack, onContinue }) => {
         // Reset retry attempts on success
         setRetryAttempts(prev => ({ ...prev, verifyCode: 0 }));
         
-        // Store authentication data
+        // Store simple authentication data for localStorage approach
+        console.log('WhatsApp verification result:', result);
+        
         const authData = {
           phoneNumber: cleanedPhone,
           verified: true,
-          timestamp: Date.now(),
-          user: result.user,
-          session: result.session // Store session data with access_token
+          timestamp: Date.now()
         };
         
         localStorage.setItem('netlife_auth', JSON.stringify(authData));
@@ -306,8 +342,8 @@ const WhatsAppAuth = ({ onBack, onContinue }) => {
           description: result.message || "Your phone number has been verified",
         });
 
-        // Pass the user data to the parent component
-        onContinue(result.user || { phoneNumber: cleanedPhone, verified: true }, activeTab === 'login');
+        // Pass simple user data to the parent component
+        onContinue({ phoneNumber: cleanedPhone, verified: true }, activeTab === 'login');
       } else {
         incrementRetryAttempt('verifyCode');
         handleApiError(result, 'verifyCode', "Verification failed");
