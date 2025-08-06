@@ -73,6 +73,21 @@ body {
   background-color: white;
 }
 
+/* Responsive container for landing page */
+.responsive-container {
+  width: 100%;
+  margin: 0 auto;
+  min-height: 100vh;
+  position: relative;
+}
+
+@media (min-width: 1024px) {
+  .responsive-container {
+    max-width: none;
+    background-color: transparent;
+  }
+}
+
 .desktop-container {
   display: flex;
   width: 100%;
@@ -268,5 +283,31 @@ input[type="text"], input[type="tel"], input[type="date"] {
 @media (max-width: 767px) {
   .main-content {
     padding-bottom: 5rem; /* Height of the bottom nav */
+  }
+}
+
+/* Landing page specific responsive styles */
+@media (min-width: 1024px) {
+  .landing-gradient {
+    background: linear-gradient(135deg, #8E3BFF 0%, #9d5cff 25%, #1BDEDA 75%, #9CBFA7 100%);
+  }
+  
+  .feature-card {
+    transition: all 0.3s ease;
+  }
+  
+  .feature-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  }
+}
+
+/* Improved glass effect for desktop */
+@media (min-width: 1024px) {
+  .glass-effect-enhanced {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   }
 }
