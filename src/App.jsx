@@ -2,8 +2,6 @@ import React from "react";
 import { Helmet } from "react-helmet";
 import { Toaster } from "@/components/ui/toaster";
 import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
-
-// Pages and Components
 import LandingPage from "@/pages/LandingPage";
 import WhatsAppAuth from "@/components/WhatsAppAuth";
 import ProfileSetup from "@/components/ProfileSetup";
@@ -15,13 +13,9 @@ import NotFound from "@/pages/NotFound";
 import ScrollToTop from "@/components/ScrollToTop";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import TermsOfService from "@/pages/TermsOfService";
-
-// Contexts and Hooks
 import { UserDataProvider } from "@/contexts/UserDataContext";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-
-// PWA Install Component
-import InstallPWAButton from "@/components/InstallPWAButton";
+import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 
 function App() {
   return (
@@ -58,12 +52,7 @@ function AppWrapper() {
       </Helmet>
 
       <ScrollToTop />
-
-      {/* PWA Install Button: Floats above other content */}
-      <div className="fixed bottom-5 right-5 z-50 drop-shadow-lg">
-        <InstallPWAButton />
-      </div>
-
+      <PWAInstallPrompt />
       <AppRoutes />
       <Toaster />
     </UserDataProvider>
