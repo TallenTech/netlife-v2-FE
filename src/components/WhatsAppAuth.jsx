@@ -388,19 +388,21 @@ const WhatsAppAuth = ({ onBack, onContinue }) => {
   };
 
   return (
-    <div className="mobile-container bg-white">
-      <div className="h-screen flex flex-col">
-        <div className="flex items-center justify-between p-6 pt-12">
-          <button
-            onClick={step === 'verify' ? () => setStep('phone') : onBack}
-            className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-gray-200 transition-all"
-          >
-            <ChevronLeft className="w-6 h-6" />
-          </button>
-          <NetLifeLogo className="w-12 h-12" />
-        </div>
+    <>
+      {/* Mobile Layout - Keep exactly as it was */}
+      <div className="lg:hidden mobile-container bg-white">
+        <div className="h-screen flex flex-col">
+          <div className="flex items-center justify-between p-6 pt-12">
+            <button
+              onClick={step === 'verify' ? () => setStep('phone') : onBack}
+              className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-gray-200 transition-all"
+            >
+              <ChevronLeft className="w-6 h-6" />
+            </button>
+            <NetLifeLogo className="w-12 h-12" />
+          </div>
 
-        <div className="flex-1 flex flex-col px-6 pb-6">
+          <div className="flex-1 flex flex-col px-6 pb-6">
           {step === 'phone' ? (
             <div className="flex-1 flex flex-col">
               <div className="border-2 border-primary/20 rounded-2xl p-6 mb-8 text-primary">
@@ -506,9 +508,143 @@ const WhatsAppAuth = ({ onBack, onContinue }) => {
               </div>
             </motion.div>
           )}
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* Desktop Layout - New responsive design */}
+      <div className="hidden lg:block min-h-screen bg-gray-50">
+        {/* Header with back button and logo at extreme ends */}
+        <div className="w-full px-8 py-6">
+          <div className="flex items-center justify-between">
+            <button
+              onClick={step === 'verify' ? () => setStep('phone') : onBack}
+              className="w-12 h-12 rounded-full bg-white shadow-sm flex items-center justify-center text-gray-600 hover:bg-gray-50 transition-all"
+            >
+              <ChevronLeft className="w-7 h-7" />
+            </button>
+            <NetLifeLogo className="w-14 h-14" />
+          </div>
+        </div>
+
+        {/* Main Content Container - Centered with controlled width */}
+        <div className="flex items-center justify-center px-8 pb-8">
+          <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8">
+            {step === 'phone' ? (
+              <div className="space-y-6">
+                <div className="border-2 border-primary/20 rounded-xl p-6 text-primary">
+                  <div className="flex items-center space-x-4 mb-4">
+                    <NetLifeLogo className="w-12 h-12" />
+                    <div>
+                      <h1 className="text-xl font-bold text-gray-900">Welcome to NetLife</h1>
+                      <p className="text-gray-600 text-sm">Secure WhatsApp authentication</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                  <TabsList className="grid w-full grid-cols-2 h-12">
+                    <TabsTrigger value="join" className="text-base">
+                      <UserPlus className="w-4 h-4 mr-2"/>Join
+                    </TabsTrigger>
+                    <TabsTrigger value="login" className="text-base">
+                      <LogIn className="w-4 h-4 mr-2"/>Login
+                    </TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="join" className="pt-6">
+                      <AuthForm 
+                          isLogin={false} 
+                          phoneNumber={phoneNumber} 
+                          setPhoneNumber={setPhoneNumber}
+                          onSubmit={handlePhoneSubmit}
+                          isLoading={loadingStates.sendingCode}
+                          validatePhone={validatePhoneNumber}
+                      />
+                  </TabsContent>
+                  <TabsContent value="login" className="pt-6">
+                      <AuthForm 
+                          isLogin={true} 
+                          phoneNumber={phoneNumber}
+                          setPhoneNumber={setPhoneNumber}
+                          onSubmit={handlePhoneSubmit}
+                          isLoading={loadingStates.sendingCode}
+                          validatePhone={validatePhoneNumber}
+                      />
+                  </TabsContent>
+                </Tabs>
+                
+                <div className="flex flex-col items-center justify-center space-y-3 text-gray-500">
+                  {networkStatus === 'offline' && (
+                    <div className="flex items-center space-x-2 text-red-500 text-sm">
+                      <span className="w-2 h-2 bg-red-500 rounded-full"></span>
+                      <span>You appear to be offline</span>
+                    </div>
+                  )}
+                  <div className="flex items-center space-x-2">
+                    <Shield className="w-5 h-5 text-primary" />
+                    <span className="text-sm">Your privacy and security are our priority</span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.3 }}
+                className="space-y-8"
+              >
+                <div className="border-2 border-primary/20 rounded-2xl p-8 text-center text-primary">
+                  <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <MessageCircle className="w-10 h-10" />
+                  </div>
+                  <h1 className="text-2xl font-bold mb-3 text-gray-900">Verify Your Number</h1>
+                  <p className="text-gray-600 mb-2">
+                    We've sent a 6-digit code to
+                  </p>
+                  <p className="font-semibold text-gray-800 text-lg">{phoneNumber}</p>
+                </div>
+
+                <div className="space-y-4">
+                  <label className="text-gray-800 font-medium text-lg">Enter Verification Code</label>
+                   <Input
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="_ _ _ _ _ _"
+                      maxLength="6"
+                      value={verificationCode}
+                      onChange={(e) => setVerificationCode(e.target.value.replace(/[^0-9]/g, ''))}
+                      className="h-16 text-center text-3xl font-bold tracking-[1.5em]"
+                  />
+                </div>
+
+                <LoadingButton
+                  onClick={handleVerifyCode}
+                  isLoading={loadingStates.verifyingCode}
+                  loadingText="Verifying..."
+                  disabled={verificationCode.length !== 6}
+                  className="w-full h-16 bg-primary text-white hover:bg-primary/90 font-semibold text-xl rounded-xl"
+                >
+                  Verify Code
+                </LoadingButton>
+
+                <div className="text-center space-y-3">
+                  <p className="text-gray-600">Didn't receive the code?</p>
+                  <button
+                    onClick={handleResendCode}
+                    disabled={resendTimer > 0 || loadingStates.resendingCode}
+                    className="text-primary font-medium underline disabled:text-gray-400 disabled:no-underline flex items-center justify-center text-lg"
+                  >
+                    {loadingStates.resendingCode && <Loader2 className="w-5 h-5 mr-2 animate-spin" />}
+                    {resendTimer > 0 ? `Resend in ${formatCountdown(resendTimer)}` : 
+                     loadingStates.resendingCode ? 'Sending...' : 'Resend Code'}
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </div>
+        </div>
+      </div>
+    </>
   );
 };
 
