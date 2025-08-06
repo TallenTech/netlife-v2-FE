@@ -1,0 +1,306 @@
+{
+  "info": {
+    "name": "WhatsApp Authentication",
+    "description": "API collection for testing WhatsApp authentication endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Send OTP Code",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Response has success true\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.success).to.eql(true);",
+              "});",
+              "",
+              "// Extract OTP code for next request",
+              "pm.test(\"Extract OTP code\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    if (jsonData.code) {",
+              "        pm.environment.set(\"otp_code\", jsonData.code);",
+              "        console.log(\"OTP Code extracted: \" + jsonData.code);",
+              "    }",
+              "});",
+              "",
+              "pm.test(\"Message sent successfully\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.message).to.include(\"sent successfully\");",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"phone\": \"{{test_phone}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/send-code",
+          "host": ["{{base_url}}"],
+          "path": ["send-code"]
+        },
+        "description": "Send OTP code to WhatsApp number"
+      },
+      "response": [
+        {
+          "name": "Success Response",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"+256758361967\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/send-code",
+              "host": ["{{base_url}}"],
+              "path": ["send-code"]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"success\": true,\n  \"message\": \"OTP code sent successfully via WhatsApp\",\n  \"code\": \"123456\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "Verify OTP Code",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Response has success true\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.success).to.eql(true);",
+              "});",
+              "",
+              "pm.test(\"User object exists\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.user).to.exist;",
+              "});",
+              "",
+              "pm.test(\"Session object exists\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.session).to.exist;",
+              "});",
+              "",
+              "pm.test(\"Phone number verified message\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.message).to.include(\"verified successfully\");",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"phone\": \"{{test_phone}}\",\n  \"code\": \"{{otp_code}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/verify-code",
+          "host": ["{{base_url}}"],
+          "path": ["verify-code"]
+        },
+        "description": "Verify OTP code and authenticate user"
+      },
+      "response": [
+        {
+          "name": "Success Response",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"+256758361967\",\n  \"code\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/verify-code",
+              "host": ["{{base_url}}"],
+              "path": ["verify-code"]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"success\": true,\n  \"message\": \"Phone number verified successfully\",\n  \"user\": {\n    \"id\": \"user-uuid\",\n    \"phone\": \"+256758361967\",\n    \"email\": \"256758361967@phone.auth\"\n  },\n  \"session\": {\n    \"access_token\": \"jwt-token\",\n    \"refresh_token\": \"refresh-token\"\n  }\n}"
+        }
+      ]
+    },
+    {
+      "name": "Test Invalid Phone",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 400\", function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "pm.test(\"Response has success false\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.success).to.eql(false);",
+              "});",
+              "",
+              "pm.test(\"Error message about phone format\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.error).to.include(\"phone\");",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"phone\": \"invalid-phone\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/send-code",
+          "host": ["{{base_url}}"],
+          "path": ["send-code"]
+        },
+        "description": "Test with invalid phone number format"
+      }
+    },
+    {
+      "name": "Test Invalid OTP",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 401\", function () {",
+              "    pm.response.to.have.status(401);",
+              "});",
+              "",
+              "pm.test(\"Response has success false\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.success).to.eql(false);",
+              "});",
+              "",
+              "pm.test(\"Error message about invalid code\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.error).to.include(\"Invalid OTP\");",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"phone\": \"{{test_phone}}\",\n  \"code\": \"000000\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/verify-code",
+          "host": ["{{base_url}}"],
+          "path": ["verify-code"]
+        },
+        "description": "Test with invalid OTP code"
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://rpmqpxtryrlsdsijwipm.supabase.co/functions/v1"
+    }
+  ]
+}

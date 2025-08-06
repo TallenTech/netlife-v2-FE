@@ -7,12 +7,12 @@ import NetLifeLogo from '@/components/NetLifeLogo';
 const LandingPage = ({ onJoin }) => {
   return (
     <>
-      {/* Mobile Layout - Keep exactly as it was */}
+      {/* Mobile Layout*/}
       <div className="lg:hidden mobile-container bg-gradient-to-br from-primary via-purple-600 to-secondary-teal text-white">
         <div className="h-screen flex flex-col justify-between p-8">
           <header className="flex items-center space-x-3">
-            <NetLifeLogo className="w-10 h-10" />
-            <span className="text-2xl font-bold font-lora">NetLife</span>
+            <NetLifeLogo className="w-20 h-10" variant="white" />
+            {/* <span className="text-2xl font-bold font-lora">NetLife</span> */}
           </header>
 
           <main className="text-center">
@@ -67,25 +67,26 @@ const LandingPage = ({ onJoin }) => {
                 onClick={onJoin}
                 className="w-full h-16 bg-white text-primary text-xl font-bold rounded-2xl shadow-2xl hover:bg-gray-200 transform hover:scale-105 transition-transform"
               >
-                Join / Login
+                Get Started
               </Button>
             </motion.div>
           </footer>
         </div>
       </div>
 
-      {/* Desktop Layout - New responsive design */}
-      <div className="hidden lg:block min-h-screen bg-gradient-to-br from-primary via-purple-600 to-secondary-teal text-white">
-        <div className="min-h-screen flex items-center justify-center px-8 py-12">
-          <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-16 items-center">
+      {/* Desktop Layout - Fixed height, no scroll */}
+      <div className="hidden lg:block h-screen bg-gradient-to-br from-primary via-purple-600 to-secondary-teal text-white overflow-hidden">
+        {/* Top Header with Logo */}
+        <header className="w-full px-8 py-4">
+          <NetLifeLogo className="w-28 h-12" variant="white" />
+        </header>
+        
+        <div className="h-full flex items-center justify-center px-8 -mt-16">
+          <div className="max-w-6xl mx-auto grid lg:grid-cols-2 gap-12 items-center w-full">
             {/* Left Column - Content */}
             <div className="space-y-8">
-              <header className="flex items-center space-x-3">
-                <NetLifeLogo className="w-12 h-12" />
-                <span className="text-3xl font-bold font-lora">NetLife</span>
-              </header>
 
-              <main className="space-y-6">
+              <main className="space-y-4">
                 <motion.h1 
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -102,7 +103,7 @@ const LandingPage = ({ onJoin }) => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.2, duration: 0.6 }}
-                  className="text-lg xl:text-xl text-white/90 max-w-xl leading-relaxed"
+                  className="text-base xl:text-lg text-white/90 max-w-lg leading-relaxed"
                 >
                   Access secure, stigma-free digital health services for everyone. 
                   Take control of your health journey with complete privacy and personalized care.
@@ -113,39 +114,33 @@ const LandingPage = ({ onJoin }) => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6, duration: 0.6 }}
-                className="flex flex-col sm:flex-row gap-3 max-w-sm"
+                className="max-w-xs"
               >
                 <Button
                   onClick={onJoin}
-                  className="flex-1 h-14 bg-white text-primary text-lg font-bold rounded-xl shadow-2xl hover:bg-gray-200 transform hover:scale-105 transition-all duration-200"
+                  className="w-full h-12 bg-white text-primary text-base font-bold rounded-xl shadow-2xl hover:bg-gray-200 transform hover:scale-105 transition-all duration-200"
                 >
-                  Join / Login
-                </Button>
-                <Button
-                  variant="outline"
-                  className="flex-1 h-14 border-2 border-white text-white text-lg font-bold rounded-xl hover:bg-white hover:text-primary transform hover:scale-105 transition-all duration-200"
-                >
-                  Learn More
+                  Get Started
                 </Button>
               </motion.div>
             </div>
 
             {/* Right Column - Features */}
-            <div className="space-y-6">
+            <div className="space-y-4">
               <motion.div 
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.4, duration: 0.6 }}
-                className="space-y-6"
+                className="space-y-4"
               >
-                <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 feature-card">
-                  <div className="flex items-start space-x-4">
-                    <div className="bg-secondary-light-green/20 p-3 rounded-xl">
-                      <ShieldCheck className="w-6 h-6 text-secondary-light-green" />
+                <div className="bg-white/10 backdrop-blur-lg rounded-xl p-4 border border-white/20 feature-card">
+                  <div className="flex items-start space-x-3">
+                    <div className="bg-secondary-light-green/20 p-2 rounded-lg">
+                      <ShieldCheck className="w-5 h-5 text-secondary-light-green" />
                     </div>
                     <div>
-                      <h3 className="text-xl font-bold mb-2">Completely Confidential</h3>
-                      <p className="text-white/80 text-base leading-relaxed">
+                      <h3 className="text-lg font-bold mb-1">Completely Confidential</h3>
+                      <p className="text-white/80 text-sm leading-relaxed">
                         Your health information is encrypted and protected with military-grade security. 
                         No one can access your data without your explicit permission.
                       </p>
@@ -153,14 +148,14 @@ const LandingPage = ({ onJoin }) => {
                   </div>
                 </div>
 
-                <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 feature-card">
-                  <div className="flex items-start space-x-4">
-                    <div className="bg-secondary-light-green/20 p-3 rounded-xl">
-                      <HeartPulse className="w-6 h-6 text-secondary-light-green" />
+                <div className="bg-white/10 backdrop-blur-lg rounded-xl p-4 border border-white/20 feature-card">
+                  <div className="flex items-start space-x-3">
+                    <div className="bg-secondary-light-green/20 p-2 rounded-lg">
+                      <HeartPulse className="w-5 h-5 text-secondary-light-green" />
                     </div>
                     <div>
-                      <h3 className="text-xl font-bold mb-2">Personalized Health Services</h3>
-                      <p className="text-white/80 text-base leading-relaxed">
+                      <h3 className="text-lg font-bold mb-1">Personalized Health Services</h3>
+                      <p className="text-white/80 text-sm leading-relaxed">
                         Get tailored health recommendations and services based on your unique needs, 
                         preferences, and health goals.
                       </p>
@@ -168,14 +163,14 @@ const LandingPage = ({ onJoin }) => {
                   </div>
                 </div>
 
-                <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 feature-card">
-                  <div className="flex items-start space-x-4">
-                    <div className="bg-secondary-light-green/20 p-3 rounded-xl">
-                      <UserLock className="w-6 h-6 text-secondary-light-green" />
+                <div className="bg-white/10 backdrop-blur-lg rounded-xl p-4 border border-white/20 feature-card">
+                  <div className="flex items-start space-x-3">
+                    <div className="bg-secondary-light-green/20 p-2 rounded-lg">
+                      <UserLock className="w-5 h-5 text-secondary-light-green" />
                     </div>
                     <div>
-                      <h3 className="text-xl font-bold mb-2">Anonymous & Secure</h3>
-                      <p className="text-white/80 text-base leading-relaxed">
+                      <h3 className="text-lg font-bold mb-1">Anonymous & Secure</h3>
+                      <p className="text-white/80 text-sm leading-relaxed">
                         Access health services without revealing your identity. 
                         Your privacy is our top priority, always.
                       </p>
@@ -189,6 +184,6 @@ const LandingPage = ({ onJoin }) => {
       </div>
     </>
   );
-};
+}; 
 
 export default LandingPage;
