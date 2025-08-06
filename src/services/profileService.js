@@ -2,7 +2,7 @@ import { supabase } from '@/lib/supabase';
 
 /**
  * ProfileService - Handles all profile-related API operations
- * Integrates with the backend WhatsApp authentication and profile management system
+ * Direct integration with Supabase database
  */
 export class ProfileService {
     constructor() {
@@ -11,57 +11,103 @@ export class ProfileService {
     }
 
     /**
-     * Complete user profile using the backend API
+     * Complete user profile by directly inserting into the profiles table
      * @param {Object} profileData - Profile data to submit
-     * @param {string} userToken - JWT token from authentication
+     * @param {Object} authSession - User's authentication session from WhatsApp verification
      * @returns {Promise<Object>} API response
      */
-    async completeProfile(profileData, userToken) {
+    async completeProfile(profileData, authSession) {
         try {
-            // Map frontend field names to backend API format
-            const apiData = {
-                username: profileData.username,
+            // Set the user session in Supabase client for RLS authentication
+            if (authSession && authSession.access_token) {
+                console.log('Setting user session for authenticated request');
+                await supabase.auth.setSession({
+                    access_token: authSession.access_token,
+                    refresh_token: authSession.refresh_token
+                });
+            } else {
+                throw new Error('No valid authentication session found. Please log in again.');
+            }
+
+            // Get the current user to use their ID and phone number
+            const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+            if (userError || !user) {
+                console.error('Error getting authenticated user:', userError);
+                throw new Error('Authentication failed. Please log in again.');
+            }
+
+            console.log('Authenticated user:', user);
+
+            // Use the authenticated user's ID and phone number
+            const dbData = {
+                id: user.id, // Use the authenticated user's ID
                 full_name: profileData.fullName,
+                whatsapp_number: user.phone || user.user_metadata?.phone,
+                username: profileData.username,
                 date_of_birth: profileData.birthDate,
-                gender: profileData.gender.toLowerCase(), // API expects lowercase
+                gender: profileData.gender.toLowerCase(),
                 district: profileData.district,
                 sub_county: profileData.subCounty || null,
-                preferred_language: 'en' // Default to English
+                profile_picture: profileData.profilePhotoUrl || null,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
             };
 
-            const response = await fetch(`${this.baseUrl}/functions/v1/complete-profile`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${userToken}`,
-                },
-                body: JSON.stringify(apiData)
-            });
+            console.log('Inserting profile data with authenticated user context:', dbData);
 
-            const result = await response.json();
+            // Insert directly into the profiles table with authenticated context
+            const { data, error } = await supabase
+                .from('profiles')
+                .insert(dbData)
+                .select()
+                .single();
 
-            if (!response.ok) {
-                throw new Error(result.error || `HTTP error! status: ${response.status}`);
+            if (error) {
+                console.error('Supabase insert error:', error);
+
+                // Handle specific database errors
+                if (error.code === '23505' && error.message.includes('username')) {
+                    throw new Error('This username is already taken. Please choose a different one.');
+                }
+
+                if (error.code === '23505') {
+                    throw new Error('A profile with this information already exists.');
+                }
+
+                if (error.code === '23502') {
+                    throw new Error('Required profile information is missing. Please fill all required fields.');
+                }
+
+                // Handle RLS policy violations
+                if (error.message.includes('row-level security policy')) {
+                    throw new Error('Authentication failed. Please log in again.');
+                }
+
+                throw new Error(error.message || 'Failed to create profile in database');
             }
+
+            console.log('Profile created successfully in database:', data);
 
             return {
                 success: true,
-                data: result.profile,
-                message: result.message
+                data: data,
+                message: 'Profile created successfully'
             };
         } catch (error) {
-            console.error('Error completing profile:', error);
+            console.error('Error creating profile:', error);
+            console.error('Error type:', error.constructor.name);
+            console.error('Error details:', error);
+
             return {
                 success: false,
-                error: error.message || 'Failed to complete profile'
+                error: error.message || 'Failed to create profile'
             };
         }
     }
 
     /**
-     * Check username availability by attempting to complete profile with test data
-     * Note: The backend doesn't have a dedicated username check endpoint,
-     * so we'll implement client-side validation and handle conflicts during submission
+     * Check username availability in the profiles table
      * @param {string} username - Username to check
      * @returns {Promise<Object>} Availability result
      */
@@ -84,21 +130,38 @@ export class ProfileService {
                 };
             }
 
-            // For now, assume username is available
-            // Real validation will happen during profile completion
-            return { available: true };
-        } catch (error) {
-            console.error('Error checking username:', error);
+            // Check database for existing username
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('username')
+                .eq('username', username)
+                .single();
+
+            if (error && error.code === 'PGRST116') {
+                // No rows returned - username is available
+                return { available: true };
+            }
+
+            if (error) {
+                console.error('Error checking username:', error);
+                // If there's an error, assume username is available to not block user
+                return { available: true };
+            }
+
+            // Username exists
             return {
                 available: false,
-                error: 'Unable to check username availability'
+                error: 'Username is already taken. Please choose another.'
             };
+        } catch (error) {
+            console.error('Error checking username:', error);
+            // If there's an error, assume username is available to not block user
+            return { available: true };
         }
     }
 
     /**
      * Get list of districts from the backend using REST API
-     * Table name: districts
      * @returns {Promise<Object>} Districts data
      */
     async getDistricts() {
@@ -176,7 +239,6 @@ export class ProfileService {
 
     /**
      * Get sub counties for a specific district using REST API
-     * Table name: sub_counties (with underscore)
      * @param {number} districtId - District ID
      * @returns {Promise<Object>} Sub counties data
      */
@@ -226,7 +288,6 @@ export class ProfileService {
 
     /**
      * Upload profile photo to Supabase Storage
-     * Note: This uses the existing Supabase client for storage operations
      * @param {File} file - Image file to upload
      * @param {string} userId - User ID for file organization
      * @returns {Promise<Object>} Upload result
@@ -342,7 +403,7 @@ export class ProfileService {
         // Gender validation
         if (!profileData.gender) {
             errors.gender = 'Gender is required';
-        } else if (!['Male', 'Female', 'Other'].includes(profileData.gender)) {
+        } else if (!['Male', 'Female', 'Other', 'Prefer not to say'].includes(profileData.gender)) {
             errors.gender = 'Please select a valid gender option';
         }
 
@@ -358,6 +419,73 @@ export class ProfileService {
     }
 
     /**
+     * Get user profile from the profiles table
+     * @param {string} userId - User ID to get profile for
+     * @returns {Promise<Object>} Profile data
+     */
+    async getProfile(userId) {
+        try {
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', userId)
+                .single();
+
+            if (error) {
+                console.error('Error getting profile:', error);
+                throw new Error(error.message);
+            }
+
+            return {
+                success: true,
+                data: data
+            };
+        } catch (error) {
+            console.error('Error getting profile:', error);
+            return {
+                success: false,
+                error: error.message || 'Failed to get profile'
+            };
+        }
+    }
+
+    /**
+     * Update profile photo URL in the profiles table
+     * @param {string} userId - User ID
+     * @param {string} photoUrl - Photo URL to update
+     * @returns {Promise<Object>} Update result
+     */
+    async updateProfilePhoto(userId, photoUrl) {
+        try {
+            const { data, error } = await supabase
+                .from('profiles')
+                .update({
+                    profile_picture: photoUrl,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', userId)
+                .select()
+                .single();
+
+            if (error) {
+                console.error('Error updating profile photo:', error);
+                throw new Error(error.message);
+            }
+
+            return {
+                success: true,
+                data: data
+            };
+        } catch (error) {
+            console.error('Error updating profile photo:', error);
+            return {
+                success: false,
+                error: error.message || 'Failed to update profile photo'
+            };
+        }
+    }
+
+    /**
      * Handle API errors and provide user-friendly messages
      * @param {string} error - Error message from API
      * @returns {string} User-friendly error message
@@ -365,10 +493,10 @@ export class ProfileService {
     formatErrorMessage(error) {
         const errorMappings = {
             'Username must be 3-30 characters long and contain only letters, numbers, underscore, or hyphen': 'Please choose a username with 3-30 characters using only letters, numbers, underscore, or hyphen.',
-            'Username already exists': 'This username is already taken. Please choose a different one.',
-            'Invalid or expired session': 'Your session has expired. Please log in again.',
-            'Phone number must be in international format': 'Please enter a valid phone number.',
-            'Profile already exists for this user': 'You already have a profile. Please contact support if you need to update it.'
+            'This username is already taken. Please choose a different one.': 'This username is already taken. Please choose a different one.',
+            'A profile with this information already exists.': 'A profile with this information already exists.',
+            'Required profile information is missing. Please fill all required fields.': 'Please fill in all required fields.',
+            'Failed to create profile in database': 'Unable to save profile. Please try again.',
         };
 
         return errorMappings[error] || error || 'An unexpected error occurred. Please try again.';

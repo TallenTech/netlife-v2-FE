@@ -295,7 +295,8 @@ const WhatsAppAuth = ({ onBack, onContinue }) => {
           phoneNumber: cleanedPhone,
           verified: true,
           timestamp: Date.now(),
-          user: result.user
+          user: result.user,
+          session: result.session // Store session data with access_token
         };
         
         localStorage.setItem('netlife_auth', JSON.stringify(authData));

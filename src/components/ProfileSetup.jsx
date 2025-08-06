@@ -244,22 +244,38 @@ const ProfileSetup = ({ onBack, onContinue, authData, isNewDependent = false, on
     setIsSubmitting(true);
     
     try {
-      // Get user token from auth context
-      const userToken = user?.access_token || authData?.access_token;
+      // Get authentication session from stored auth data
+      const storedAuth = localStorage.getItem('netlife_auth');
+      let authSession = null;
       
-      if (!userToken) {
-        throw new Error('Authentication token not found. Please log in again.');
+      console.log('Stored auth data:', storedAuth);
+      
+      if (storedAuth) {
+        const authData = JSON.parse(storedAuth);
+        console.log('Parsed auth data:', authData);
+        authSession = authData.session;
+        console.log('Extracted session:', authSession ? 'Session found' : 'No session found');
       }
+      
+      if (!authSession || !authSession.access_token) {
+        console.error('No valid authentication session found');
+        throw new Error('Authentication session not found. Please complete WhatsApp verification first.');
+      }
+      
+      console.log('Using authentication session for profile creation');
 
       // Upload profile photo if provided
       let profilePhotoUrl = null;
-      if (profileData.profilePhoto && user?.id) {
+      if (profileData.profilePhoto) {
+        // Generate a temporary user ID for photo upload
+        const tempUserId = crypto?.randomUUID?.() || `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        
         // Convert data URL to File object for upload
         const response = await fetch(profileData.profilePhoto);
         const blob = await response.blob();
         const file = new File([blob], 'profile-photo.jpg', { type: 'image/jpeg' });
         
-        const photoResult = await profileService.uploadProfilePhoto(file, user.id);
+        const photoResult = await profileService.uploadProfilePhoto(file, tempUserId);
         if (photoResult.success) {
           profilePhotoUrl = photoResult.url;
         } else {
@@ -272,11 +288,11 @@ const ProfileSetup = ({ onBack, onContinue, authData, isNewDependent = false, on
         }
       }
 
-      // Complete profile via API
+      // Complete profile via direct database insertion with authentication
       const profileResult = await profileService.completeProfile({
         ...profileData,
         profilePhotoUrl
-      }, userToken);
+      }, authSession);
       
       if (!profileResult.success) {
         throw new Error(profileService.formatErrorMessage(profileResult.error));
@@ -285,14 +301,14 @@ const ProfileSetup = ({ onBack, onContinue, authData, isNewDependent = false, on
       // Success - show confirmation and proceed
       toast({
         title: "Profile Created Successfully",
-        description: "Your profile has been saved securely.",
+        description: "Your profile has been saved to the database successfully.",
       });
 
       // Store profile data locally for immediate use
       const completeProfile = {
         id: profileResult.data.id,
         ...profileResult.data,
-        phoneNumber: authData?.phoneNumber || '',
+        phoneNumber: profileResult.data.whatsapp_number,
         createdAt: new Date().toISOString()
       };
       
@@ -307,7 +323,7 @@ const ProfileSetup = ({ onBack, onContinue, authData, isNewDependent = false, on
       
       toast({
         title: "Profile Creation Failed",
-        description: error.message,
+        description: `Failed to save profile to database: ${error.message}`,
         variant: "destructive",
       });
 
@@ -315,7 +331,7 @@ const ProfileSetup = ({ onBack, onContinue, authData, isNewDependent = false, on
       const fallbackProfile = {
         id: 'main',
         ...profileData,
-        phoneNumber: authData?.phoneNumber || '',
+        phoneNumber: authSession?.user?.phone || '',
         createdAt: Date.now(),
         needsSync: true // Flag for later synchronization
       };
@@ -324,7 +340,7 @@ const ProfileSetup = ({ onBack, onContinue, authData, isNewDependent = false, on
       
       toast({
         title: "Saved Offline",
-        description: "Your profile has been saved locally and will sync when connection is restored.",
+        description: "Database connection failed. Profile saved locally and will sync when connection is restored.",
         variant: "default",
       });
 
@@ -470,8 +486,8 @@ const ProfileSetup = ({ onBack, onContinue, authData, isNewDependent = false, on
 
               <div className="space-y-2">
                 <label className="text-gray-800 font-medium">Gender</label>
-                <div className="grid grid-cols-3 gap-3">
-                  {['Male', 'Female', 'Other'].map((gender) => (
+                <div className="grid grid-cols-2 gap-3">
+                  {['Male', 'Female', 'Other', 'Prefer not to say'].map((gender) => (
                     <button
                       key={gender}
                       onClick={() => {

@@ -2,13 +2,13 @@
 
 ## 🚀 Base URL
 ```
-https://rpmqpxtryrlsdsijwipm.supabase.co/functions/v1
+https://YOUR_SUPABASE_PROJECT_ID.supabase.co/functions/v1
 ```
 
 ## 🔑 Authentication
 All requests require the Supabase Anon Key in the Authorization header:
 ```
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJwbXFweHRyeXJsc2RzaWp3aXBtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMzMzUwNjMsImV4cCI6MjA2ODkxMTA2M30.iLRBzB2alt_KO5fa2hBkE1QgnUd1o6iRGnkOYBZzbyc
+Authorization: Bearer YOUR_SUPABASE_ANON_KEY
 ```
 
 ---
@@ -22,14 +22,14 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 ### Request
 ```json
 {
-    "phone": "+256758361967"
+    "phone": "+1234567890"
 }
 ```
 
 ### Headers
 ```
 Content-Type: application/json
-Authorization: Bearer {SUPABASE_ANON_KEY}
+Authorization: Bearer YOUR_SUPABASE_ANON_KEY
 ```
 
 ### Response (Success - 200)
@@ -68,7 +68,7 @@ Authorization: Bearer {SUPABASE_ANON_KEY}
 ### Request
 ```json
 {
-    "phone": "+256758361967",
+    "phone": "+1234567890",
     "code": "123456"
 }
 ```
@@ -76,7 +76,7 @@ Authorization: Bearer {SUPABASE_ANON_KEY}
 ### Headers
 ```
 Content-Type: application/json
-Authorization: Bearer {SUPABASE_ANON_KEY}
+Authorization: Bearer YOUR_SUPABASE_ANON_KEY
 ```
 
 ### Response (Success - 200)
@@ -86,12 +86,29 @@ Authorization: Bearer {SUPABASE_ANON_KEY}
     "message": "OTP code verified successfully",
     "user": {
         "id": "550e8400-e29b-41d4-a716-446655440000",
-        "email": "256758361967@temp.netlife.com",
-        "phone": "+256758361967",
+        "email": "1234567890@temp.netlife.com",
+        "phone": "+1234567890",
         "user_metadata": {
-            "phone": "+256758361967",
+            "phone": "+1234567890",
             "verified_phone": true
         }
+    },
+    "session": {
+        "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+        "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+        "expires_in": 3600,
+        "token_type": "bearer",
+        "user": {
+            "id": "550e8400-e29b-41d4-a716-446655440000",
+            "email": "1234567890@temp.netlife.com",
+            "phone": "+1234567890"
+        }
+    },
+    "profile": {
+        "id": "550e8400-e29b-41d4-a716-446655440000",
+        "whatsapp_number": "+1234567890",
+        "created_at": "2025-02-03T10:00:00.000Z",
+        "updated_at": "2025-02-03T10:00:00.000Z"
     }
 }
 ```
@@ -127,16 +144,16 @@ Authorization: Bearer {SUPABASE_ANON_KEY}
     "full_name": "John Doe",
     "date_of_birth": "1990-05-15",
     "gender": "male",
-    "district": "Kampala",
-    "sub_county": "Central Division",
-    "preferred_language": "en"
+    "district": "Your District",
+    "sub_county": "Your Sub County",
+    "profile_picture": "https://example.com/avatar.jpg"
 }
 ```
 
 ### Headers
 ```
 Content-Type: application/json
-Authorization: Bearer {USER_JWT_TOKEN}  // User's JWT token from verify-code
+Authorization: Bearer USER_JWT_TOKEN  // User's JWT token from verify-code
 ```
 
 ### Field Validation Rules
@@ -146,7 +163,7 @@ Authorization: Bearer {USER_JWT_TOKEN}  // User's JWT token from verify-code
 - **gender**: "male", "female", "other", "prefer_not_to_say"
 - **district**: Any text (should match districts table)
 - **sub_county**: Any text (optional)
-- **preferred_language**: "en", "es", "sw"
+- **profile_picture**: URL or avatar identifier (optional)
 
 ### Response (Success - 200)
 ```json
@@ -155,14 +172,14 @@ Authorization: Bearer {USER_JWT_TOKEN}  // User's JWT token from verify-code
     "message": "Profile completed successfully",
     "profile": {
         "id": "550e8400-e29b-41d4-a716-446655440000",
-        "whatsapp_number": "+256758361967",
+        "whatsapp_number": "+1234567890",
         "username": "johndoe123",
         "full_name": "John Doe",
         "date_of_birth": "1990-05-15",
         "gender": "male",
-        "district": "Kampala",
-        "sub_county": "Central Division",
-        "preferred_language": "en",
+        "district": "Your District",
+        "sub_county": "Your Sub County",
+        "profile_picture": "https://example.com/avatar.jpg",
         "created_at": "2025-02-03T10:00:00.000Z",
         "updated_at": "2025-02-03T10:05:00.000Z"
     }
@@ -195,8 +212,8 @@ Authorization: Bearer {USER_JWT_TOKEN}  // User's JWT token from verify-code
 
 ### Headers
 ```
-Authorization: Bearer {SUPABASE_ANON_KEY}
-apikey: {SUPABASE_ANON_KEY}
+Authorization: Bearer YOUR_SUPABASE_ANON_KEY
+apikey: YOUR_SUPABASE_ANON_KEY
 ```
 
 ### Response (Success - 200)
@@ -204,20 +221,14 @@ apikey: {SUPABASE_ANON_KEY}
 [
     {
         "id": 1,
-        "name": "Kampala",
-        "region": "Central",
+        "name": "District 1",
+        "region": "Region 1",
         "created_at": "2025-02-03T10:00:00.000Z"
     },
     {
         "id": 2,
-        "name": "Wakiso",
-        "region": "Central",
-        "created_at": "2025-02-03T10:00:00.000Z"
-    },
-    {
-        "id": 3,
-        "name": "Jinja",
-        "region": "Eastern",
+        "name": "District 2",
+        "region": "Region 2",
         "created_at": "2025-02-03T10:00:00.000Z"
     }
 ]
@@ -233,25 +244,25 @@ apikey: {SUPABASE_ANON_KEY}
 
 ### Headers
 ```
-Authorization: Bearer {SUPABASE_ANON_KEY}
-apikey: {SUPABASE_ANON_KEY}
+Authorization: Bearer YOUR_SUPABASE_ANON_KEY
+apikey: YOUR_SUPABASE_ANON_KEY
 ```
 
 ### Query Parameters
-- `district_id`: Filter by district ID (e.g., `eq.1` for Kampala)
+- `district_id`: Filter by district ID (e.g., `eq.1` for District 1)
 
 ### Response (Success - 200)
 ```json
 [
     {
         "id": 1,
-        "name": "Central Division",
+        "name": "Sub County 1",
         "district_id": 1,
         "created_at": "2025-02-03T10:00:00.000Z"
     },
     {
         "id": 2,
-        "name": "Kawempe Division",
+        "name": "Sub County 2",
         "district_id": 1,
         "created_at": "2025-02-03T10:00:00.000Z"
     }
@@ -264,33 +275,34 @@ apikey: {SUPABASE_ANON_KEY}
 
 ### Step 1: Send OTP
 ```bash
-curl -X POST https://rpmqpxtryrlsdsijwipm.supabase.co/functions/v1/send-code \
+curl -X POST https://YOUR_SUPABASE_PROJECT_ID.supabase.co/functions/v1/send-code \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer {SUPABASE_ANON_KEY}" \
-  -d '{"phone": "+256758361967"}'
+  -H "Authorization: Bearer YOUR_SUPABASE_ANON_KEY" \
+  -d '{"phone": "+1234567890"}'
 ```
 
 ### Step 2: Verify OTP
 ```bash
-curl -X POST https://rpmqpxtryrlsdsijwipm.supabase.co/functions/v1/verify-code \
+curl -X POST https://YOUR_SUPABASE_PROJECT_ID.supabase.co/functions/v1/verify-code \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer {SUPABASE_ANON_KEY}" \
-  -d '{"phone": "+256758361967", "code": "123456"}'
+  -H "Authorization: Bearer YOUR_SUPABASE_ANON_KEY" \
+  -d '{"phone": "+1234567890", "code": "123456"}'
 ```
 
 ### Step 3: Complete Profile
 ```bash
-curl -X POST https://rpmqpxtryrlsdsijwipm.supabase.co/functions/v1/complete-profile \
+# Use the access_token from verify-code response
+curl -X POST https://YOUR_SUPABASE_PROJECT_ID.supabase.co/functions/v1/complete-profile \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer {USER_JWT_TOKEN}" \
+  -H "Authorization: Bearer ACCESS_TOKEN_FROM_VERIFY_CODE" \
   -d '{
     "username": "johndoe123",
     "full_name": "John Doe",
     "date_of_birth": "1990-05-15",
     "gender": "male",
-    "district": "Kampala",
-    "sub_county": "Central Division",
-    "preferred_language": "en"
+    "district": "Your District",
+    "sub_county": "Your Sub County",
+    "profile_picture": "https://example.com/avatar.jpg"
   }'
 ```
 
@@ -310,16 +322,12 @@ curl -X POST https://rpmqpxtryrlsdsijwipm.supabase.co/functions/v1/complete-prof
 
 ---
 
-## 🧪 Testing in Postman
+## 🧪 Testing
 
-1. **Import Collection**: Import `WhatsApp_Auth_API_Collection.postman_collection.json`
-2. **Import Environment**: Import `WhatsApp_Auth_Environment.postman_environment.json`
-3. **Run Tests**: Execute requests in order (Send OTP → Verify OTP → Complete Profile)
-
-### Environment Variables
-- `SUPABASE_URL`: https://rpmqpxtryrlsdsijwipm.supabase.co
-- `SUPABASE_ANON_KEY`: Your anon key
-- `TEST_PHONE_NUMBER`: +256758361967
+### Environment Variables Needed
+- `SUPABASE_URL`: Your Supabase project URL
+- `SUPABASE_ANON_KEY`: Your Supabase anon key
+- `TEST_PHONE_NUMBER`: Your test phone number
 - `USER_JWT_TOKEN`: User's JWT (from verify-code response)
 
 ---
