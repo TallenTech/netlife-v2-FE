@@ -1,0 +1,5 @@
+{
+  "imports": {
+    "twilio": "npm:twilio@^5.2.2"
+  }
+}

@@ -1,21 +1,28 @@
 import React from "react";
 import { Helmet } from "react-helmet";
+import {
+  Routes,
+  Route,
+  Navigate,
+  useNavigate,
+  useLocation,
+} from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
-import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import { UserDataProvider } from "@/contexts/UserDataContext";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/lib/supabase";
+import ScrollToTop from "@/components/ScrollToTop";
+import MainLayout from "@/components/layout/MainLayout";
+import NetLifeLogo from "@/components/NetLifeLogo";
+import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 import LandingPage from "@/pages/LandingPage";
-import WhatsAppAuth from "@/components/WhatsAppAuth";
+import WhatsAppAuth from "@/components/auth/WhatsAppAuth";
 import ProfileSetup from "@/components/ProfileSetup";
 import HealthSurvey from "@/components/HealthSurvey";
 import SurveyResults from "@/components/SurveyResults";
-import MainLayout from "@/components/layout/MainLayout";
-import NetLifeLogo from "@/components/NetLifeLogo";
-import NotFound from "@/pages/NotFound";
-import ScrollToTop from "@/components/ScrollToTop";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import TermsOfService from "@/pages/TermsOfService";
-import { UserDataProvider } from "@/contexts/UserDataContext";
-import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import PWAInstallPrompt from "@/components/PWAInstallPrompt";
+import NotFound from "@/pages/NotFound";
 
 function App() {
   return (
@@ -50,7 +57,6 @@ function AppWrapper() {
           content="Secure, stigma-free digital health services for everyone. Take control of your health with NetLife."
         />
       </Helmet>
-
       <ScrollToTop />
       <PWAInstallPrompt />
       <AppRoutes />
@@ -94,39 +100,30 @@ const OnboardingFlow = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
 
-  const handleAuthContinue = (data, isLogin) => {
-    const existingProfile = JSON.parse(localStorage.getItem("netlife_profile"));
+  const handleAuthContinue = async (user, isLogin) => {
+    const { data: profile, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", user.id)
+      .single();
 
-    if (isLogin) {
-      if (existingProfile && existingProfile.phoneNumber === data.phoneNumber) {
-        login(existingProfile);
-      } else {
-        const tempProfile = {
-          id: "main",
-          username: "Returning User",
-          birthDate: "1990-01-01",
-          gender: "Other",
-          district: "Kampala",
-          subCounty: "",
-          avatar: "avatar-1",
-          profilePhoto: null,
-          phoneNumber: data.phoneNumber,
-          createdAt: Date.now(),
-        };
-        localStorage.setItem("netlife_profile", JSON.stringify(tempProfile));
-        localStorage.setItem(
-          `netlife_health_survey_main`,
-          JSON.stringify({ score: 8, completedAt: Date.now() })
-        );
-        login(tempProfile);
-      }
+    if (error && error.code !== "PGRST116") {
+      console.error("Error fetching profile:", error);
+      return;
+    }
+
+    if (profile) {
+      login(profile);
+      navigate("/dashboard", { replace: true });
     } else {
-      navigate("/welcome/profile-setup");
+      navigate("/welcome/profile-setup", {
+        state: { phoneNumber: user.phone },
+      });
     }
   };
 
-  const handleProfileComplete = (profile) => {
-    navigate(`/welcome/survey/${profile.id || "main"}`);
+  const handleProfileComplete = (newProfile) => {
+    navigate(`/welcome/survey/${newProfile.id || "main"}`);
   };
 
   const handleSurveyComplete = () => {
@@ -134,9 +131,13 @@ const OnboardingFlow = () => {
   };
 
   const handleGoToDashboard = () => {
-    const fullProfile =
-      JSON.parse(localStorage.getItem("netlife_profile")) || {};
-    login(fullProfile);
+    const finalProfile = JSON.parse(localStorage.getItem("netlife_profile"));
+    if (finalProfile) {
+      login(finalProfile);
+      navigate("/dashboard", { replace: true });
+    } else {
+      navigate("/welcome/auth");
+    }
   };
 
   return (
