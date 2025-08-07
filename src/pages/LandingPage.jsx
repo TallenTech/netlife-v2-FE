@@ -1,8 +1,8 @@
-import React from 'react';
-import { motion } from 'framer-motion';
-import { ShieldCheck, HeartPulse, FileLock as UserLock } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import NetLifeLogo from '@/components/NetLifeLogo';
+import React from "react";
+import { motion } from "framer-motion";
+import { ShieldCheck, HeartPulse, FileLock as UserLock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import NetLifeLogo from "@/components/NetLifeLogo";
 
 const LandingPage = ({ onJoin }) => {
   return (
@@ -16,7 +16,7 @@ const LandingPage = ({ onJoin }) => {
           </header>
 
           <main className="text-center">
-            <motion.h1 
+            <motion.h1
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
@@ -28,7 +28,7 @@ const LandingPage = ({ onJoin }) => {
               <br />
               Your Power.
             </motion.h1>
-            <motion.p 
+            <motion.p
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2, duration: 0.6 }}
@@ -39,7 +39,7 @@ const LandingPage = ({ onJoin }) => {
           </main>
 
           <footer className="space-y-8">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4, duration: 0.6 }}
@@ -51,7 +51,9 @@ const LandingPage = ({ onJoin }) => {
               </div>
               <div className="flex items-center space-x-3">
                 <HeartPulse className="w-6 h-6 text-secondary-light-green" />
-                <span className="font-semibold">Personalized Health Services</span>
+                <span className="font-semibold">
+                  Personalized Health Services
+                </span>
               </div>
               <div className="flex items-center space-x-3">
                 <UserLock className="w-6 h-6 text-secondary-light-green" />
@@ -80,14 +82,13 @@ const LandingPage = ({ onJoin }) => {
         <header className="w-full px-8 py-4">
           <NetLifeLogo className="w-28 h-12" variant="white" />
         </header>
-        
+
         <div className="h-full flex items-center justify-center px-8 -mt-16">
           <div className="max-w-6xl mx-auto grid lg:grid-cols-2 gap-12 items-center w-full">
             {/* Left Column - Content */}
             <div className="space-y-8">
-
               <main className="space-y-4">
-                <motion.h1 
+                <motion.h1
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6 }}
@@ -99,14 +100,15 @@ const LandingPage = ({ onJoin }) => {
                   <br />
                   Your Power.
                 </motion.h1>
-                <motion.p 
+                <motion.p
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.2, duration: 0.6 }}
                   className="text-base xl:text-lg text-white/90 max-w-lg leading-relaxed"
                 >
-                  Access secure, stigma-free digital health services for everyone. 
-                  Take control of your health journey with complete privacy and personalized care.
+                  Access secure, stigma-free digital health services for
+                  everyone. Take control of your health journey with complete
+                  privacy and personalized care.
                 </motion.p>
               </main>
 
@@ -127,7 +129,7 @@ const LandingPage = ({ onJoin }) => {
 
             {/* Right Column - Features */}
             <div className="space-y-4">
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.4, duration: 0.6 }}
@@ -139,10 +141,13 @@ const LandingPage = ({ onJoin }) => {
                       <ShieldCheck className="w-5 h-5 text-secondary-light-green" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-bold mb-1">Completely Confidential</h3>
+                      <h3 className="text-lg font-bold mb-1">
+                        Completely Confidential
+                      </h3>
                       <p className="text-white/80 text-sm leading-relaxed">
-                        Your health information is encrypted and protected with military-grade security. 
-                        No one can access your data without your explicit permission.
+                        Your health information is encrypted and protected with
+                        military-grade security. No one can access your data
+                        without your explicit permission.
                       </p>
                     </div>
                   </div>
@@ -154,10 +159,12 @@ const LandingPage = ({ onJoin }) => {
                       <HeartPulse className="w-5 h-5 text-secondary-light-green" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-bold mb-1">Personalized Health Services</h3>
+                      <h3 className="text-lg font-bold mb-1">
+                        Personalized Health Services
+                      </h3>
                       <p className="text-white/80 text-sm leading-relaxed">
-                        Get tailored health recommendations and services based on your unique needs, 
-                        preferences, and health goals.
+                        Get tailored health recommendations and services based
+                        on your unique needs, preferences, and health goals.
                       </p>
                     </div>
                   </div>
@@ -169,9 +176,11 @@ const LandingPage = ({ onJoin }) => {
                       <UserLock className="w-5 h-5 text-secondary-light-green" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-bold mb-1">Anonymous & Secure</h3>
+                      <h3 className="text-lg font-bold mb-1">
+                        Anonymous & Secure
+                      </h3>
                       <p className="text-white/80 text-sm leading-relaxed">
-                        Access health services without revealing your identity. 
+                        Access health services without revealing your identity.
                         Your privacy is our top priority, always.
                       </p>
                     </div>
@@ -184,6 +193,6 @@ const LandingPage = ({ onJoin }) => {
       </div>
     </>
   );
-}; 
+};
 
 export default LandingPage;
