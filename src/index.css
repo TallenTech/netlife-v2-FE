@@ -1,13 +1,12 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --primary: #8E3BFF;
-  --secondary-teal: #1BDEDA;
-  --secondary-sage-green: #9CBFA7;
-  --secondary-light-green: #C9F299;
+  --primary: #8e3bff;
+  --secondary-teal: #1bdeda;
+  --secondary-sage-green: #9cbfa7;
+  --secondary-light-green: #c9f299;
   --background: 0 0% 100%;
   --foreground: 222.2 84% 4.9%;
   --card: 0 0% 100%;
@@ -25,7 +24,7 @@
   --destructive-foreground: 210 40% 98%;
   --border: 214.3 31.8% 91.4%;
   --input: 214.3 31.8% 91.4%;
-  --ring: #8E3BFF;
+  --ring: #8e3bff;
   --radius: 0.5rem;
 }
 
@@ -36,22 +35,22 @@
 body {
   margin: 0;
   padding: 0;
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: "Plus Jakarta Sans", sans-serif;
   background-color: #f7f8fa;
   min-height: 100vh;
   overflow-x: hidden;
 }
 
 .font-lora {
-  font-family: 'Lora', serif;
+  font-family: "Lora", serif;
 }
 
 .gradient-primary {
-  background: linear-gradient(135deg, #8E3BFF 0%, #1BDEDA 100%);
+  background: linear-gradient(135deg, #8e3bff 0%, #1bdeda 100%);
 }
 
 .gradient-secondary {
-  background: linear-gradient(135deg, #1BDEDA 0%, #9CBFA7 50%, #C9F299 100%);
+  background: linear-gradient(135deg, #1bdeda 0%, #9cbfa7 50%, #c9f299 100%);
 }
 
 .username-gradient {
@@ -153,7 +152,9 @@ body {
   transition: opacity 300ms ease-in-out;
 }
 
-input[type="text"], input[type="tel"], input[type="date"] {
+input[type="text"],
+input[type="tel"],
+input[type="date"] {
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
@@ -184,7 +185,7 @@ input[type="text"], input[type="tel"], input[type="date"] {
 }
 
 .avatar-option.selected {
-  border-color: #8E3BFF;
+  border-color: #8e3bff;
   background: rgba(142, 59, 255, 0.1);
 }
 
@@ -197,7 +198,7 @@ input[type="text"], input[type="tel"], input[type="date"] {
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #8E3BFF 0%, #1BDEDA 100%);
+  background: linear-gradient(90deg, #8e3bff 0%, #1bdeda 100%);
   border-radius: 3px;
   transition: width 0.3s ease;
 }
@@ -216,7 +217,7 @@ input[type="text"], input[type="tel"], input[type="date"] {
   border-radius: 50%;
   border: none;
   background: #f0f0f0;
-  color: #8E3BFF;
+  color: #8e3bff;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -230,7 +231,7 @@ input[type="text"], input[type="tel"], input[type="date"] {
 }
 
 .audio-button.primary {
-  background: #8E3BFF;
+  background: #8e3bff;
   color: white;
   width: 64px;
   height: 64px;
@@ -254,7 +255,7 @@ input[type="text"], input[type="tel"], input[type="date"] {
 
 .slider-progress {
   height: 100%;
-  background: #1BDEDA;
+  background: #1bdeda;
   border-radius: 2px;
   transition: width 0.1s ease;
 }
@@ -262,7 +263,7 @@ input[type="text"], input[type="tel"], input[type="date"] {
 .slider-thumb {
   width: 16px;
   height: 16px;
-  background: #8E3BFF;
+  background: #8e3bff;
   border-radius: 50%;
   position: absolute;
   top: 50%;
@@ -289,13 +290,19 @@ input[type="text"], input[type="tel"], input[type="date"] {
 /* Landing page specific responsive styles */
 @media (min-width: 1024px) {
   .landing-gradient {
-    background: linear-gradient(135deg, #8E3BFF 0%, #9d5cff 25%, #1BDEDA 75%, #9CBFA7 100%);
+    background: linear-gradient(
+      135deg,
+      #8e3bff 0%,
+      #9d5cff 25%,
+      #1bdeda 75%,
+      #9cbfa7 100%
+    );
   }
-  
+
   .feature-card {
     transition: all 0.3s ease;
   }
-  
+
   .feature-card:hover {
     transform: translateY(-8px);
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
@@ -309,5 +316,24 @@ input[type="text"], input[type="tel"], input[type="date"] {
     backdrop-filter: blur(20px);
     border: 1px solid rgba(255, 255, 255, 0.3);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  }
+}
+
+/* scroll indicator */
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    @apply h-full overflow-hidden;
   }
 }
