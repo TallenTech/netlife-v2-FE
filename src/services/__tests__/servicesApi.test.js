@@ -3,7 +3,7 @@
  * Tests all core functionality with mock Supabase responses
  */
 
-import { servicesApi, transformServiceData, transformQuestionData, calculateEligibility } from '../servicesApi';
+import { servicesApi, transformServiceData, transformQuestionData, calculateEligibility, extractCommonFields, validateServiceRequestFile, validateDeliveryPreferences } from '../servicesApi';
 import { supabase } from '@/lib/supabase';
 
 // Mock Supabase
@@ -162,11 +162,16 @@ describe('servicesApi', () => {
     });
 
     describe('submitServiceRequest', () => {
-        it('should submit service request successfully', async () => {
+        it('should submit service request successfully with extracted fields', async () => {
             const mockRequest = {
                 user_id: 'user-1',
                 service_id: 'service-1',
-                request_data: { test: 'data' }
+                request_data: {
+                    deliveryMethod: 'Home Delivery',
+                    quantity: '2',
+                    counsellingSupport: 'Yes',
+                    counsellingChannel: 'Phone Call'
+                }
             };
 
             const mockQuery = {
@@ -180,15 +185,134 @@ describe('servicesApi', () => {
             const result = await servicesApi.submitServiceRequest(mockRequest);
 
             expect(result).toBe('request-1');
-            expect(mockQuery.insert).toHaveBeenCalledWith([{
-                ...mockRequest,
+            expect(mockQuery.insert).toHaveBeenCalledWith([expect.objectContaining({
+                user_id: 'user-1',
+                service_id: 'service-1',
                 status: 'pending',
-                created_at: expect.any(String)
-            }]);
+                delivery_method: 'Home Delivery',
+                quantity: 2,
+                counselling_required: true,
+                counselling_channel: 'Phone Call',
+                created_at: expect.any(String),
+                updated_at: expect.any(String)
+            })]);
         });
 
         it('should validate required fields', async () => {
             await expect(servicesApi.submitServiceRequest({})).rejects.toThrow('Missing required field: user_id');
+        });
+
+        it('should handle missing request_data', async () => {
+            const mockRequest = {
+                user_id: 'user-1',
+                service_id: 'service-1'
+            };
+
+            await expect(servicesApi.submitServiceRequest(mockRequest)).rejects.toThrow('Missing required field: request_data');
+        });
+    });
+
+    describe('getUserServiceRequests', () => {
+        it('should fetch user service requests successfully', async () => {
+            const userId = 'user-1';
+            const mockRequests = [
+                {
+                    id: 'req-1',
+                    user_id: userId,
+                    service_id: 'service-1',
+                    status: 'pending',
+                    services: { id: 'service-1', name: 'HIV Testing', slug: 'hiv-testing' }
+                }
+            ];
+
+            const mockQuery = {
+                select: jest.fn().mockReturnThis(),
+                eq: jest.fn().mockReturnThis(),
+                order: jest.fn().mockResolvedValue({ data: mockRequests, error: null })
+            };
+
+            supabase.from.mockReturnValue(mockQuery);
+
+            const result = await servicesApi.getUserServiceRequests(userId);
+
+            expect(supabase.from).toHaveBeenCalledWith('service_requests');
+            expect(mockQuery.eq).toHaveBeenCalledWith('user_id', userId);
+            expect(result).toEqual(mockRequests);
+        });
+
+        it('should validate required userId parameter', async () => {
+            await expect(servicesApi.getUserServiceRequests()).rejects.toThrow('Missing required field: userId');
+        });
+    });
+
+    describe('getServiceQuestionsWithOptions', () => {
+        it('should fetch questions with options successfully', async () => {
+            const serviceId = 'service-1';
+            const mockQuestions = [
+                { id: 'q1', service_id: serviceId, question_text: 'Are you over 18?', question_type: 'yes_no', required: true }
+            ];
+            const mockOptions = [
+                { id: 'o1', question_id: 'q1', option_text: 'Yes', value: 'yes' },
+                { id: 'o2', question_id: 'q1', option_text: 'No', value: 'no' }
+            ];
+
+            // Mock the individual API calls
+            jest.spyOn(servicesApi, 'getServiceQuestions').mockResolvedValue(mockQuestions);
+            jest.spyOn(servicesApi, 'getQuestionOptions').mockResolvedValue(mockOptions);
+
+            const result = await servicesApi.getServiceQuestionsWithOptions(serviceId);
+
+            expect(result).toHaveLength(1);
+            expect(result[0]).toEqual({
+                id: 'q1',
+                service_id: serviceId,
+                question_text: 'Are you over 18?',
+                question_type: 'yes_no',
+                required: true,
+                options: [
+                    { id: 'o1', text: 'Yes', value: 'yes' },
+                    { id: 'o2', text: 'No', value: 'no' }
+                ]
+            });
+        });
+
+        it('should validate required serviceId parameter', async () => {
+            await expect(servicesApi.getServiceQuestionsWithOptions()).rejects.toThrow('Missing required field: serviceId');
+        });
+    });
+
+    describe('getServiceQuestionsWithOptionsOptimized', () => {
+        it('should fetch questions with options using optimized query', async () => {
+            const serviceId = 'service-1';
+            const mockData = [
+                {
+                    id: 'q1',
+                    service_id: serviceId,
+                    question_text: 'Are you over 18?',
+                    question_type: 'yes_no',
+                    required: true,
+                    question_options: [
+                        { id: 'o1', option_text: 'Yes', value: 'yes' },
+                        { id: 'o2', option_text: 'No', value: 'no' }
+                    ]
+                }
+            ];
+
+            const mockQuery = {
+                select: jest.fn().mockReturnThis(),
+                eq: jest.fn().mockReturnThis(),
+                order: jest.fn().mockResolvedValue({ data: mockData, error: null })
+            };
+
+            supabase.from.mockReturnValue(mockQuery);
+
+            const result = await servicesApi.getServiceQuestionsWithOptionsOptimized(serviceId);
+
+            expect(supabase.from).toHaveBeenCalledWith('service_questions');
+            expect(mockQuery.select).toHaveBeenCalledWith(expect.stringContaining('question_options'));
+            expect(mockQuery.eq).toHaveBeenCalledWith('service_id', serviceId);
+            expect(result).toHaveLength(1);
+            expect(result[0].options).toHaveLength(2);
         });
     });
 
@@ -207,6 +331,46 @@ describe('servicesApi', () => {
             supabase.auth.getUser.mockResolvedValue({ data: { user: null }, error: mockError });
 
             await expect(servicesApi.getCurrentUser()).rejects.toThrow('Failed to get current user: Invalid token');
+        });
+    });
+
+    describe('getServiceBySlug', () => {
+        it('should fetch service by slug successfully', async () => {
+            const slug = 'hiv-testing';
+            const mockService = { id: '1', name: 'HIV Testing', slug: 'hiv-testing', description: 'Quick and confidential' };
+
+            const mockQuery = {
+                select: jest.fn().mockReturnThis(),
+                eq: jest.fn().mockReturnThis(),
+                single: jest.fn().mockResolvedValue({ data: mockService, error: null })
+            };
+
+            supabase.from.mockReturnValue(mockQuery);
+
+            const result = await servicesApi.getServiceBySlug(slug);
+
+            expect(supabase.from).toHaveBeenCalledWith('services');
+            expect(mockQuery.eq).toHaveBeenCalledWith('slug', slug);
+            expect(result).toEqual(mockService);
+        });
+
+        it('should return null when service not found', async () => {
+            const slug = 'non-existent';
+            const mockQuery = {
+                select: jest.fn().mockReturnThis(),
+                eq: jest.fn().mockReturnThis(),
+                single: jest.fn().mockResolvedValue({ data: null, error: { code: 'PGRST116' } })
+            };
+
+            supabase.from.mockReturnValue(mockQuery);
+
+            const result = await servicesApi.getServiceBySlug(slug);
+
+            expect(result).toBeNull();
+        });
+
+        it('should validate required slug parameter', async () => {
+            await expect(servicesApi.getServiceBySlug()).rejects.toThrow('Missing required field: slug');
         });
     });
 
@@ -347,6 +511,180 @@ describe('Data Transformation Utilities', () => {
                 eligible: true,
                 score: 100
             });
+        });
+    });
+
+    describe('extractCommonFields', () => {
+        it('should extract common fields from request data', () => {
+            const requestData = {
+                deliveryMethod: 'Home Delivery',
+                deliveryLocation: { address: '123 Main St', coordinates: { lat: 1, lng: 2 } },
+                deliveryDate: '2024-12-01T10:00:00Z',
+                quantity: '3',
+                counsellingSupport: 'Yes',
+                counsellingChannel: 'Phone Call'
+            };
+
+            const result = extractCommonFields(requestData);
+
+            expect(result).toEqual({
+                delivery_method: 'Home Delivery',
+                delivery_location: { address: '123 Main St', coordinates: { lat: 1, lng: 2 } },
+                preferred_date: '2024-12-01T10:00:00Z',
+                quantity: 3,
+                counselling_required: true,
+                counselling_channel: 'Phone Call'
+            });
+        });
+
+        it('should handle alternative field names', () => {
+            const requestData = {
+                accessPoint: 'Facility pickup',
+                preferredDate: '2024-12-01T10:00:00Z',
+                counsellingSupport: 'No'
+            };
+
+            const result = extractCommonFields(requestData);
+
+            expect(result).toEqual({
+                delivery_method: 'Facility pickup',
+                delivery_location: null,
+                preferred_date: '2024-12-01T10:00:00Z',
+                quantity: null,
+                counselling_required: false,
+                counselling_channel: null
+            });
+        });
+
+        it('should handle empty or invalid data', () => {
+            const result1 = extractCommonFields(null);
+            const result2 = extractCommonFields({});
+
+            const expectedEmpty = {
+                delivery_method: null,
+                delivery_location: null,
+                preferred_date: null,
+                quantity: null,
+                counselling_required: null,
+                counselling_channel: null
+            };
+
+            expect(result1).toEqual(expectedEmpty);
+            expect(result2).toEqual(expectedEmpty);
+        });
+    });
+
+    describe('validateServiceRequestFile', () => {
+        it('should validate valid PDF file', () => {
+            const mockFile = {
+                type: 'application/pdf',
+                size: 1024 * 1024 // 1MB
+            };
+
+            expect(() => validateServiceRequestFile(mockFile)).not.toThrow();
+        });
+
+        it('should validate valid image file', () => {
+            const mockFile = {
+                type: 'image/jpeg',
+                size: 2 * 1024 * 1024 // 2MB
+            };
+
+            expect(() => validateServiceRequestFile(mockFile)).not.toThrow();
+        });
+
+        it('should reject invalid file type', () => {
+            const mockFile = {
+                type: 'text/plain',
+                size: 1024
+            };
+
+            expect(() => validateServiceRequestFile(mockFile)).toThrow('Invalid file type');
+        });
+
+        it('should reject oversized file', () => {
+            const mockFile = {
+                type: 'application/pdf',
+                size: 15 * 1024 * 1024 // 15MB
+            };
+
+            expect(() => validateServiceRequestFile(mockFile)).toThrow('File size too large');
+        });
+
+        it('should reject null file', () => {
+            expect(() => validateServiceRequestFile(null)).toThrow('No file provided');
+        });
+    });
+
+    describe('validateDeliveryPreferences', () => {
+        it('should validate valid delivery preferences', () => {
+            const validData = {
+                deliveryMethod: 'Home Delivery',
+                deliveryLocation: { address: '123 Main St' },
+                deliveryDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours from now
+                quantity: '2'
+            };
+
+            const result = validateDeliveryPreferences(validData);
+
+            expect(result.isValid).toBe(true);
+            expect(result.errors).toHaveLength(0);
+        });
+
+        it('should reject invalid delivery method', () => {
+            const invalidData = {
+                deliveryMethod: 'Invalid Method'
+            };
+
+            const result = validateDeliveryPreferences(invalidData);
+
+            expect(result.isValid).toBe(false);
+            expect(result.errors).toContain('Invalid delivery method: Invalid Method');
+        });
+
+        it('should require location for location-based delivery', () => {
+            const invalidData = {
+                deliveryMethod: 'Home Delivery'
+                // Missing deliveryLocation
+            };
+
+            const result = validateDeliveryPreferences(invalidData);
+
+            expect(result.isValid).toBe(false);
+            expect(result.errors).toContain('Delivery location is required for the selected delivery method');
+        });
+
+        it('should reject dates too soon', () => {
+            const invalidData = {
+                deliveryDate: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString() // 2 hours from now
+            };
+
+            const result = validateDeliveryPreferences(invalidData);
+
+            expect(result.isValid).toBe(false);
+            expect(result.errors).toContain('Delivery date must be at least 6 hours from now');
+        });
+
+        it('should reject dates too far in future', () => {
+            const invalidData = {
+                deliveryDate: new Date(Date.now() + 70 * 24 * 60 * 60 * 1000).toISOString() // 70 days from now
+            };
+
+            const result = validateDeliveryPreferences(invalidData);
+
+            expect(result.isValid).toBe(false);
+            expect(result.errors).toContain('Delivery date must be within the next 60 days');
+        });
+
+        it('should reject invalid quantity', () => {
+            const invalidData = {
+                quantity: '15' // Too high
+            };
+
+            const result = validateDeliveryPreferences(invalidData);
+
+            expect(result.isValid).toBe(false);
+            expect(result.errors).toContain('Quantity must be a number between 1 and 10');
         });
     });
 });

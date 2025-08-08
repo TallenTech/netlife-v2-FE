@@ -59,6 +59,23 @@ const ServiceRequestStep = ({ stepConfig, formData, handleInputChange }) => {
     handleFieldChange(name, value);
   };
 
+  const handleLocationSelect = (field, locationData) => {
+    // Enhanced location data processing
+    const processedLocation = {
+      address: locationData.address || locationData,
+      coordinates: locationData.coordinates || null,
+      details: locationData.details || null,
+      timestamp: new Date().toISOString()
+    };
+    
+    handleFieldChange(field.name, processedLocation);
+  };
+
+  const validateDeliveryMethod = (method) => {
+    const validMethods = ['Home Delivery', 'Facility pickup', 'Community Group Delivery', 'Pick-up from facility'];
+    return validMethods.includes(method);
+  };
+
   const ErrorMessage = ({ field }) => {
     return errors[field] ? (
       <motion.p
@@ -135,7 +152,7 @@ const ServiceRequestStep = ({ stepConfig, formData, handleInputChange }) => {
           </div>
         );
       case 'map':
-        return <LocationSearch key={field.name} field={field} value={formData[field.name]} onLocationSelect={(val) => handleFieldChange(field.name, val)} />;
+        return <LocationSearch key={field.name} field={field} value={formData[field.name]} onLocationSelect={(val) => handleLocationSelect(field, val)} />;
       case 'datetime-local':
         return (
           <div key={field.name} className="space-y-2">

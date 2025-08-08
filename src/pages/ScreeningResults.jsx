@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
 import { motion } from 'framer-motion';
-import { CheckCircle, XCircle, ArrowRight } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { servicesApi, transformServiceData } from '@/services/servicesApi';
 import { useUserData } from '@/contexts/UserDataContext';
@@ -25,20 +25,23 @@ const ScreeningResults = () => {
 
       setLoading(true);
 
-      // Load service data
-      const services = await servicesApi.getServices();
-      const foundService = services.find(s => s.id === serviceId);
+      // Load service data by slug
+      const serviceData = await servicesApi.getServiceBySlug(serviceId);
       
-      if (foundService) {
-        setService(transformServiceData(foundService));
-      }
-
-      // Load results from localStorage
-      const storedResults = localStorage.getItem(`screening_results_${serviceId}_${activeProfile.id}`);
-      if (storedResults) {
-        setResults(JSON.parse(storedResults));
+      if (serviceData) {
+        const transformedService = transformServiceData(serviceData);
+        setService(transformedService);
+        
+        // Load results from localStorage using the actual service ID
+        const storedResults = localStorage.getItem(`screening_results_${serviceData.id}_${activeProfile.id}`);
+        if (storedResults) {
+          setResults(JSON.parse(storedResults));
+        } else {
+          navigate(`/services/${serviceId}/screening`);
+          return;
+        }
       } else {
-        navigate(`/services/${serviceId}/screening`);
+        navigate('/services');
         return;
       }
     } catch (error) {
@@ -100,8 +103,10 @@ const ScreeningResults = () => {
 
   if (loading || !results || !service || !activeProfile) {
     return (
-      <div className="mobile-container flex items-center justify-center bg-gray-50">
-        <div className="w-16 h-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+      <div className="bg-white min-h-screen">
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="w-16 h-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+        </div>
       </div>
     );
   }
@@ -119,47 +124,49 @@ const ScreeningResults = () => {
       <Helmet>
         <title>Screening Results - {service.title}</title>
       </Helmet>
-      <div className="mobile-container bg-gray-50">
-        <div className="min-h-screen flex flex-col p-6 text-center">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="flex-1 flex flex-col items-center justify-center"
-          >
-            {eligible ? (
-              <CheckCircle className="w-24 h-24 text-green-500 mb-4" />
-            ) : (
-              <XCircle className="w-24 h-24 text-red-500 mb-4" />
-            )}
+      <div className="bg-white min-h-screen">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 py-4 sm:py-8 min-h-screen flex flex-col">
+          <div className="flex flex-col items-center justify-center text-center py-8">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="flex flex-col items-center w-full"
+            >
+              {/* {eligible ? (
+                <CheckCircle className="w-20 h-20 sm:w-24 sm:h-24 text-green-500 mb-4 sm:mb-6" />
+              ) : (
+                <XCircle className="w-20 h-20 sm:w-24 sm:h-24 text-red-500 mb-4 sm:mb-6" />
+              )} */}
 
-            <h1 className="text-3xl font-extrabold text-gray-900 mb-2">
-              Awesome, {firstName}! Here are your results.
-            </h1>
-            <p className="text-gray-600 text-lg mb-6">
-              For {service.title}.
-            </p>
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mb-2 px-4">
+                Awesome, {firstName}! Here are your results.
+              </h1>
+              <p className="text-gray-600 text-base sm:text-lg mb-6 sm:mb-8 px-4">
+                For {service.title}.
+              </p>
 
-            <div className={`w-52 h-52 rounded-full flex flex-col items-center justify-center mb-8 bg-gradient-to-br ${gradientClass} shadow-lg`}>
-              <p className="text-6xl font-bold text-white drop-shadow-md">{score}%</p>
-              <p className="font-semibold text-white/90 drop-shadow-sm">Urgency Score</p>
-            </div>
-
-            {eligible ? (
-              <div className="bg-white border border-green-200 p-4 rounded-2xl shadow-sm">
-                <p className="text-green-800 font-semibold text-base">
-                  Your score indicates a need for this service. Please take action, {firstName}, and proceed to securely order the support you need.
-                </p>
+              <div className={`w-32 h-32 sm:w-36 sm:h-36 md:w-40 md:h-40 rounded-full flex flex-col items-center justify-center mb-6 sm:mb-8 bg-gradient-to-br ${gradientClass} shadow-lg`}>
+                <p className="text-3xl sm:text-4xl md:text-5xl font-bold text-white drop-shadow-md">{score}%</p>
+                <p className="font-semibold text-white/90 drop-shadow-sm text-xs sm:text-sm">Urgency Score</p>
               </div>
-            ) : (
-              <div className="bg-white border border-gray-200 p-4 rounded-2xl shadow-sm">
-                <h3 className="font-bold text-gray-800 text-lg">{advisory.title}</h3>
-                <p className="text-gray-600 mt-2 text-base">{advisory.message}</p>
-              </div>
-            )}
-          </motion.div>
 
-          <div className="mt-auto space-y-3">
+              {eligible ? (
+                <div className="bg-gray-50 border border-green-200 p-4 sm:p-6 rounded-2xl shadow-sm max-w-md mx-4 mb-8">
+                  <p className="text-green-800 font-semibold text-sm sm:text-base">
+                    Your score indicates a need for this service. Please take action, {firstName}, and proceed to securely order the support you need.
+                  </p>
+                </div>
+              ) : (
+                <div className="bg-gray-50 border border-gray-200 p-4 sm:p-6 rounded-2xl shadow-sm max-w-md mx-4 mb-8">
+                  <h3 className="font-bold text-gray-800 text-base sm:text-lg mb-2">{advisory.title}</h3>
+                  <p className="text-gray-600 text-sm sm:text-base">{advisory.message}</p>
+                </div>
+              )}
+            </motion.div>
+          </div>
+
+          <div className="space-y-3 max-w-md mx-auto px-4">
             <Button
               onClick={handleCTA}
               className={`w-full h-16 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-shadow ${eligible ? 'bg-gradient-to-r from-primary to-purple-500 text-white' : 'bg-gradient-to-r from-secondary-teal to-teal-500 text-white'}`}
@@ -170,7 +177,7 @@ const ScreeningResults = () => {
             <Button
               onClick={() => navigate('/services')}
               variant="ghost"
-              className="w-full h-12"
+              className="w-full h-12 text-gray-600 hover:text-gray-900 mt-2"
             >
               Back to Services
             </Button>

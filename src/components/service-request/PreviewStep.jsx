@@ -12,7 +12,9 @@ const PreviewStep = ({
   setFormData,
   formConfig,
   goToStep,
-  onSubmit
+  onSubmit,
+  submitting = false,
+  submitError = null
 }) => {
   const [consent, setConsent] = useState(false);
   const {
@@ -86,9 +88,55 @@ const PreviewStep = ({
         </label>
       </div>
       
-      <div className="mt-auto p-4 sm:p-6 bg-white border-t fixed bottom-0 left-0 right-0 max-w-[428px] mx-auto">
-        <Button onClick={onSubmit} disabled={!consent} className="w-full h-14 text-lg bg-green-600 hover:bg-green-700 rounded-xl font-bold">
-          Submit Request
+      {/* Error message */}
+      {submitError && (
+        <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-sm text-red-700">
+            <strong>Submission failed:</strong> {submitError}
+          </p>
+          <p className="text-xs text-red-600 mt-1">
+            Your request has been saved locally and you can try submitting again later.
+          </p>
+        </div>
+      )}
+
+      {/* Mobile Submit Button */}
+      <div className="block md:hidden">
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-50">
+          <div className="p-4 max-w-[428px] mx-auto">
+            <Button 
+              onClick={onSubmit} 
+              disabled={!consent || submitting} 
+              className="w-full h-14 text-lg bg-primary hover:bg-primary/90 rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed text-white"
+            >
+              {submitting ? (
+                <div className="flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+                  Submitting...
+                </div>
+              ) : (
+                'Submit Request'
+              )}
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Desktop Submit Button */}
+      <div className="hidden md:block mt-8">
+        <Button 
+          onClick={onSubmit} 
+          disabled={!consent || submitting} 
+          className="w-full h-14 text-lg bg-primary hover:bg-primary/90 rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed text-white"
+        >
+          {submitting ? (
+            <div className="flex items-center justify-center">
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+              Submitting...
+            </div>
+          ) : (
+            'Submit Request'
+          )}
         </Button>
       </div>
     </motion.div>;

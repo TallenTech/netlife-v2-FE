@@ -18,6 +18,9 @@ import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 import LandingPage from "@/pages/LandingPage";
 import WhatsAppAuth from "@/components/auth/WhatsAppAuth";
 import ProfileSetup from "@/components/ProfileSetup";
+
+// Import test setup for development
+
 import HealthSurvey from "@/components/HealthSurvey";
 import SurveyResults from "@/components/SurveyResults";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";

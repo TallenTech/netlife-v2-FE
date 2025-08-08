@@ -50,13 +50,13 @@
 ### Frontend Environment Variables
 ```env
 # Supabase Configuration
-REACT_APP_SUPABASE_URL=https://rpmqpxtryrlsdsijwipm.supabase.co
-REACT_APP_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJwbXFweHRyeXJsc2RzaWp3aXBtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMzMzUwNjMsImV4cCI6MjA2ODkxMTA2M30.iLRBzB2alt_KO5fa2hBkE1QgnUd1o6iRGnkOYBZzbyc
+REACT_APP_SUPABASE_URL=https://your-project-id.supabase.co
+REACT_APP_SUPABASE_ANON_KEY=your_production_anon_key_here
 
 # API Endpoints
-REACT_APP_SEND_CODE_URL=https://rpmqpxtryrlsdsijwipm.supabase.co/functions/v1/send-code
-REACT_APP_VERIFY_CODE_URL=https://rpmqpxtryrlsdsijwipm.supabase.co/functions/v1/verify-code
-REACT_APP_COMPLETE_PROFILE_URL=https://rpmqpxtryrlsdsijwipm.supabase.co/functions/v1/complete-profile
+REACT_APP_SEND_CODE_URL=https://your-project-id.supabase.co/functions/v1/send-code
+REACT_APP_VERIFY_CODE_URL=https://your-project-id.supabase.co/functions/v1/verify-code
+REACT_APP_COMPLETE_PROFILE_URL=https://your-project-id.supabase.co/functions/v1/complete-profile
 ```
 
 ---

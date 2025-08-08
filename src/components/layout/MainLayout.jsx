@@ -23,6 +23,7 @@ import ManageProfiles from "@/pages/ManageProfiles";
 import HealthRecords from "@/pages/HealthRecords";
 import AddProfileFlow from "@/pages/AddProfileFlow";
 import NotFound from "@/pages/NotFound";
+
 import HealthSurvey from "@/components/HealthSurvey";
 import SurveyResults from "@/components/SurveyResults";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
@@ -82,6 +83,7 @@ const MainLayout = ({ handleLogout }) => {
           <Route path="/faqs" element={<FAQs />} />
           <Route path="/survey/:profileId" element={<HealthSurvey />} />
           <Route path="/survey-results" element={<SurveyResults />} />
+
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
