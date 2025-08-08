@@ -144,12 +144,13 @@ const Services = () => {
     return [];
   };
 
-  const handleRequest = (serviceId) => {
+  const handleRequest = (service) => {
     // Test questions for this service in development
     if (import.meta.env.DEV) {
-      testServiceQuestions(serviceId);
+      testServiceQuestions(service.id);
     }
-    navigate(`/services/${serviceId}/intro`);
+    // Use slug for navigation instead of ID
+    navigate(`/services/${service.slug}/intro`);
   };
 
   const handleRetry = () => {
@@ -162,7 +163,7 @@ const Services = () => {
 
   // Loading skeleton component
   const ServiceSkeleton = () => (
-    <div className="bg-gray-50 border p-4 rounded-2xl flex flex-col items-center text-center space-y-3 animate-pulse">
+    <div className="bg-gray-50 border p-4 rounded-2xl flex flex-col items-center text-center space-y-3 h-40 animate-pulse">
       <div className="w-14 h-14 rounded-full bg-gray-200"></div>
       <div className="space-y-2">
         <div className="h-4 bg-gray-200 rounded w-20"></div>
@@ -179,7 +180,7 @@ const Services = () => {
       </Helmet>
       <div className="p-6 bg-white min-h-screen">
         <header className="flex items-center space-x-3 mb-4">
-          <NetLifeLogo className="w-10 h-10" />
+         
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Health Services</h1>
             <p className="text-gray-500">Choose the service you need</p>
@@ -252,7 +253,7 @@ const Services = () => {
 
         <motion.div 
           layout
-          className="grid grid-cols-2 gap-4">
+          className="grid grid-cols-2 md:grid-cols-3 gap-4 mr-4">
           {loading ? (
             // Loading skeletons
             Array.from({ length: 6 }).map((_, index) => (
@@ -295,7 +296,7 @@ const Services = () => {
                   <h3 className="font-bold text-gray-800">{service.title}</h3>
                   <p className="text-xs text-gray-500">{service.desc}</p>
                 </div>
-                <Button onClick={() => handleRequest(service.id)} className="w-full bg-primary text-white rounded-lg">
+                <Button onClick={() => handleRequest(service)} className="w-full bg-primary text-white rounded-lg">
                   Request Now
                 </Button>
               </motion.div>

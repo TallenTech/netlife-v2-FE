@@ -8,12 +8,14 @@
  * @property {string} id - Unique service identifier (UUID)
  * @property {string} name - Service name
  * @property {string} description - Service description
+ * @property {string} slug - URL-friendly service identifier
  * @property {string} created_at - Creation timestamp
  */
 
 /**
  * @typedef {Object} ServiceUI - UI-enhanced service structure
  * @property {string} id - Unique service identifier
+ * @property {string} slug - URL-friendly service identifier
  * @property {string} title - Service name (mapped from name)
  * @property {string} desc - Service description (mapped from description)
  * @property {string} category - UI category (routine, urgent, follow-up) - hardcoded

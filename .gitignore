@@ -48,3 +48,11 @@ coverage/
 tmp/
 temp/
 /supabase
+
+# Additional sensitive files
+*.pem
+*.key
+.env.backup
+.env.production
+config/secrets.js
+src/config/credentials.js

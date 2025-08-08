@@ -24,8 +24,8 @@ const SideNav = ({ userData, handleLogout }) => {
   return (
     <aside className="hidden md:flex flex-col w-64 h-screen p-4 bg-white border-r fixed">
       <div className="flex items-center space-x-2 mb-10">
-        <NetLifeLogo className="w-10 h-10" />
-        <span className="text-xl font-bold text-primary font-lora">NetLife</span>
+        <NetLifeLogo className="w-20 h-10" />
+        {/* <span className="text-xl font-bold text-primary font-lora">NetLife</span> */}
       </div>
 
       <nav className="flex-1 space-y-2">

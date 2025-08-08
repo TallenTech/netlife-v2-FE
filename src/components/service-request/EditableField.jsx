@@ -8,6 +8,19 @@ const EditableField = ({ field, value, onSave }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [currentValue, setCurrentValue] = useState(value);
     const hasOptions = field.type === 'radio' || field.type === 'select';
+    
+    // Handle object values (like location data)
+    const getDisplayValue = (val) => {
+        if (typeof val === 'object' && val !== null) {
+            if (val.address) {
+                return val.address;
+            }
+            return JSON.stringify(val);
+        }
+        return val || '';
+    };
+    
+    const displayValue = getDisplayValue(value);
 
     const handleSave = () => {
         onSave(currentValue);
@@ -23,7 +36,7 @@ const EditableField = ({ field, value, onSave }) => {
         return (
             <>
                 <div className="flex items-center justify-between">
-                    <span>{value}</span>
+                    <span>{displayValue}</span>
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleOpen}><Edit className="h-4 w-4 text-primary" /></Button>
                 </div>
                 <Dialog open={isEditing} onOpenChange={setIsEditing}>
@@ -67,7 +80,7 @@ const EditableField = ({ field, value, onSave }) => {
     }
     return (
         <div className="flex items-center justify-between">
-            <span>{value}</span>
+            <span>{displayValue}</span>
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setIsEditing(true)}><Edit className="h-4 w-4 text-primary" /></Button>
         </div>
     );

@@ -11,6 +11,7 @@ CREATE TABLE public.services (
     id uuid NOT NULL DEFAULT uuid_generate_v4(),
     name text NOT NULL,
     description text,
+    slug text UNIQUE NOT NULL,
     created_at timestamp with time zone DEFAULT now(),
     CONSTRAINT services_pkey PRIMARY KEY (id)
 );
