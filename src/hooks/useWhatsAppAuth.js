@@ -3,7 +3,6 @@ import { useToast } from "@/components/ui/use-toast";
 import { whatsappAuth } from "@/services/whatsappService";
 import { useCountdown } from "./useCountdown";
 import {
-  cleanPhoneNumber,
   validatePhoneNumber,
   formatPhoneNumberForDisplay,
 } from "@/lib/phoneUtils";
@@ -12,6 +11,7 @@ import { handleError } from "@/lib/errorHandling";
 export const useWhatsAppAuth = (onSuccess) => {
   const [step, setStep] = useState("phone");
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [verifiedPhoneNumber, setVerifiedPhoneNumber] = useState("");
   const [verificationCode, setVerificationCode] = useState("");
   const [activeTab, setActiveTab] = useState("join");
   const [isLoading, setIsLoading] = useState({
@@ -53,6 +53,8 @@ export const useWhatsAppAuth = (onSuccess) => {
       return handleError(toast, "INVALID_PHONE_NUMBER", validation.error);
     }
 
+    setVerifiedPhoneNumber(validation.cleanedNumber);
+
     setIsLoading((prev) => ({ ...prev, send: true }));
     try {
       await whatsappAuth.sendCode(validation.cleanedNumber);
@@ -83,7 +85,7 @@ export const useWhatsAppAuth = (onSuccess) => {
     setIsLoading((prev) => ({ ...prev, verify: true }));
     try {
       const result = await whatsappAuth.verifyCode(
-        phoneNumber,
+        verifiedPhoneNumber,
         verificationCode
       );
 
@@ -104,7 +106,7 @@ export const useWhatsAppAuth = (onSuccess) => {
 
     setIsLoading((prev) => ({ ...prev, resend: true }));
     try {
-      await whatsappAuth.sendCode(phoneNumber);
+      await whatsappAuth.sendCode(verifiedPhoneNumber);
       startResendTimer();
       toast({
         title: "Code Resent",

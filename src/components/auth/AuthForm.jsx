@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, forwardRef } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import InputMask from "react-input-mask";
@@ -10,6 +10,9 @@ import {
   getPhoneNumberMask,
   normalizePhoneNumberInput,
 } from "@/lib/phoneUtils";
+
+const MaskedInput = forwardRef((props, ref) => <Input {...props} ref={ref} />);
+MaskedInput.displayName = "MaskedInput";
 
 const AuthForm = ({
   isLogin,
@@ -64,8 +67,9 @@ const AuthForm = ({
             onChange={handlePhoneChange}
             disabled={isLoading}
           >
+            {/* We now use our new MaskedInput component here */}
             {(inputProps) => (
-              <Input
+              <MaskedInput
                 {...inputProps}
                 type="tel"
                 placeholder="+256 XXX XXX XXX"
