@@ -11,7 +11,6 @@ import { handleError } from "@/lib/errorHandling";
 export const useWhatsAppAuth = (onSuccess) => {
   const [step, setStep] = useState("phone");
   const [phoneNumber, setPhoneNumber] = useState("");
-  const [verifiedPhoneNumber, setVerifiedPhoneNumber] = useState("");
   const [verificationCode, setVerificationCode] = useState("");
   const [activeTab, setActiveTab] = useState("join");
   const [isLoading, setIsLoading] = useState({
@@ -39,22 +38,16 @@ export const useWhatsAppAuth = (onSuccess) => {
   }, []);
 
   const handleApiError = (error, operation) => {
-    if (networkStatus === "offline") {
+    if (networkStatus === "offline")
       return handleError(toast, "NETWORK_ERROR", "You appear to be offline.");
-    }
-    const errorCode = error?.code || error?.error;
-    handleError(toast, errorCode, error.message);
+    handleError(toast, error.code, error.message);
     console.error(`${operation} error:`, error);
   };
 
   const handlePhoneSubmit = async () => {
     const validation = validatePhoneNumber(phoneNumber);
-    if (!validation.isValid) {
+    if (!validation.isValid)
       return handleError(toast, "INVALID_PHONE_NUMBER", validation.error);
-    }
-
-    setVerifiedPhoneNumber(validation.cleanedNumber);
-
     setIsLoading((prev) => ({ ...prev, send: true }));
     try {
       await whatsappAuth.sendCode(validation.cleanedNumber);
@@ -74,44 +67,36 @@ export const useWhatsAppAuth = (onSuccess) => {
   };
 
   const handleVerifyCode = async () => {
-    if (verificationCode.length !== 6) {
+    if (verificationCode.length !== 6)
       return handleError(
         toast,
         "INVALID_CODE",
         "Please enter the 6-digit code."
       );
-    }
-
     setIsLoading((prev) => ({ ...prev, verify: true }));
     try {
       const result = await whatsappAuth.verifyCode(
-        verifiedPhoneNumber,
+        phoneNumber,
         verificationCode
       );
-
       if (result.success && onSuccess) {
-        onSuccess(result.user, activeTab === "login");
+        await onSuccess(result.session.user, activeTab === "login");
       } else {
         setVerificationCode("");
+        setIsLoading((prev) => ({ ...prev, verify: false }));
       }
     } catch (error) {
       handleApiError(error, "verifyCode");
-    } finally {
       setIsLoading((prev) => ({ ...prev, verify: false }));
     }
   };
 
   const handleResendCode = async () => {
     if (isResendTimerActive || isLoading.resend) return;
-
     setIsLoading((prev) => ({ ...prev, resend: true }));
     try {
-      await whatsappAuth.sendCode(verifiedPhoneNumber);
+      await whatsappAuth.sendCode(phoneNumber);
       startResendTimer();
-      toast({
-        title: "Code Resent",
-        description: "A new code has been sent.",
-      });
     } catch (error) {
       handleApiError(error, "resendCode");
     } finally {

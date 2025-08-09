@@ -1,86 +1,87 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { useToast } from '@/components/ui/use-toast';
-import { useNavigate } from 'react-router-dom';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+} from "react";
+import { supabase } from "@/lib/supabase";
 
-const AuthContext = createContext();
-
-export const useAuth = () => useContext(AuthContext);
+const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null);
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [isLoading, setIsLoading] = useState(true);
-    const { toast } = useToast();
-    const navigate = useNavigate();
+  const [session, setSession] = useState(null);
+  const [user, setUser] = useState(null);
+  const [profile, setProfile] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-    useEffect(() => {
-        const checkUser = () => {
-            try {
-                const profileData = localStorage.getItem('netlife_profile');
-                if (profileData) {
-                    const parsedData = JSON.parse(profileData);
-                    const surveyKey = `netlife_health_survey_${parsedData.id || 'main'}`;
-                    const surveyCompleted = localStorage.getItem(surveyKey);
-                    
-                    if (surveyCompleted) {
-                        setUser(parsedData);
-                        setIsAuthenticated(true);
-                    }
-                }
-            } catch (error) {
-                console.error("Auth check failed", error);
-                localStorage.clear();
-            } finally {
-                setIsLoading(false);
-            }
-        };
+  const fetchUserProfile = useCallback(async (authUser) => {
+    if (!authUser) return null;
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", authUser.id)
+        .single();
+      if (error && error.code !== "PGRST116") throw error;
+      return data;
+    } catch (error) {
+      console.error("Error fetching user profile:", error);
+      return null;
+    }
+  }, []);
 
-        checkUser();
-    }, []);
-
-    const login = useCallback((profileData) => {
+  useEffect(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+      if (event === "INITIAL_SESSION") {
         setIsLoading(true);
-        try {
-            localStorage.setItem('netlife_profile', JSON.stringify(profileData));
-            const surveyKey = `netlife_health_survey_${profileData.id || 'main'}`;
-            if (!localStorage.getItem(surveyKey)) {
-                localStorage.setItem(surveyKey, JSON.stringify({ completed: true, timestamp: Date.now() }));
-            }
-            setUser(profileData);
-            setIsAuthenticated(true);
-            navigate('/dashboard');
-        } catch (error) {
-            console.error("Login failed:", error);
-            toast({ title: 'Login Error', description: 'Could not log you in.', variant: 'destructive' });
-        } finally {
-            setIsLoading(false);
-        }
-    }, [navigate, toast]);
+      }
 
-    const logout = useCallback(() => {
-        setIsLoading(true);
-        toast({
-          title: 'Logged Out',
-          description: 'You have been logged out securely.',
-        });
-        localStorage.clear();
-        setUser(null);
-        setIsAuthenticated(false);
-        navigate('/welcome');
-        setIsLoading(false);
-    }, [navigate, toast]);
+      setSession(newSession);
+      const authUser = newSession?.user || null;
+      setUser(authUser);
 
-    const value = {
-        user,
-        isAuthenticated,
-        isLoading,
-        login,
-        logout,
-    };
+      if (authUser) {
+        const userProfile = await fetchUserProfile(authUser);
+        setProfile(userProfile);
+      } else {
+        setProfile(null);
+      }
 
-    return (
-        <AuthContext.Provider value={value}>
-            {children}
-        </AuthContext.Provider>
-    );
+      setIsLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, [fetchUserProfile]);
+
+  const refreshProfile = useCallback(async () => {
+    setIsLoading(true);
+    const authUser = (await supabase.auth.getUser()).data.user;
+    if (authUser) {
+      const userProfile = await fetchUserProfile(authUser);
+      setProfile(userProfile);
+    }
+    setIsLoading(false);
+  }, [fetchUserProfile]);
+
+  const value = {
+    user,
+    profile,
+    isAuthenticated: !!user && !!profile,
+    isPartiallyAuthenticated: !!user && !profile,
+    isLoading,
+    logout: () => supabase.auth.signOut(),
+    refreshProfile,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined)
+    throw new Error("useAuth must be used within an AuthProvider");
+  return context;
 };
