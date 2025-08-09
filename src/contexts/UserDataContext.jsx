@@ -1,67 +1,69 @@
-import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useMemo,
+  useCallback,
+  useEffect,
+} from "react";
+import { useAuth } from "@/contexts/AuthContext";
 
-const UserDataContext = createContext();
+const UserDataContext = createContext(null);
 
 export const useUserData = () => useContext(UserDataContext);
 
 export const UserDataProvider = ({ children }) => {
-  const { isAuthenticated, user: authUser } = useAuth();
-  const [userData, setUserData] = useState(null);
-  const [activeProfileId, setActiveProfileId] = useState('main');
-  
-  useEffect(() => {
-    if (isAuthenticated && authUser) {
-      setUserData(authUser);
-      const storedActiveProfileId = localStorage.getItem('netlife_active_profile_id');
-      if (storedActiveProfileId && (storedActiveProfileId === 'main' || authUser.dependents?.some(d => d.id === storedActiveProfileId))) {
-        setActiveProfileId(storedActiveProfileId);
-      } else {
-        setActiveProfileId('main');
-        localStorage.setItem('netlife_active_profile_id', 'main');
-      }
-    } else {
-      setUserData(null);
-      setActiveProfileId('main');
-    }
-  }, [isAuthenticated, authUser]);
+  const { profile } = useAuth();
+  const [activeProfileId, setActiveProfileId] = useState("main");
 
-  const updateUserData = useCallback((newUserData) => {
-    const updated = { ...userData, ...newUserData };
-    setUserData(updated);
-    localStorage.setItem('netlife_profile', JSON.stringify(updated));
-  }, [userData]);
+  useEffect(() => {
+    const storedActiveProfileId = localStorage.getItem(
+      "netlife_active_profile_id"
+    );
+    if (storedActiveProfileId) {
+      setActiveProfileId(storedActiveProfileId);
+    }
+  }, []);
+
+  const updateUserData = useCallback((newProfileData) => {
+    console.log(
+      "updateUserData called. Profile is managed by AuthContext.",
+      newProfileData
+    );
+  }, []);
 
   const switchProfile = (profileId) => {
     setActiveProfileId(profileId);
-    localStorage.setItem('netlife_active_profile_id', profileId);
+    localStorage.setItem("netlife_active_profile_id", profileId);
   };
 
-  const getActiveProfile = useMemo(() => {
-    if (!userData) return null;
-    if (activeProfileId === 'main') {
-      return { ...userData, id: 'main', isMain: true };
+  const activeProfile = useMemo(() => {
+    if (!profile) return null;
+    if (activeProfileId === "main") {
+      return { ...profile, id: "main", isMain: true };
     }
-    const dependent = userData.dependents?.find(d => d.id === activeProfileId);
-    return dependent ? { ...dependent, isMain: false } : { ...userData, id: 'main', isMain: true }; // Fallback to main
-  }, [userData, activeProfileId]);
-  
-  const getAllProfiles = useMemo(() => {
-    if (!userData) return [];
-    return [
-      { ...userData, id: 'main', isMain: true },
-      ...(userData.dependents || []),
-    ];
-  }, [userData]);
 
+    const dependent = profile.dependents?.find((d) => d.id === activeProfileId);
+    return dependent
+      ? { ...dependent, isMain: false }
+      : { ...profile, id: "main", isMain: true };
+  }, [profile, activeProfileId]);
+
+  const allProfiles = useMemo(() => {
+    if (!profile) return [];
+    return [
+      { ...profile, id: "main", isMain: true },
+      ...(profile.dependents || []),
+    ];
+  }, [profile]);
 
   const value = {
-    userData,
+    userData: profile,
     updateUserData,
     activeProfileId,
     switchProfile,
-    activeProfile: getActiveProfile,
-    allProfiles: getAllProfiles
+    activeProfile,
+    allProfiles,
   };
 
   return (

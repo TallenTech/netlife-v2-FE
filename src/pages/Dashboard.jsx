@@ -11,32 +11,37 @@ import {
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
-import { useUserData } from "@/contexts/UserDataContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { activeProfile } = useUserData();
+  const { profile } = useAuth();
+
   const handleFeatureClick = () => {
     toast({
       title:
         "🚧 This feature isn't implemented yet—but don't worry! You can request it in your next prompt! 🚀",
     });
   };
+
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return "Good morning";
     if (hour < 18) return "Good afternoon";
     return "Good evening";
   };
+
+  // Use the profile ID for the survey key
   const surveyData = JSON.parse(
-    localStorage.getItem(`netlife_health_survey_${activeProfile?.id}`)
+    localStorage.getItem(`netlife_health_survey_${profile?.id}`)
   ) || {
     score: 8,
     completedAt: Date.now(),
   };
+
   const notificationCount = 3;
-  const firstName = activeProfile?.username?.split(" ")[0] || "";
+  const firstName = profile?.username?.split(" ")[0] || "";
   const usernameElement = (
     <span className="username-gradient">{firstName}</span>
   );
@@ -47,16 +52,14 @@ const Dashboard = () => {
         <title>Dashboard - NetLife</title>
       </Helmet>
       <div className="p-4 md:p-6 bg-gray-50 min-h-screen">
-        <header className="flex justify-between items-start mb-6">
+        <header className="flex justify-between items-center gap-4 mb-6">
           <div className="flex-1">
-            <h1 className="text-2xl font-bold text-gray-900">
+            <h1 className="text-xl md:text-2xl font-bold text-gray-900">
               {getGreeting()}, {usernameElement}!
             </h1>
-            <p className="text-gray-500">
-              How are you feeling today? Need care?
-            </p>
+            <p className="text-sm text-gray-500">How are you feeling today?</p>
           </div>
-          <div className="flex justify-end">
+          <div className="flex-shrink-0">
             <button
               onClick={() => navigate("/notifications")}
               className="relative p-2 rounded-full bg-white border text-gray-600"
@@ -77,7 +80,7 @@ const Dashboard = () => {
           </h2>
           <div className="grid grid-cols-2 gap-4">
             <button
-              onClick={() => navigate(`/survey/${activeProfile?.id}`)}
+              onClick={() => navigate(`/survey/${profile?.id}`)}
               className="bg-gradient-to-br from-primary to-purple-400 text-white p-4 rounded-2xl text-left flex flex-col justify-between h-32 shadow-lg"
             >
               <FileText size={24} />
@@ -104,6 +107,7 @@ const Dashboard = () => {
             Recommended For You
           </h2>
           <div className="flex space-x-4 overflow-x-auto no-scrollbar pb-2">
+            {/* These would eventually come from the database */}
             <div
               onClick={() => navigate("/videos")}
               className="flex-shrink-0 w-40 bg-white border rounded-2xl p-3 cursor-pointer"
