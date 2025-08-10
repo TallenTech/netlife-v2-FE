@@ -95,6 +95,8 @@ function AppRoutes() {
         element={
           isAuthenticated ? (
             <MainLayout handleLogout={logout} />
+          ) : isPartiallyAuthenticated ? (
+            <Navigate to="/welcome/profile-setup" replace />
           ) : (
             <Navigate to="/welcome" replace />
           )
@@ -103,8 +105,8 @@ function AppRoutes() {
       <Route
         path="/welcome/*"
         element={
-          !isAuthenticated ? (
-            <OnboardingFlow isPartiallyAuthed={isPartiallyAuthenticated} />
+          !isAuthenticated && !isPartiallyAuthenticated ? (
+            <OnboardingFlow />
           ) : (
             <Navigate to="/dashboard" replace />
           )
@@ -116,25 +118,23 @@ function AppRoutes() {
   );
 }
 
-const OnboardingFlow = ({ isPartiallyAuthed }) => {
+const OnboardingFlow = () => {
   const navigate = useNavigate();
+  const { isPartiallyAuthenticated } = useAuth();
 
-  if (isPartiallyAuthed) {
+  if (isPartiallyAuthenticated) {
     return (
       <Routes>
         <Route
           path="/profile-setup"
           element={
             <ProfileSetup
-              onContinue={() => navigate("/dashboard")}
-              onBack={() => navigate("/welcome/auth")}
+              onComplete={() => navigate("/dashboard")}
+              isInitialSetup={true}
             />
           }
         />
-        <Route
-          path="*"
-          element={<Navigate to="/welcome/profile-setup" replace />}
-        />
+        <Route path="*" element={<Navigate to="/profile-setup" replace />} />
       </Routes>
     );
   }
@@ -145,10 +145,7 @@ const OnboardingFlow = ({ isPartiallyAuthed }) => {
         path="/"
         element={<LandingPage onJoin={() => navigate("/welcome/auth")} />}
       />
-      <Route
-        path="/auth"
-        element={<WhatsAppAuth onBack={() => navigate("/welcome")} />}
-      />
+      <Route path="/auth" element={<WhatsAppAuth />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

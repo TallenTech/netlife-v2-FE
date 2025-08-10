@@ -21,24 +21,12 @@ export const AuthProvider = ({ children }) => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const cachedData = getCachedUserData();
-    if (cachedData?.profile) {
-      setProfile(cachedData.profile);
-      setManagedProfiles(cachedData.managedProfiles || []);
-      const lastActiveProfileId = localStorage.getItem(
-        "netlife_active_profile_id"
-      );
-      const lastActive = (cachedData.managedProfiles || []).find(
-        (p) => p.id === lastActiveProfileId
-      );
-      setActiveProfile(lastActive || cachedData.profile);
-    }
-
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
-      setUser(session?.user ?? null);
+      const authUser = session?.user ?? null;
+      setUser(authUser);
       setIsLoading(false);
     });
 
@@ -47,53 +35,50 @@ export const AuthProvider = ({ children }) => {
     };
   }, []);
 
-  const syncWithServer = useCallback(async (authUser) => {
+  const fetchFullUserData = useCallback(async () => {
     try {
       const { success, data, error } = await profileService.getUserData();
       if (!success) throw error;
 
       const { mainProfile, managedProfiles: dependents } = data;
+      setCachedUserData(mainProfile, dependents);
+      setProfile(mainProfile);
+      setManagedProfiles(dependents || []);
 
-      if (mainProfile) {
-        setCachedUserData(mainProfile, dependents);
-        setProfile(mainProfile);
-        setManagedProfiles(dependents || []);
-
-        const lastActiveProfileId = localStorage.getItem(
-          "netlife_active_profile_id"
-        );
-        const currentActiveIsValid = [mainProfile, ...(dependents || [])].some(
-          (p) => p.id === lastActiveProfileId
-        );
-
-        if (currentActiveIsValid) {
-          const lastActive = (dependents || []).find(
-            (p) => p.id === lastActiveProfileId
-          );
-          setActiveProfile(lastActive || mainProfile);
-        } else {
-          setActiveProfile(mainProfile);
-        }
-      } else {
-        setProfile(null);
-        setActiveProfile(null);
-      }
+      const lastActiveProfileId = localStorage.getItem(
+        "netlife_active_profile_id"
+      );
+      const lastActive = (dependents || []).find(
+        (p) => p.id === lastActiveProfileId
+      );
+      setActiveProfile(lastActive || mainProfile);
     } catch (e) {
-      console.error("Failed to sync with server:", e);
-      setError(e);
+      console.error("Background sync failed:", e);
     }
   }, []);
 
   useEffect(() => {
-    if (user) {
-      syncWithServer(user);
+    if (user?.user_metadata?.display_name) {
+      fetchFullUserData();
     } else {
-      localStorage.clear();
       setProfile(null);
       setManagedProfiles([]);
       setActiveProfile(null);
     }
-  }, [user, syncWithServer]);
+  }, [user, fetchFullUserData]);
+
+  const refreshSession = useCallback(async () => {
+    const { data } = await supabase.auth.refreshSession();
+    if (data.user) {
+      setUser(data.user);
+    }
+    return data;
+  }, []);
+
+  const logout = useCallback(async () => {
+    await supabase.auth.signOut();
+    localStorage.clear();
+  }, []);
 
   const switchActiveProfile = useCallback(
     (profileId) => {
@@ -113,9 +98,9 @@ export const AuthProvider = ({ children }) => {
 
   const refreshAuthAndProfiles = useCallback(async () => {
     if (user) {
-      await syncWithServer(user);
+      await fetchFullUserData();
     }
-  }, [user, syncWithServer]);
+  }, [user, fetchFullUserData]);
 
   const updateProfile = useCallback(
     async (dataToUpdate) => {
@@ -142,10 +127,6 @@ export const AuthProvider = ({ children }) => {
     [user, profile, activeProfile, refreshAuthAndProfiles]
   );
 
-  const logout = useCallback(async () => {
-    await supabase.auth.signOut();
-  }, []);
-
   const value = {
     user,
     session,
@@ -154,13 +135,13 @@ export const AuthProvider = ({ children }) => {
     activeProfile,
     isLoading,
     error,
-    isAuthenticated: !!user && !!activeProfile,
-    isPartiallyAuthenticated: !!user && !profile,
+    isAuthenticated: !!user?.user_metadata?.display_name,
+    isPartiallyAuthenticated: !!user && !user?.user_metadata?.display_name,
     logout,
     fetchManagedProfiles: refreshAuthAndProfiles,
     switchActiveProfile,
     updateProfile,
-    refreshSession: refreshAuthAndProfiles,
+    refreshSession,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -4,20 +4,21 @@ import { motion } from "framer-motion";
 import { ChevronLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import NetLifeLogo from "@/components/NetLifeLogo";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { profileService } from "@/services/profileService";
 import { Step1Details } from "@/components/profile/Step1Details";
 import { Step2Avatar } from "@/components/profile/Step2Avatar";
+import { supabase } from "@/lib/supabase";
 
 const ProfileSetup = ({
   onBack,
   onComplete,
+  isInitialSetup = false,
   isNewDependent = false,
   existingData = null,
 }) => {
-  const { user } = useAuth();
+  const { user, refreshSession } = useAuth();
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [profileData, setProfileData] = useState({
@@ -110,12 +111,10 @@ const ProfileSetup = ({
   const checkUsername = useCallback(
     async (username) => {
       if (username.length < 3) return;
-
       if (existingData && existingData.username === username) {
         setErrors((prev) => ({ ...prev, username: null }));
         return;
       }
-
       setUsernameChecking(true);
       const profileIdToExclude = existingData ? existingData.id : null;
       const result = await profileService.checkUsernameAvailability(
@@ -123,7 +122,6 @@ const ProfileSetup = ({
         profileIdToExclude
       );
       setUsernameChecking(false);
-
       if (result.available) {
         setErrors((prev) => ({ ...prev, username: null }));
       } else {
@@ -161,13 +159,37 @@ const ProfileSetup = ({
       return navigate("/welcome/auth");
     }
     setIsSubmitting(true);
+
+    if (isNewDependent) {
+      if (onComplete) await onComplete(profileData);
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
-      if (onComplete) {
-        await onComplete(profileData);
+      const profileResult = await profileService.upsertProfile(
+        profileData,
+        user.id,
+        user.phone
+      );
+      if (!profileResult.success) throw profileResult.error;
+
+      if (profilePhotoFile) {
+        await profileService.uploadProfilePhoto(profilePhotoFile, user.id);
       }
+
+      const { error: updateUserError } = await supabase.auth.updateUser({
+        data: { display_name: profileData.username },
+      });
+      if (updateUserError) throw updateUserError;
+
+      toast({ title: "Profile Created!", description: "Welcome to NetLife." });
+
+      if (refreshSession) await refreshSession();
+      if (onComplete) onComplete(profileResult.data);
     } catch (error) {
       toast({
-        title: "Operation Failed",
+        title: "Profile Creation Failed",
         description: error.message,
         variant: "destructive",
       });
