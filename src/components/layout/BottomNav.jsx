@@ -2,7 +2,7 @@ import React from "react";
 import { NavLink } from "react-router-dom";
 import { Home, HeartPulse, PlayCircle, History } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/contexts/AuthContext"; // <-- THE FIX: Import the correct hook
+import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getAvatarEmoji } from "@/lib/utils";
 
@@ -14,30 +14,27 @@ const navLinks = [
 ];
 
 const BottomNav = () => {
-  // --- THIS IS THE FIX ---
-  // We get the user's full profile from the correct AuthContext.
-  // The `profile` object from useAuth is now our source of truth.
-  const { profile } = useAuth();
-  const firstName = profile?.username?.split(" ")[0] || "Account";
-  // --- END OF FIX ---
+  const { activeProfile } = useAuth();
+  const firstName = activeProfile?.username?.split(" ")[0] || "Account";
 
   const renderAvatar = () => {
-    if (!profile) {
+    if (!activeProfile) {
       return <AvatarFallback>A</AvatarFallback>;
     }
-    // The database column is `profile_picture`.
-    const isUrl = profile.profile_picture?.startsWith("http");
+    const isUrl = activeProfile.profile_picture?.startsWith("http");
 
     if (isUrl) {
       return (
-        <AvatarImage src={profile.profile_picture} alt={profile.username} />
+        <AvatarImage
+          src={activeProfile.profile_picture}
+          alt={activeProfile.username}
+        />
       );
     }
-    // If it's not a URL, it's an avatar string like 'avatar-1'
-    if (profile.profile_picture) {
+    if (activeProfile.profile_picture) {
       return (
         <AvatarFallback className="bg-transparent text-lg">
-          {getAvatarEmoji(profile.profile_picture)}
+          {getAvatarEmoji(activeProfile.profile_picture)}
         </AvatarFallback>
       );
     }

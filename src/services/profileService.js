@@ -18,7 +18,7 @@ async function upsertProfile(profileData, userId, phoneNumber) {
       district: profileData.district,
       sub_county: profileData.subCounty,
       profile_picture: profileData.avatar,
-      whatsapp_number: phoneNumber,
+      ...(phoneNumber && { whatsapp_number: phoneNumber }),
       updated_at: new Date().toISOString(),
     };
 
@@ -37,7 +37,6 @@ async function upsertProfile(profileData, userId, phoneNumber) {
 async function uploadProfilePhoto(file, userId) {
   try {
     if (!file) return formatSuccess(null);
-
     const fileExt = file.name.split(".").pop();
     const filePath = `${userId}/${Date.now()}.${fileExt}`;
 
@@ -62,6 +61,28 @@ async function uploadProfilePhoto(file, userId) {
   }
 }
 
+async function updateManagedProfile(profileId, profileData) {
+  try {
+    const { data, error } = await supabase
+      .from("managed_profiles")
+      .update({
+        username: profileData.username,
+        date_of_birth: profileData.date_of_birth,
+        gender: profileData.gender,
+        profile_picture: profileData.profile_picture,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", profileId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return formatSuccess(data);
+  } catch (error) {
+    return formatError(error, "Failed to update managed profile.");
+  }
+}
+
 async function getDistricts() {
   try {
     const { data, error } = await supabase
@@ -71,6 +92,7 @@ async function getDistricts() {
     return formatSuccess(data);
   } catch (error) {
     const fallbackDistricts = [{ id: 1, name: "Kampala", region: "Central" }];
+    console.error("Failed to fetch districts, using fallback:", error);
     return formatError(error, fallbackDistricts);
   }
 }
@@ -84,26 +106,62 @@ async function getSubCounties(districtId) {
     if (error) throw error;
     return formatSuccess(data);
   } catch (error) {
+    console.error("Failed to fetch sub-counties:", error);
     return formatError(error, []);
   }
 }
 
-async function checkUsernameAvailability(username) {
+async function checkUsernameAvailability(username, profileIdToExclude = null) {
   try {
     const { data, error } = await supabase.rpc("check_username_availability", {
       username_to_check: username,
+      profile_id_to_exclude: profileIdToExclude,
     });
     if (error) throw error;
     return { available: data };
   } catch (error) {
+    console.error("Could not check username:", error);
     return { available: false, error: "Could not check username." };
+  }
+}
+
+async function updatePhoneNumber(phone) {
+  try {
+    const { data, error } = await supabase.auth.updateUser(
+      { phone },
+      { channel: "whatsapp" }
+    );
+    if (error) throw error;
+    return formatSuccess(data);
+  } catch (error) {
+    return formatError(
+      error,
+      "Failed to initiate phone number update via WhatsApp."
+    );
+  }
+}
+
+async function verifyPhoneUpdate(phone, token) {
+  try {
+    const { data, error } = await supabase.auth.verifyOtp({
+      phone,
+      token,
+      type: "phone_change",
+    });
+    if (error) throw error;
+    return formatSuccess(data);
+  } catch (error) {
+    return formatError(error, "Invalid OTP or request expired.");
   }
 }
 
 export const profileService = {
   upsertProfile,
   uploadProfilePhoto,
+  updateManagedProfile,
   getDistricts,
   getSubCounties,
   checkUsernameAvailability,
+  updatePhoneNumber,
+  verifyPhoneUpdate,
 };

@@ -16,7 +16,7 @@ import { useAuth } from "@/contexts/AuthContext";
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { profile } = useAuth();
+  const { activeProfile } = useAuth();
 
   const handleFeatureClick = () => {
     toast({
@@ -32,16 +32,15 @@ const Dashboard = () => {
     return "Good evening";
   };
 
-  // Use the profile ID for the survey key
   const surveyData = JSON.parse(
-    localStorage.getItem(`netlife_health_survey_${profile?.id}`)
+    localStorage.getItem(`netlife_health_survey_${activeProfile?.id}`)
   ) || {
     score: 8,
     completedAt: Date.now(),
   };
 
   const notificationCount = 3;
-  const firstName = profile?.username?.split(" ")[0] || "";
+  const firstName = activeProfile?.username?.split(" ")[0] || "";
   const usernameElement = (
     <span className="username-gradient">{firstName}</span>
   );
@@ -80,7 +79,7 @@ const Dashboard = () => {
           </h2>
           <div className="grid grid-cols-2 gap-4">
             <button
-              onClick={() => navigate(`/survey/${profile?.id}`)}
+              onClick={() => navigate(`/survey/${activeProfile?.id}`)}
               className="bg-gradient-to-br from-primary to-purple-400 text-white p-4 rounded-2xl text-left flex flex-col justify-between h-32 shadow-lg"
             >
               <FileText size={24} />
@@ -107,7 +106,6 @@ const Dashboard = () => {
             Recommended For You
           </h2>
           <div className="flex space-x-4 overflow-x-auto no-scrollbar pb-2">
-            {/* These would eventually come from the database */}
             <div
               onClick={() => navigate("/videos")}
               className="flex-shrink-0 w-40 bg-white border rounded-2xl p-3 cursor-pointer"
@@ -199,4 +197,5 @@ const Dashboard = () => {
     </>
   );
 };
+
 export default Dashboard;

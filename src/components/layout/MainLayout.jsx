@@ -64,6 +64,7 @@ const MainLayout = ({ handleLogout }) => {
           <Route path="/videos/:videoId" element={<VideoPlayer />} />
           <Route path="/history" element={<History />} />
           <Route path="/records/:recordId" element={<RecordViewer />} />
+
           <Route
             path="/account"
             element={<Account handleLogout={handleLogout} />}
@@ -73,8 +74,9 @@ const MainLayout = ({ handleLogout }) => {
             element={<HealthInterests />}
           />
           <Route path="/account/manage-profiles" element={<ManageProfiles />} />
-          <Route path="/account/add-profile" element={<AddProfileFlow />} />
           <Route path="/account/health-records" element={<HealthRecords />} />
+          <Route path="/add-profile" element={<AddProfileFlow />} />
+
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/terms-of-service" element={<TermsOfService />} />

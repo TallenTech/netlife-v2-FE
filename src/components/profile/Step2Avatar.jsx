@@ -46,12 +46,12 @@ export const Step2Avatar = ({
       className="space-y-6"
     >
       <div className="text-center">
-        <h2 className="text-xl font-bold">
-          Choose an Avatar or Upload a Photo
-        </h2>
-        <p className="text-gray-600">This is how you'll appear in the app.</p>
+        <h2 className="text-2xl font-bold">Choose an Avatar</h2>
+        <p className="text-gray-600 mt-1">
+          This is how you'll appear in the app.
+        </p>
       </div>
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-4 sm:grid-cols-6 gap-4">
         {avatars.map((avatarId) => (
           <button
             key={avatarId}
@@ -59,16 +59,21 @@ export const Step2Avatar = ({
               setProfileData((p) => ({ ...p, avatar: avatarId }));
               onFileSelect(null, true);
             }}
-            className="relative text-5xl bg-gray-100 rounded-full aspect-square flex items-center justify-center"
+            className="relative text-5xl bg-gray-100 rounded-full aspect-square flex items-center justify-center transition-transform duration-200 hover:scale-110"
           >
             {getAvatarEmoji(avatarId)}
             {profileData.avatar === avatarId && (
-              <div className="absolute top-0 right-0 h-5 w-5 bg-primary rounded-full flex items-center justify-center text-white">
-                <Check size={12} />
+              <div className="absolute top-0 right-0 h-6 w-6 bg-primary rounded-full flex items-center justify-center text-white border-2 border-white">
+                <Check size={16} />
               </div>
             )}
           </button>
         ))}
+      </div>
+      <div className="relative flex items-center py-2">
+        <div className="flex-grow border-t border-gray-300"></div>
+        <span className="flex-shrink mx-4 text-gray-500 text-sm">OR</span>
+        <div className="flex-grow border-t border-gray-300"></div>
       </div>
       <FileUpload onFileSelect={onFileSelect} previewUrl={previewUrl} />
     </motion.div>
