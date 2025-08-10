@@ -11,7 +11,8 @@ import { getAvatarEmoji } from '@/lib/utils';
 const RecordViewer = () => {
   const { recordId } = useParams();
   const navigate = useNavigate();
-  const { allProfiles } = useUserData();
+  const userDataContext = useUserData();
+  const { allProfiles } = userDataContext || {};
 
   const [record, setRecord] = useState(null);
   const [profile, setProfile] = useState(null);

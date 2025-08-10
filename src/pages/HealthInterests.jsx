@@ -12,7 +12,8 @@ const allInterests = [
 ];
 
 const HealthInterests = () => {
-    const { userData, updateUserData } = useUserData();
+    const userDataContext = useUserData();
+    const { userData, updateUserData } = userDataContext || {};
     const [selectedInterests, setSelectedInterests] = useState(userData?.healthInterests || []);
     const { toast } = useToast();
     const navigate = useNavigate();

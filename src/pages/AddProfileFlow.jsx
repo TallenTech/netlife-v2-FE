@@ -10,10 +10,13 @@ import { supabase } from "@/lib/supabase";
  * to the currently logged-in user's account.
  */
 const AddProfileFlow = () => {
-  const navigate = useNavigate();
-  const { toast } = useToast();
-  const { profile, fetchManagedProfiles } = useAuth();
-  const location = useLocation();
+    const [step, setStep] = useState('profile');
+    const [newProfileId, setNewProfileId] = useState(null);
+    const userDataContext = useUserData();
+  const { switchProfile } = userDataContext || {};
+    const navigate = useNavigate();
+    const { toast } = useToast();
+    const location = useLocation();
 
   const searchParams = new URLSearchParams(location.search);
   const editProfileId = searchParams.get("edit");

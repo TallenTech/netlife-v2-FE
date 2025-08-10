@@ -74,7 +74,8 @@ const filters = ["All", "Prevention", "Testing", "Treatment", "Relationships"];
 const Videos = () => {
   const [activeFilter, setActiveFilter] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
-  const { userData } = useUserData();
+  const userDataContext = useUserData();
+  const { userData } = userDataContext || {};
   const navigate = useNavigate();
 
   const filteredVideos = videos.filter((video) => {

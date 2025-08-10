@@ -465,14 +465,30 @@ export const transformQuestionData = (question, options = []) => {
 
 // Export eligibility calculation utility
 export const calculateEligibility = (answers) => {
-    // Simple eligibility logic: ANY "yes" answer = eligible
-    const hasYesAnswer = Object.values(answers).some(answer =>
-        answer === 'yes' || answer === true || answer === 'Yes'
-    );
+    const answerValues = Object.values(answers);
+    const totalQuestions = answerValues.length;
+
+    if (totalQuestions === 0) {
+        return {
+            eligible: false,
+            score: 0
+        };
+    }
+
+    // Count "yes" answers (various formats)
+    const yesAnswers = answerValues.filter(answer =>
+        answer === 'yes' || answer === true || answer === 'Yes' || answer === 'YES'
+    ).length;
+
+    // Calculate realistic percentage score
+    const score = Math.round((yesAnswers / totalQuestions) * 100);
+
+    // Eligibility: at least one "yes" answer
+    const hasYesAnswer = yesAnswers > 0;
 
     return {
         eligible: hasYesAnswer,
-        score: hasYesAnswer ? 100 : 0
+        score: score
     };
 };
 

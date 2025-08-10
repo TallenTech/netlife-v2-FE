@@ -10,7 +10,8 @@ import { useUserData } from '@/contexts/UserDataContext';
 const SurveyResults = ({ onGoToDashboard }) => {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { activeProfile } = useUserData();
+  const userData = useUserData();
+  const activeProfile = userData?.activeProfile;
   const [surveyData, setSurveyData] = useState(null);
 
   useEffect(() => {

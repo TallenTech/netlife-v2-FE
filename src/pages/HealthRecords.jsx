@@ -10,7 +10,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import FileUpload from '@/components/FileUpload';
 
 const HealthRecords = () => {
-    const { userData, updateUserData, activeProfile } = useUserData();
+    const userDataContext = useUserData();
+    const { userData, updateUserData, activeProfile } = userDataContext || {};
     const [recordName, setRecordName] = useState('');
     const [recordFile, setRecordFile] = useState(null);
     const [preview, setPreview] = useState(null);

@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { servicesApi, transformServiceData } from '@/services/servicesApi';
-import { useUserData } from '@/contexts/UserDataContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 const ScreeningResults = () => {
   const { serviceId } = useParams();
@@ -13,15 +13,16 @@ const ScreeningResults = () => {
   const [service, setService] = useState(null);
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(true);
-  const { activeProfile } = useUserData();
+  const { profile, isLoading: authLoading } = useAuth();
 
   useEffect(() => {
     loadServiceAndResults();
-  }, [serviceId, activeProfile]);
+  }, [serviceId, profile]);
 
   const loadServiceAndResults = async () => {
     try {
-      if (!activeProfile) return;
+      // Show loading state while auth is loading
+      if (authLoading) return;
 
       setLoading(true);
 
@@ -33,7 +34,7 @@ const ScreeningResults = () => {
         setService(transformedService);
         
         // Load results from localStorage using the actual service ID
-        const storedResults = localStorage.getItem(`screening_results_${serviceData.id}_${activeProfile.id}`);
+        const storedResults = localStorage.getItem(`screening_results_${serviceData.id}_${profile?.id || 'anonymous'}`);
         if (storedResults) {
           setResults(JSON.parse(storedResults));
         } else {
@@ -101,7 +102,7 @@ const ScreeningResults = () => {
     }
   };
 
-  if (loading || !results || !service || !activeProfile) {
+  if (loading || !results || !service || authLoading) {
     return (
       <div className="bg-white min-h-screen">
         <div className="flex items-center justify-center min-h-screen">
@@ -116,7 +117,7 @@ const ScreeningResults = () => {
   const gradientClass = eligible 
     ? 'from-green-400 to-teal-400' 
     : 'from-red-400 to-orange-400';
-  const firstName = activeProfile?.username?.split(' ')[0] || '';
+  const firstName = profile?.username?.split(' ')[0] || '';
 
 
   return (

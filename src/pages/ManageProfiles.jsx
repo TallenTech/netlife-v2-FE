@@ -28,79 +28,53 @@ import { supabase } from "@/lib/supabase";
 import { getAvatarEmoji } from "@/lib/utils";
 
 const ManageProfiles = () => {
-  const {
-    profile,
-    managedProfiles,
-    activeProfile,
-    switchActiveProfile,
-    fetchManagedProfiles,
-  } = useAuth();
+    const userDataContext = useUserData();
+    const { userData, updateUserData, switchProfile, activeProfile, allProfiles } = userDataContext || {};
+    const { toast } = useToast();
+    const navigate = useNavigate();
 
-  const { toast } = useToast();
-  const navigate = useNavigate();
+    const handleDeleteProfile = (idToDelete) => {
+        if (idToDelete === 'main') return;
+        const updatedDependents = userData.dependents.filter((p) => p.id !== idToDelete);
+        updateUserData({ ...userData, dependents: updatedDependents });
+        
+        if(activeProfile.id === idToDelete) {
+            switchProfile('main');
+        }
 
-  const allProfiles = useMemo(() => {
-    if (!profile) return [];
-    return [
-      { ...profile, isMain: true },
-      ...managedProfiles.map((p) => ({ ...p, isMain: false })),
-    ];
-  }, [profile, managedProfiles]);
+        toast({
+            title: 'Profile Deleted',
+            description: 'The profile has been removed.',
+        });
+    };
+    
+    const handleSwitchProfile = (profileId) => {
+        switchProfile(profileId);
+        const profileName = allProfiles.find(p => p.id === profileId)?.username;
+        toast({
+            title: 'Profile Switched',
+            description: `You are now acting as ${profileName}.`,
+        });
+    };
+    
+    const getAvatarEmoji = (avatarId) => {
+        const emojiMap = {
+          'avatar-1': '👨🏻', 'avatar-2': '👩🏻', 'avatar-3': '👨🏽', 'avatar-4': '👩🏽',
+          'avatar-5': '👨🏿', 'avatar-6': '👩🏿', 'avatar-7': '👦🏻', 'avatar-8': '👧🏽',
+          'avatar-9': '👨🏿‍🦱', 'avatar-10': '👩🏿‍🦱', 'avatar-11': '👨🏽‍🦲', 'avatar-12': '👩🏿‍🦲'
+        };
+        return emojiMap[avatarId] || '👤';
+    };
 
-  const handleSwitchProfile = (profileId) => {
-    const profileName = allProfiles.find((p) => p.id === profileId)?.username;
-    switchActiveProfile(profileId);
-    toast({
-      title: "Profile Switched",
-      description: `You are now browsing as ${profileName}.`,
-    });
-    navigate("/dashboard");
-  };
-
-  // Delete a managed profile from the database.
-  const handleDeleteProfile = async (profileToDelete) => {
-    if (profileToDelete.isMain) return;
-
-    const { error } = await supabase
-      .from("managed_profiles")
-      .delete()
-      .eq("id", profileToDelete.id);
-
-    if (error) {
-      toast({
-        title: "Error",
-        description: "Could not delete profile. Please try again.",
-        variant: "destructive",
-      });
-    } else {
-      toast({
-        title: "Profile Deleted",
-        description: `${profileToDelete.username}'s profile has been removed.`,
-      });
-
-      if (activeProfile?.id === profileToDelete.id) {
-        switchActiveProfile(profile.id);
-      }
-
-      await fetchManagedProfiles();
+    const renderAvatar = (profile) => {
+        if (profile?.profilePhoto) {
+            return <AvatarImage src={profile.profilePhoto} alt={profile.username} />
+        }
+        if (profile?.avatar) {
+            return <AvatarFallback className="text-xl bg-transparent">{getAvatarEmoji(profile.avatar)}</AvatarFallback>
+        }
+        return <AvatarFallback>{profile?.username?.charAt(0).toUpperCase()}</AvatarFallback>
     }
-  };
-
-  const renderAvatar = (p) => {
-    if (p?.profile_picture?.startsWith("http")) {
-      return <AvatarImage src={p.profile_picture} alt={p.username} />;
-    }
-    if (p?.profile_picture) {
-      return (
-        <AvatarFallback className="text-xl bg-transparent">
-          {getAvatarEmoji(p.profile_picture)}
-        </AvatarFallback>
-      );
-    }
-    return (
-      <AvatarFallback>{p?.username?.charAt(0).toUpperCase()}</AvatarFallback>
-    );
-  };
 
   return (
     <>

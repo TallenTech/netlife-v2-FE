@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { useUserData } from '@/contexts/UserDataContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { calculateAge, getAvatarEmoji } from '@/lib/utils';
 import EditableField from './EditableField';
@@ -17,23 +17,24 @@ const PreviewStep = ({
   submitError = null
 }) => {
   const [consent, setConsent] = useState(false);
-  const {
-    activeProfile
-  } = useUserData();
+  const { profile } = useAuth();
   const handleFieldSave = (fieldName, newValue) => {
     setFormData(prev => ({
       ...prev,
       [fieldName]: newValue
     }));
   };
-  const userAge = calculateAge(activeProfile?.birthDate);
-  const firstName = activeProfile?.username?.split(' ')[0] || '';
+  const userAge = calculateAge(profile?.birthDate);
+  const firstName = profile?.username?.split(' ')[0] || '';
   const renderAvatar = () => {
-    if (activeProfile.profilePhoto) {
-      return <AvatarImage src={activeProfile.profilePhoto} alt={activeProfile.username} />;
+    if (!profile) {
+      return <AvatarFallback className="text-2xl">?</AvatarFallback>;
     }
-    if (activeProfile.avatar) {
-      return <AvatarFallback className="text-2xl bg-transparent">{getAvatarEmoji(activeProfile.avatar)}</AvatarFallback>;
+    if (profile.profilePhoto) {
+      return <AvatarImage src={profile.profilePhoto} alt={profile.username} />;
+    }
+    if (profile.avatar) {
+      return <AvatarFallback className="text-2xl bg-transparent">{getAvatarEmoji(profile.avatar)}</AvatarFallback>;
     }
     return <AvatarFallback className="text-2xl">{firstName.charAt(0).toUpperCase()}</AvatarFallback>;
   };
@@ -55,11 +56,11 @@ const PreviewStep = ({
             </div>
         </div>
         <div className="mt-4 space-y-3 text-base text-gray-700">
-          <p><strong>Name:</strong> {activeProfile.username}</p>
-          <p><strong>Gender:</strong> {activeProfile.gender}</p>
+          <p><strong>Name:</strong> {profile?.username || 'N/A'}</p>
+          <p><strong>Gender:</strong> {profile?.gender || 'N/A'}</p>
           {userAge && <p><strong>Age:</strong> {userAge} years</p>}
-          <p><strong>Phone:</strong> {activeProfile.phoneNumber}</p>
-          <p><strong>Location:</strong> {`${activeProfile.subCounty || ''}${activeProfile.subCounty ? ', ' : ''}${activeProfile.district}`}</p>
+          <p><strong>Phone:</strong> {profile?.phoneNumber || 'N/A'}</p>
+          <p><strong>Location:</strong> {`${profile?.subCounty || ''}${profile?.subCounty ? ', ' : ''}${profile?.district || 'N/A'}`}</p>
         </div>
       </div>
 

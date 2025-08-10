@@ -13,8 +13,10 @@ const UserDataContext = createContext(null);
 export const useUserData = () => useContext(UserDataContext);
 
 export const UserDataProvider = ({ children }) => {
-  const { profile } = useAuth();
+  const { profile, isLoading } = useAuth();
   const [activeProfileId, setActiveProfileId] = useState("main");
+
+
 
   useEffect(() => {
     const storedActiveProfileId = localStorage.getItem(
@@ -64,6 +66,7 @@ export const UserDataProvider = ({ children }) => {
     switchProfile,
     activeProfile,
     allProfiles,
+    isLoading,
   };
 
   return (

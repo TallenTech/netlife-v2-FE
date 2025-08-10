@@ -7,13 +7,25 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 
 import { servicesApi, calculateEligibility } from '@/services/servicesApi';
-import { useUserData } from '@/contexts/UserDataContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 const ServiceScreening = () => {
   const { serviceId } = useParams();
   const navigate = useNavigate();
 
-  const { activeProfile } = useUserData();
+  const { profile, isLoading: authLoading } = useAuth();
+  
+  // Show loading state while auth is loading
+  if (authLoading) {
+    return (
+      <div className="bg-white min-h-screen">
+        <div className="flex flex-col items-center justify-center min-h-screen px-6">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -32,10 +44,10 @@ const ServiceScreening = () => {
   // Load saved progress when questions are loaded
   useEffect(() => {
     // Always call the effect, but only execute logic when conditions are met
-    if (questions.length > 0 && actualServiceId && activeProfile) {
+    if (questions.length > 0 && actualServiceId && profile) {
       loadSavedProgress();
     }
-  }, [questions, actualServiceId, activeProfile]);
+  }, [questions, actualServiceId, profile]);
 
   // Cleanup function to clear progress when component unmounts
   useEffect(() => {
@@ -154,9 +166,8 @@ const ServiceScreening = () => {
     );
   }
 
-  if (!activeProfile) {
-    return <div>Loading profile...</div>;
-  }
+  // For now, let's skip the profile requirement to get the service request flow working
+  // TODO: Re-enable profile requirement once auth system is fully integrated
 
   const handleAnswer = async (answer) => {
     const newAnswers = { ...answers, [currentQuestionIndex]: answer };
@@ -204,7 +215,8 @@ const ServiceScreening = () => {
       results.savedToDatabase = databaseSaveSuccess;
       
       // Save results to localStorage (maintaining existing pattern for backward compatibility)
-      localStorage.setItem(`screening_results_${actualServiceId}_${activeProfile.id}`, JSON.stringify(results));
+      const profileId = profile?.id || 'anonymous';
+      localStorage.setItem(`screening_results_${actualServiceId}_${profileId}`, JSON.stringify(results));
       
       // Navigate to results using slug
       navigate(`/services/${serviceId}/analyzing`);
@@ -271,7 +283,7 @@ const ServiceScreening = () => {
 
   // Progress persistence functions
   const getProgressKey = () => {
-    return `screening_progress_${actualServiceId}_${activeProfile?.id}`;
+    return `screening_progress_${actualServiceId}_${profile?.id}`;
   };
 
   const saveProgress = (currentAnswers, questionIndex) => {

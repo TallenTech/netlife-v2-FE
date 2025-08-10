@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
-import { useUserData } from '@/contexts/UserDataContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Download, Share2, FileText, HeartPulse, FilePlus, ChevronRight } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
@@ -13,26 +13,37 @@ const tabs = ['Services', 'Screening', 'Records'];
 const History = () => {
   const [activeTab, setActiveTab] = useState('Services');
   const [historyItems, setHistoryItems] = useState({ Services: [], Screening: [], Records: [] });
-  const { activeProfile } = useUserData();
+  const { profile } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const firstName = activeProfile?.username?.split(' ')[0] || '';
+  const firstName = profile?.username?.split(' ')[0] || '';
   const usernameElement = <span className="username-gradient">{firstName}</span>;
 
   useEffect(() => {
-    if (!activeProfile) return;
+    if (!profile) return;
 
     const loadHistory = () => {
       const services = [];
       const screening = [];
       const records = [];
+      
+      console.log('Loading history for profile:', profile?.id, profile?.username);
+      
+      // Debug: Show all localStorage keys
+      console.log('All localStorage keys:');
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        console.log(`  ${i}: ${key}`);
+      }
 
+      // Load Service Requests
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
         if (key.startsWith('service_request_')) {
           const item = JSON.parse(localStorage.getItem(key));
-          if(item.profile && item.profile.id === activeProfile.id) {
+          console.log('Found service request:', key, 'stored profile ID:', item.profile?.id, 'current profile ID:', profile.id);
+          if(item.profile && item.profile.id === profile.id) {
               const serviceId = key.split('_')[2];
               const timestamp = parseInt(key.split('_')[3]);
               const formConfig = serviceRequestForms[serviceId];
@@ -40,7 +51,7 @@ const History = () => {
                 id: key,
                 title: formConfig?.title || 'Service Request',
                 date: new Date(timestamp).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: '2-digit' }),
-                status: 'Submitted',
+                status: item.savedToDatabase ? 'Submitted' : 'Saved Locally',
                 icon: HeartPulse,
                 data: item,
                 type: 'service_request',
@@ -49,13 +60,40 @@ const History = () => {
               records.push(recordItem);
           }
         }
+        
+        // Load Screening Results
+        if (key.startsWith('screening_results_')) {
+          const item = JSON.parse(localStorage.getItem(key));
+          const keyParts = key.split('_');
+          const serviceId = keyParts[2];
+          const profileId = keyParts[3];
+          
+          console.log('Found screening result:', key, 'stored profile ID:', profileId, 'current profile ID:', profile.id);
+          
+          if (profileId === profile.id || profileId === 'anonymous') {
+            const recordItem = {
+              id: key,
+              title: 'Health Screening Results',
+              date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: '2-digit' }),
+              status: 'Complete',
+              result: `${item.score}% Eligibility Score`,
+              eligibility: item.eligible ? 'Eligible' : 'Not Eligible',
+              icon: FileText,
+              data: item,
+              type: 'screening_results',
+            };
+            screening.push(recordItem);
+            records.push(recordItem);
+          }
+        }
       }
 
-      const surveyData = localStorage.getItem(`netlife_health_survey_${activeProfile.id}`);
+      // Load Health Survey Data
+      const surveyData = localStorage.getItem(`netlife_health_survey_${profile.id}`);
       if (surveyData) {
         const parsedSurvey = JSON.parse(surveyData);
         const surveyRecord = {
-          id: `health_survey_result_${activeProfile.id}`,
+          id: `health_survey_result_${profile.id}`,
           title: 'Health Risk Assessment',
           date: new Date(parsedSurvey.completedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: '2-digit' }),
           status: 'Complete',
@@ -70,13 +108,13 @@ const History = () => {
 
       setHistoryItems({
         Services: services.sort((a, b) => new Date(b.data.completedAt) - new Date(a.data.completedAt)),
-        Screening: screening,
-        Records: records.sort((a, b) => new Date(b.data?.completedAt || b.data?.completedAt) - new Date(a.data?.completedAt || a.data?.completedAt)),
+        Screening: screening.sort((a, b) => new Date(b.data?.completedAt || Date.now()) - new Date(a.data?.completedAt || Date.now())),
+        Records: records.sort((a, b) => new Date(b.data?.completedAt || Date.now()) - new Date(a.data?.completedAt || Date.now())),
       });
     };
 
     loadHistory();
-  }, [activeProfile]);
+  }, [profile]);
 
   const handleShare = async (item) => {
     const shareUrl = `${window.location.origin}/records/${item.id}`;
@@ -111,7 +149,7 @@ const History = () => {
     doc.text(`NetLife Health Record: ${item.title}`, 14, 22);
 
     doc.setFontSize(12);
-    doc.text(`User: ${activeProfile.username}`, 14, 32);
+    doc.text(`User: ${profile?.username || 'User'}`, 14, 32);
     doc.text(`Date: ${item.date}`, 14, 38);
     
     doc.setLineWidth(0.5);
@@ -149,7 +187,7 @@ const History = () => {
   const renderEmptyState = (tab) => {
     const messages = {
       Services: { title: "No Service History", message: "You haven't requested any services yet. Explore our services to get started.", cta: "Go to Services", action: () => navigate('/services'), icon: HeartPulse},
-      Screening: { title: "No Screening History", message: "You haven't completed any health screenings. Take a survey to assess your health.", cta: "Take a Survey", action: () => navigate(`/survey/${activeProfile.id}`), icon: FileText },
+      Screening: { title: "No Screening History", message: "You haven't completed any health screenings. Take a survey to assess your health.", cta: "Take a Survey", action: () => navigate(`/survey/${profile?.id || 'main'}`), icon: FileText },
       Records: { title: "No Health Records", message: "Your submitted forms and results will appear here.", cta: "Go to Dashboard", action: () => navigate('/dashboard'), icon: FilePlus },
     };
     const { title, message, cta, action, icon: Icon } = messages[tab];
@@ -197,10 +235,15 @@ const History = () => {
                       <ChevronRight className="h-5 w-5 text-gray-400" />
                     </div>
                 </div>
-                {item.result && (
+                {(item.result || item.eligibility) && (
                   <>
                     <div className="border-t my-3"></div>
-                    <p className="text-sm text-gray-600">Result: <span className="font-semibold text-gray-800">{item.result}</span></p>
+                    {item.result && (
+                      <p className="text-sm text-gray-600">Result: <span className="font-semibold text-gray-800">{item.result}</span></p>
+                    )}
+                    {item.eligibility && (
+                      <p className="text-sm text-gray-600">Eligibility: <span className={`font-semibold ${item.eligibility === 'Eligible' ? 'text-green-600' : 'text-red-600'}`}>{item.eligibility}</span></p>
+                    )}
                   </>
                 )}
                 <div className="border-t my-3"></div>

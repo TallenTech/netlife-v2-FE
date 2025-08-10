@@ -5,12 +5,24 @@ import { motion } from 'framer-motion';
 import { ArrowLeft, FileText, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { servicesApi, transformServiceData } from '@/services/servicesApi';
-import { useUserData } from '@/contexts/UserDataContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 const ServiceScreeningIntro = () => {
   const { serviceId } = useParams();
   const navigate = useNavigate();
-  const { activeProfile } = useUserData();
+  const { profile, isLoading: authLoading } = useAuth();
+  
+  // Show loading state while auth is loading
+  if (authLoading) {
+    return (
+      <div className="bg-white min-h-screen">
+        <div className="max-w-2xl mx-auto px-6 py-8 flex flex-col items-center justify-center min-h-screen">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
   
   const [service, setService] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -58,6 +70,9 @@ const ServiceScreeningIntro = () => {
       </div>
     );
   }
+
+  // For now, let's skip the profile requirement and just show a generic greeting
+  // TODO: Re-enable profile requirement once auth system is fully integrated
 
   if (error || !service) {
     return (
@@ -114,7 +129,7 @@ const ServiceScreeningIntro = () => {
               transition={{ delay: 0.2, duration: 0.5 }}
               className="text-2xl font-semibold mb-2 text-gray-900"
             >
-              Hi, <span className="font-bold">{activeProfile?.username || 'there'}</span>!
+              Hi, <span className="font-bold">{profile?.username?.split(' ')[0] || 'there'}</span>!
             </motion.p>
             <motion.h1 
               initial={{ opacity: 0, y: 20 }}

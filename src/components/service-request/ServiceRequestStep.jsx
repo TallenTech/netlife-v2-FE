@@ -2,17 +2,16 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Upload, AlertCircle } from 'lucide-react';
 import LocationSearch from '@/components/LocationSearch';
 import FileUpload from '@/components/FileUpload';
 import { useToast } from '@/components/ui/use-toast';
-import { useUserData } from '@/contexts/UserDataContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 const ServiceRequestStep = ({ stepConfig, formData, handleInputChange }) => {
   const [errors, setErrors] = useState({});
   const { toast } = useToast();
-  const { activeProfile } = useUserData();
+  const { profile } = useAuth();
 
   const validateDateTime = (value) => {
     if (!value) return "This field is required.";
@@ -71,11 +70,6 @@ const ServiceRequestStep = ({ stepConfig, formData, handleInputChange }) => {
     handleFieldChange(field.name, processedLocation);
   };
 
-  const validateDeliveryMethod = (method) => {
-    const validMethods = ['Home Delivery', 'Facility pickup', 'Community Group Delivery', 'Pick-up from facility'];
-    return validMethods.includes(method);
-  };
-
   const ErrorMessage = ({ field }) => {
     return errors[field] ? (
       <motion.p
@@ -118,14 +112,19 @@ const ServiceRequestStep = ({ stepConfig, formData, handleInputChange }) => {
         return (
           <div key={field.name} className="space-y-2">
             <Label htmlFor={field.name} className="text-base">{field.label}</Label>
-            <Select onValueChange={(value) => handleFieldChange(field.name, value)} value={formData[field.name]}>
-              <SelectTrigger id={field.name} className="h-14 text-base">
-                <SelectValue placeholder={`Select ${field.label.toLowerCase()}`} />
-              </SelectTrigger>
-              <SelectContent>
-                {field.options.map(option => <SelectItem key={option} value={option}>{option}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <select
+              id={field.name}
+              value={formData[field.name] || ''}
+              onChange={(e) => handleFieldChange(field.name, e.target.value)}
+              className="w-full h-14 px-4 text-base bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all cursor-pointer"
+            >
+              <option value="" disabled>Select {field.label.toLowerCase()}</option>
+              {field.options.map(option => (
+                <option key={option} value={option} className="py-2">
+                  {option}
+                </option>
+              ))}
+            </select>
           </div>
         );
       case 'file':
@@ -134,7 +133,7 @@ const ServiceRequestStep = ({ stepConfig, formData, handleInputChange }) => {
             <Label htmlFor={field.name} className="text-base">{field.label}</Label>
             <FileUpload 
               onFileSelect={(file) => handleFieldChange(field.name, file)}
-              healthRecords={activeProfile?.healthRecords || []}
+              healthRecords={profile?.healthRecords || []}
             />
           </div>
         );

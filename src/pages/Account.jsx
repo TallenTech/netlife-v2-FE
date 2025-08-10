@@ -44,6 +44,8 @@ import { profileService } from "@/services/profileService";
 
 const Account = () => {
   const { toast } = useToast();
+  const userDataContext = useUserData();
+  const { userData, updateUserData, activeProfile } = userDataContext || {};
   const navigate = useNavigate();
   const {
     activeProfile,

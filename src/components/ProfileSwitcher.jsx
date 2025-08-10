@@ -15,7 +15,8 @@ import { useNavigate } from 'react-router-dom';
 import { getAvatarEmoji } from '@/lib/utils';
 
 const ProfileSwitcher = () => {
-  const { allProfiles, activeProfile, switchProfile } = useUserData();
+  const userDataContext = useUserData();
+  const { allProfiles, activeProfile, switchProfile } = userDataContext || {};
   const navigate = useNavigate();
 
   const renderAvatar = (profile) => {
