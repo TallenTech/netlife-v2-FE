@@ -3,7 +3,6 @@ import { Helmet } from "react-helmet";
 import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import { UserDataProvider } from "@/contexts/UserDataContext";
 import ScrollToTop from "@/components/ScrollToTop";
 import MainLayout from "@/components/layout/MainLayout";
 import NetLifeLogo from "@/components/NetLifeLogo";
@@ -95,9 +94,7 @@ function AppRoutes() {
         path="/*"
         element={
           isAuthenticated ? (
-            <UserDataProvider>
-              <MainLayout handleLogout={logout} />
-            </UserDataProvider>
+            <MainLayout handleLogout={logout} />
           ) : isPartiallyAuthenticated ? (
             <Navigate to="/welcome/profile-setup" replace />
           ) : (
@@ -108,8 +105,8 @@ function AppRoutes() {
       <Route
         path="/welcome/*"
         element={
-          !isAuthenticated && !isPartiallyAuthenticated ? (
-            <OnboardingFlow />
+          !isAuthenticated ? (
+            <OnboardingFlow isPartiallyAuthed={isPartiallyAuthenticated} />
           ) : (
             <Navigate to="/dashboard" replace />
           )
@@ -121,11 +118,10 @@ function AppRoutes() {
   );
 }
 
-const OnboardingFlow = () => {
+const OnboardingFlow = ({ isPartiallyAuthed }) => {
   const navigate = useNavigate();
-  const { isPartiallyAuthenticated } = useAuth();
 
-  if (isPartiallyAuthenticated) {
+  if (isPartiallyAuthed) {
     return (
       <Routes>
         <Route
