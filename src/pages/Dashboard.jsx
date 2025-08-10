@@ -65,7 +65,7 @@ const Dashboard = () => {
             >
               <Bell size={22} />
               {notificationCount > 0 && (
-                <span className="absolute top-0 right-0 block h-5 w-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center ring-2 ring-white">
+                <span className="absolute top-0 right-0 h-5 w-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center ring-2 ring-white">
                   {notificationCount}
                 </span>
               )}
