@@ -77,7 +77,20 @@ export const AuthProvider = ({ children }) => {
 
   const logout = useCallback(async () => {
     await supabase.auth.signOut();
-    localStorage.clear();
+    
+    // Clear only auth-related data, preserve user history and records
+    const keysToRemove = [
+      'netlife_active_profile_id',
+      'netlife_cached_user_data',
+      'netlife_language'
+    ];
+    
+    keysToRemove.forEach(key => {
+      localStorage.removeItem(key);
+    });
+    
+    // Note: We preserve service_request_*, netlife_health_survey_*, and screening_results_* 
+    // so users don't lose their history when they log out and back in
   }, []);
 
   const switchActiveProfile = useCallback(

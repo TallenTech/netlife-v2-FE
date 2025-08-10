@@ -6,7 +6,7 @@ import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { serviceRequestForms } from '@/data/serviceRequestForms';
-import { useUserData } from '@/contexts/UserDataContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { servicesApi } from '@/services/servicesApi';
 import ServiceRequestStep from '@/components/service-request/ServiceRequestStep';
 import PreviewStep from '@/components/service-request/PreviewStep';
@@ -15,7 +15,7 @@ import SuccessConfirmation from '@/components/service-request/SuccessConfirmatio
 const ServiceRequest = () => {
   const { serviceId } = useParams();
   const navigate = useNavigate();
-  const { activeProfile } = useUserData();
+  const { activeProfile } = useAuth();
   const formConfig = serviceRequestForms[serviceId];
 
   const [step, setStep] = useState(0);
@@ -178,6 +178,10 @@ const ServiceRequest = () => {
         request_data: processedFormData,
         attachments: processedFormData.attachments || null
       };
+
+      // Debug: Log the form data before submission
+      console.log('🔍 Form data being submitted:', processedFormData);
+      console.log('🔍 Service request data:', serviceRequestData);
 
       // Submit to database
       const requestId = await servicesApi.submitServiceRequest(serviceRequestData);

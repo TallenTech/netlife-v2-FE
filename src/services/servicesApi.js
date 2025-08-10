@@ -300,6 +300,127 @@ export const servicesApi = {
     },
 
     /**
+     * Save screening results to the database
+     * @param {ScreeningResult} result - The screening result object
+     * @returns {Promise<string>} The ID of the created screening result
+     */
+    async saveScreeningResult(result) {
+        try {
+            validateRequiredFields(result, ['user_id', 'service_id', 'score', 'eligible']);
+
+            const resultData = {
+                user_id: result.user_id,
+                service_id: result.service_id,
+                score: result.score,
+                eligible: result.eligible,
+                answers_summary: result.answers || null,
+                completed_at: result.completed_at || new Date().toISOString()
+            };
+
+            const { data, error } = await supabase
+                .from('screening_results')
+                .insert([resultData])
+                .select('id')
+                .single();
+
+            if (error) {
+                throw new Error(`Failed to save screening result: ${error.message}`);
+            }
+
+            return data.id;
+        } catch (error) {
+            logError(error, 'servicesApi.saveScreeningResult', { result });
+            throw new Error(handleApiError(error));
+        }
+    },
+
+    /**
+     * Get screening results for a user
+     * @param {string} userId - The user ID
+     * @returns {Promise<ScreeningResult[]>} Array of screening results
+     */
+    async getUserScreeningResults(userId) {
+        try {
+            validateRequiredFields({ userId }, ['userId']);
+
+            return await retryWithBackoff(async () => {
+                const { data, error } = await supabase
+                    .from('screening_results')
+                    .select(`
+                        *,
+                        services (
+                            id,
+                            name,
+                            description,
+                            slug
+                        )
+                    `)
+                    .eq('user_id', userId)
+                    .order('completed_at', { ascending: false });
+
+                if (error) {
+                    throw new Error(`Failed to fetch user screening results: ${error.message}`);
+                }
+
+                return data || [];
+            });
+        } catch (error) {
+            logError(error, 'servicesApi.getUserScreeningResults', { userId });
+            throw new Error(handleApiError(error));
+        }
+    },
+
+    /**
+     * Delete a service request from the database
+     * @param {string} requestId - The service request ID to delete
+     * @returns {Promise<boolean>} True if deletion was successful
+     */
+    async deleteServiceRequest(requestId) {
+        try {
+            validateRequiredFields({ requestId }, ['requestId']);
+
+            const { error } = await supabase
+                .from('service_requests')
+                .delete()
+                .eq('id', requestId);
+
+            if (error) {
+                throw new Error(`Failed to delete service request: ${error.message}`);
+            }
+
+            return true;
+        } catch (error) {
+            logError(error, 'servicesApi.deleteServiceRequest', { requestId });
+            throw new Error(handleApiError(error));
+        }
+    },
+
+    /**
+     * Delete a screening result from the database
+     * @param {string} resultId - The screening result ID to delete
+     * @returns {Promise<boolean>} True if deletion was successful
+     */
+    async deleteScreeningResult(resultId) {
+        try {
+            validateRequiredFields({ resultId }, ['resultId']);
+
+            const { error } = await supabase
+                .from('screening_results')
+                .delete()
+                .eq('id', resultId);
+
+            if (error) {
+                throw new Error(`Failed to delete screening result: ${error.message}`);
+            }
+
+            return true;
+        } catch (error) {
+            logError(error, 'servicesApi.deleteScreeningResult', { resultId });
+            throw new Error(handleApiError(error));
+        }
+    },
+
+    /**
      * Check if user is authenticated
      * @returns {Promise<boolean>} True if user is authenticated
      */
@@ -465,14 +586,31 @@ export const transformQuestionData = (question, options = []) => {
 
 // Export eligibility calculation utility
 export const calculateEligibility = (answers) => {
-    // Simple eligibility logic: ANY "yes" answer = eligible
-    const hasYesAnswer = Object.values(answers).some(answer =>
-        answer === 'yes' || answer === true || answer === 'Yes'
-    );
+    // Get all answer values
+    const answerValues = Object.values(answers);
+
+    if (answerValues.length === 0) {
+        return {
+            eligible: false,
+            score: 0
+        };
+    }
+
+    // Count "yes" answers (case-insensitive)
+    const yesCount = answerValues.filter(answer => {
+        const normalizedAnswer = String(answer).toLowerCase();
+        return normalizedAnswer === 'yes' || normalizedAnswer === 'true';
+    }).length;
+
+    // Calculate percentage score based on yes answers
+    const score = Math.round((yesCount / answerValues.length) * 100);
+
+    // User is eligible if they have at least one "yes" answer
+    const eligible = yesCount > 0;
 
     return {
-        eligible: hasYesAnswer,
-        score: hasYesAnswer ? 100 : 0
+        eligible,
+        score
     };
 };
 
@@ -542,8 +680,11 @@ export const extractCommonFields = (requestData) => {
     }
 
     // Extract quantity
-    if (requestData.quantity && !isNaN(parseInt(requestData.quantity))) {
-        extracted.quantity = parseInt(requestData.quantity);
+    if (requestData.quantity !== undefined && requestData.quantity !== null && requestData.quantity !== '') {
+        const qty = typeof requestData.quantity === 'number' ? requestData.quantity : parseInt(requestData.quantity);
+        if (!isNaN(qty)) {
+            extracted.quantity = qty;
+        }
     }
 
     // Extract counselling information
@@ -582,6 +723,9 @@ export const validateServiceRequestFile = (file) => {
 export const validateDeliveryPreferences = (requestData) => {
     const errors = [];
 
+    // Debug: Log the request data being validated
+    console.log('🔍 Validating request data:', requestData);
+
     // Validate delivery method
     if (requestData.deliveryMethod || requestData.accessPoint) {
         const method = requestData.deliveryMethod || requestData.accessPoint;
@@ -616,8 +760,10 @@ export const validateDeliveryPreferences = (requestData) => {
     }
 
     // Validate quantity if provided
-    if (requestData.quantity) {
-        const qty = parseInt(requestData.quantity);
+    if (requestData.quantity !== undefined && requestData.quantity !== null && requestData.quantity !== '') {
+        console.log('🔍 Validating quantity:', requestData.quantity, 'type:', typeof requestData.quantity);
+        const qty = typeof requestData.quantity === 'number' ? requestData.quantity : parseInt(requestData.quantity);
+        console.log('🔍 Parsed quantity:', qty, 'isNaN:', isNaN(qty));
         if (isNaN(qty) || qty < 1 || qty > 10) {
             errors.push('Quantity must be a number between 1 and 10');
         }

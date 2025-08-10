@@ -58,7 +58,7 @@ const LocationSearch = ({ field, value, onLocationSelect }) => {
 
   return (
     <div key={field.name} className="space-y-2 relative" ref={containerRef}>
-      <Label htmlFor={field.name} className="text-base">{field.label}</Label>
+      <Label htmlFor={field.name} className="text-base font-semibold text-gray-900">{field.label}</Label>
       <div className="relative">
         <Input
           id={field.name}
@@ -67,19 +67,20 @@ const LocationSearch = ({ field, value, onLocationSelect }) => {
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           onFocus={() => setShowSuggestions(true)}
-          className="pl-10 h-14 text-base"
+          className="pl-12 h-14 text-base bg-gray-50 border-2 border-gray-200 hover:border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200"
         />
-        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+        <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
       </div>
       {showSuggestions && suggestions.length > 0 && (
-        <ul className="absolute z-10 w-full bg-white border border-gray-200 rounded-lg mt-1 shadow-lg max-h-60 overflow-y-auto">
+        <ul className="absolute z-50 w-full bg-white border-2 border-gray-200 rounded-xl mt-1 shadow-xl max-h-60 overflow-y-auto">
           {suggestions.map((loc, index) => (
             <li
               key={index}
               onClick={() => handleSelect(loc)}
-              className="p-3 hover:bg-gray-100 cursor-pointer text-gray-700"
+              className="p-4 hover:bg-primary/10 cursor-pointer text-gray-700 transition-colors duration-150 border-b border-gray-100 last:border-b-0 flex items-center space-x-3"
             >
-              {loc}
+              <MapPin className="h-4 w-4 text-gray-400 flex-shrink-0" />
+              <span className="text-base">{loc}</span>
             </li>
           ))}
         </ul>
