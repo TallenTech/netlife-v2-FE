@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { useUserData } from '@/contexts/UserDataContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { calculateAge, getAvatarEmoji } from '@/lib/utils';
 import EditableField from './EditableField';
@@ -19,7 +19,7 @@ const PreviewStep = ({
   const [consent, setConsent] = useState(false);
   const {
     activeProfile
-  } = useUserData();
+  } = useAuth();
   const handleFieldSave = (fieldName, newValue) => {
     setFormData(prev => ({
       ...prev,

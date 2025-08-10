@@ -479,7 +479,7 @@ describe('Data Transformation Utilities', () => {
 
             expect(result).toEqual({
                 eligible: true,
-                score: 100
+                score: 33 // 1 yes out of 3 answers = 33%
             });
         });
 
@@ -499,7 +499,7 @@ describe('Data Transformation Utilities', () => {
 
             expect(result).toEqual({
                 eligible: true,
-                score: 100
+                score: 33 // 1 true out of 3 answers = 33%
             });
         });
 
@@ -509,7 +509,37 @@ describe('Data Transformation Utilities', () => {
 
             expect(result).toEqual({
                 eligible: true,
-                score: 100
+                score: 33 // 1 Yes out of 3 answers = 33%
+            });
+        });
+
+        it('should calculate correct percentage for multiple yes answers', () => {
+            const answers = { 0: 'yes', 1: 'yes', 2: 'no', 3: 'yes', 4: 'no' };
+            const result = calculateEligibility(answers);
+
+            expect(result).toEqual({
+                eligible: true,
+                score: 60 // 3 yes out of 5 answers = 60%
+            });
+        });
+
+        it('should handle all yes answers', () => {
+            const answers = { 0: 'yes', 1: 'yes', 2: 'yes' };
+            const result = calculateEligibility(answers);
+
+            expect(result).toEqual({
+                eligible: true,
+                score: 100 // 3 yes out of 3 answers = 100%
+            });
+        });
+
+        it('should handle empty answers object', () => {
+            const answers = {};
+            const result = calculateEligibility(answers);
+
+            expect(result).toEqual({
+                eligible: false,
+                score: 0
             });
         });
     });

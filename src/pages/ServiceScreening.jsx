@@ -7,13 +7,13 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 
 import { servicesApi, calculateEligibility } from '@/services/servicesApi';
-import { useUserData } from '@/contexts/UserDataContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 const ServiceScreening = () => {
   const { serviceId } = useParams();
   const navigate = useNavigate();
 
-  const { activeProfile } = useUserData();
+  const { activeProfile } = useAuth();
 
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -196,12 +196,37 @@ const ServiceScreening = () => {
         score: eligibilityResult.score,
         eligible: eligibilityResult.eligible,
         answers: finalAnswers,
+        completedAt: new Date().toISOString(),
+        serviceId: actualServiceId,
+        serviceSlug: serviceId, // Store the slug for easy reference
         savedToDatabase: false // Will be updated if database save succeeds
       };
       
       // Save answers to database first
       const databaseSaveSuccess = await saveAnswersToDatabase(finalAnswers);
       results.savedToDatabase = databaseSaveSuccess;
+      
+      // Save screening results to database
+      try {
+        const currentUser = await servicesApi.getCurrentUser();
+        if (currentUser) {
+          const screeningResultData = {
+            user_id: currentUser.id,
+            service_id: actualServiceId,
+            score: results.score,
+            eligible: results.eligible,
+            answers: finalAnswers,
+            completed_at: results.completedAt
+          };
+          
+          const resultId = await servicesApi.saveScreeningResult(screeningResultData);
+          results.databaseResultId = resultId;
+          console.log('✅ Saved screening result to database:', resultId);
+        }
+      } catch (error) {
+        console.warn('Failed to save screening result to database:', error.message);
+        // Continue with localStorage only
+      }
       
       // Save results to localStorage (maintaining existing pattern for backward compatibility)
       localStorage.setItem(`screening_results_${actualServiceId}_${activeProfile.id}`, JSON.stringify(results));
@@ -247,8 +272,8 @@ const ServiceScreening = () => {
             user_id: currentUser.id,
             service_id: actualServiceId,
             question_id: question.id,
-            selected_option_id: selectedOption?.id || null,
-            answer_text: selectedOption ? null : answerValue // Store text if no option found
+            selected_option_id: null, // Don't use option IDs for now, just store as text
+            answer_text: answerValue // Always store the answer as text
           };
           
           answersForDatabase.push(answerRecord);

@@ -34,12 +34,12 @@ const iconMap = {
 
 // Fallback services for offline/error scenarios
 const fallbackServices = [
-  { id: 'hts', title: 'HIV Testing', desc: 'Quick and confidential', icon: Heart, category: 'routine', color: 'red' },
-  { id: 'sti', title: 'STI Screening', desc: 'Comprehensive screening', icon: Shield, category: 'routine', color: 'blue' },
-  { id: 'prep', title: 'PrEP Access', desc: 'Prevention medication', icon: Calendar, category: 'follow-up', color: 'green' },
-  { id: 'pep', title: 'PEP Access', desc: 'Post-exposure treatment', icon: Star, category: 'urgent', color: 'yellow' },
-  { id: 'art', title: 'ART Support', desc: 'Treatment support', icon: HeartPulse, category: 'follow-up', color: 'purple' },
-  { id: 'counselling', title: 'Counseling', desc: 'Professional guidance', icon: UserCheck, category: 'routine', color: 'indigo' },
+  { id: 'hts', slug: 'hts', title: 'HIV Testing', desc: 'Quick and confidential', icon: Heart, category: 'routine', color: 'red' },
+  { id: 'sti', slug: 'sti', title: 'STI Screening', desc: 'Comprehensive screening', icon: Shield, category: 'routine', color: 'blue' },
+  { id: 'prep', slug: 'prep', title: 'PrEP Access', desc: 'Prevention medication', icon: Calendar, category: 'follow-up', color: 'green' },
+  { id: 'pep', slug: 'pep', title: 'PEP Access', desc: 'Post-exposure treatment', icon: Star, category: 'urgent', color: 'yellow' },
+  { id: 'art', slug: 'art', title: 'ART Support', desc: 'Treatment support', icon: HeartPulse, category: 'follow-up', color: 'purple' },
+  { id: 'counselling', slug: 'counselling', title: 'Counseling', desc: 'Professional guidance', icon: UserCheck, category: 'routine', color: 'indigo' },
 ];
 
 const filters = ['All', 'Urgent', 'Routine', 'Follow-up'];
@@ -149,8 +149,9 @@ const Services = () => {
     if (import.meta.env.DEV) {
       testServiceQuestions(service.id);
     }
-    // Use slug for navigation instead of ID
-    navigate(`/services/${service.slug}/intro`);
+    // Use slug for navigation, fallback to ID if slug is not available
+    const serviceIdentifier = service.slug || service.id;
+    navigate(`/services/${serviceIdentifier}/intro`);
   };
 
   const handleRetry = () => {

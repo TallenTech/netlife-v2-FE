@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { servicesApi, transformServiceData } from '@/services/servicesApi';
-import { useUserData } from '@/contexts/UserDataContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 const ScreeningResults = () => {
   const { serviceId } = useParams();
@@ -13,7 +13,7 @@ const ScreeningResults = () => {
   const [service, setService] = useState(null);
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(true);
-  const { activeProfile } = useUserData();
+  const { activeProfile } = useAuth();
 
   useEffect(() => {
     loadServiceAndResults();

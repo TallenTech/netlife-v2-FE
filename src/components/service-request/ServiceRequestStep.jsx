@@ -7,13 +7,14 @@ import { Upload, AlertCircle } from 'lucide-react';
 import LocationSearch from '@/components/LocationSearch';
 import FileUpload from '@/components/FileUpload';
 import { useToast } from '@/components/ui/use-toast';
-import { useUserData } from '@/contexts/UserDataContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 const ServiceRequestStep = ({ stepConfig, formData, handleInputChange }) => {
   const [errors, setErrors] = useState({});
   const { toast } = useToast();
-  const { activeProfile } = useUserData();
+  const { activeProfile } = useAuth();
 
+  // Validation functions for different field types
   const validateDateTime = (value) => {
     if (!value) return "This field is required.";
 
@@ -32,9 +33,59 @@ const ServiceRequestStep = ({ stepConfig, formData, handleInputChange }) => {
     return "";
   };
 
-  const handleFieldChange = (name, value) => {
+  const validateQuantity = (value) => {
+    if (value === '' || value === null || value === undefined) {
+      return ""; // Optional field
+    }
+    
+    const num = typeof value === 'number' ? value : parseInt(value);
+    
+    if (isNaN(num)) {
+      return "Please enter a valid number.";
+    }
+    
+    if (num < 1) {
+      return "Quantity must be at least 1.";
+    }
+    
+    if (num > 10) {
+      return "Maximum quantity is 10.";
+    }
+    
+    return "";
+  };
+
+  const validateRequired = (value, fieldName) => {
+    if (!value || value === '') {
+      return `${fieldName} is required.`;
+    }
+    return "";
+  };
+
+  const validateTextArea = (value, maxLength = 500) => {
+    if (value && value.length > maxLength) {
+      return `Maximum ${maxLength} characters allowed.`;
+    }
+    return "";
+  };
+
+  const handleFieldChange = (name, value, field) => {
     handleInputChange(name, value);
-    if (errors[name]) {
+    
+    // Real-time validation
+    let error = "";
+    
+    if (field?.type === 'number' && name === 'quantity') {
+      error = validateQuantity(value);
+    } else if (field?.type === 'textarea') {
+      error = validateTextArea(value);
+    } else if (field?.required && !value) {
+      error = validateRequired(value, field.label);
+    }
+    
+    if (error) {
+      setErrors(prev => ({ ...prev, [name]: error }));
+    } else {
       const newErrors = { ...errors };
       delete newErrors[name];
       setErrors(newErrors);
@@ -95,60 +146,125 @@ const ServiceRequestStep = ({ stepConfig, formData, handleInputChange }) => {
       case 'radio':
         return (
           <div key={field.name} className="space-y-3">
-            <Label className="text-base">{field.label}</Label>
-            <div className="space-y-2">
-              {field.options.map(option => (
-                <label key={option} htmlFor={`${field.name}-${option}`} className="flex items-center space-x-3 p-4 bg-gray-100 rounded-lg cursor-pointer transition-all border-2 border-transparent has-[:checked]:border-primary has-[:checked]:bg-primary/10">
-                  <input
-                    type="radio"
-                    id={`${field.name}-${option}`}
-                    name={field.name}
-                    value={option}
-                    checked={formData[field.name] === option}
-                    onChange={(e) => handleFieldChange(field.name, e.target.value)}
-                    className="form-radio h-5 w-5 text-primary focus:ring-primary focus:ring-2"
-                  />
-                  <span className="flex-1 text-base font-medium text-gray-800">{option}</span>
-                </label>
-              ))}
+            <Label className="text-base font-semibold text-gray-900">
+              {field.label}
+              {field.required && <span className="text-red-500 ml-1">*</span>}
+            </Label>
+            <div className="space-y-3">
+              {field.options.map(option => {
+                const isSelected = formData[field.name] === option;
+                return (
+                  <label 
+                    key={option} 
+                    htmlFor={`${field.name}-${option}`} 
+                    className={`flex items-center space-x-4 p-4 rounded-xl cursor-pointer transition-all duration-200 border-2 min-h-[60px] ${
+                      isSelected 
+                        ? 'border-primary bg-primary/10 shadow-sm' 
+                        : errors[field.name]
+                        ? 'border-red-300 bg-red-50'
+                        : 'border-gray-200 bg-gray-50 hover:border-gray-300 hover:bg-gray-100'
+                    }`}
+                  >
+                    <div className="relative">
+                      <input
+                        type="radio"
+                        id={`${field.name}-${option}`}
+                        name={field.name}
+                        value={option}
+                        checked={isSelected}
+                        onChange={(e) => handleFieldChange(field.name, e.target.value, field)}
+                        className="sr-only"
+                      />
+                      <div className={`w-5 h-5 rounded-full border-2 transition-all duration-200 ${
+                        isSelected 
+                          ? 'border-primary bg-primary' 
+                          : 'border-gray-400 bg-white'
+                      }`}>
+                        {isSelected && (
+                          <div className="w-2 h-2 bg-white rounded-full absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
+                        )}
+                      </div>
+                    </div>
+                    <span className={`flex-1 text-base font-medium transition-colors duration-200 ${
+                      isSelected ? 'text-primary' : 'text-gray-800'
+                    }`}>
+                      {option}
+                    </span>
+                  </label>
+                );
+              })}
             </div>
+            <ErrorMessage field={field.name} />
           </div>
         );
       case 'select':
         return (
           <div key={field.name} className="space-y-2">
-            <Label htmlFor={field.name} className="text-base">{field.label}</Label>
-            <Select onValueChange={(value) => handleFieldChange(field.name, value)} value={formData[field.name]}>
-              <SelectTrigger id={field.name} className="h-14 text-base">
+            <Label htmlFor={field.name} className="text-base font-semibold text-gray-900">
+              {field.label}
+              {field.required && <span className="text-red-500 ml-1">*</span>}
+            </Label>
+            <Select onValueChange={(value) => handleFieldChange(field.name, value, field)} value={formData[field.name] || ""}>
+              <SelectTrigger 
+                id={field.name} 
+                className={`h-14 text-base bg-gray-50 border-2 hover:border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 ${
+                  errors[field.name] ? 'border-red-300 bg-red-50' : 'border-gray-200'
+                }`}
+              >
                 <SelectValue placeholder={`Select ${field.label.toLowerCase()}`} />
               </SelectTrigger>
-              <SelectContent>
-                {field.options.map(option => <SelectItem key={option} value={option}>{option}</SelectItem>)}
+              <SelectContent className="z-50 max-h-60 overflow-y-auto">
+                {field.options.map(option => (
+                  <SelectItem 
+                    key={option} 
+                    value={option}
+                    className="cursor-pointer hover:bg-primary/10 focus:bg-primary/10 py-3 text-base"
+                  >
+                    {option}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
+            <ErrorMessage field={field.name} />
           </div>
         );
       case 'file':
         return (
           <div key={field.name} className="space-y-2">
-            <Label htmlFor={field.name} className="text-base">{field.label}</Label>
+            <Label htmlFor={field.name} className="text-base font-semibold text-gray-900">
+              {field.label}
+              {field.required && <span className="text-red-500 ml-1">*</span>}
+            </Label>
             <FileUpload 
-              onFileSelect={(file) => handleFieldChange(field.name, file)}
+              onFileSelect={(file) => handleFieldChange(field.name, file, field)}
               healthRecords={activeProfile?.healthRecords || []}
             />
+            <ErrorMessage field={field.name} />
           </div>
         );
       case 'textarea':
         return (
           <div key={field.name} className="space-y-2">
-            <Label htmlFor={field.name} className="text-base">{field.label}</Label>
-            <textarea
-              id={field.name}
-              value={formData[field.name] || ''}
-              onChange={(e) => handleFieldChange(field.name, e.target.value)}
-              placeholder={field.placeholder}
-              className="w-full min-h-[120px] p-3 bg-gray-100 rounded-lg border border-gray-200 focus:ring-primary focus:border-primary text-base"
-            />
+            <Label htmlFor={field.name} className="text-base font-semibold text-gray-900">
+              {field.label}
+              {field.required && <span className="text-red-500 ml-1">*</span>}
+            </Label>
+            <div className="relative">
+              <textarea
+                id={field.name}
+                value={formData[field.name] || ''}
+                onChange={(e) => handleFieldChange(field.name, e.target.value, field)}
+                placeholder={field.placeholder}
+                className={`w-full min-h-[120px] p-4 bg-gray-50 rounded-xl border-2 hover:border-gray-300 focus:ring-2 focus:ring-primary/20 focus:border-primary text-base transition-all duration-200 resize-none ${
+                  errors[field.name] ? 'border-red-300 bg-red-50' : 'border-gray-200'
+                }`}
+                maxLength={500}
+              />
+              <div className="absolute bottom-2 right-2 text-xs text-gray-400">
+                {(formData[field.name] || '').length}/500
+              </div>
+            </div>
+            <ErrorMessage field={field.name} />
           </div>
         );
       case 'map':
@@ -156,16 +272,59 @@ const ServiceRequestStep = ({ stepConfig, formData, handleInputChange }) => {
       case 'datetime-local':
         return (
           <div key={field.name} className="space-y-2">
-            <Label htmlFor={field.name} className="text-base">{field.label}</Label>
-            <Input id={field.name} name={field.name} type="datetime-local" value={formData[field.name] || ''} onChange={onDateChange} className="h-14 text-base" />
+            <Label htmlFor={field.name} className="text-base font-semibold text-gray-900">
+              {field.label}
+              {field.required && <span className="text-red-500 ml-1">*</span>}
+            </Label>
+            <Input 
+              id={field.name} 
+              name={field.name} 
+              type="datetime-local" 
+              value={formData[field.name] || ''} 
+              onChange={onDateChange} 
+              className={`h-14 text-base bg-gray-50 border-2 hover:border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 ${
+                errors[field.name] ? 'border-red-300 bg-red-50' : 'border-gray-200'
+              }`}
+            />
+            {!errors[field.name] && (
+              <p className="text-xs text-gray-500">Select a date at least 6 hours from now</p>
+            )}
             <ErrorMessage field={field.name} />
           </div>
         );
       default:
         return (
           <div key={field.name} className="space-y-2">
-            <Label htmlFor={field.name} className="text-base">{field.label}</Label>
-            <Input id={field.name} type={field.type} placeholder={field.placeholder} value={formData[field.name] || ''} onChange={(e) => handleFieldChange(field.name, e.target.value)} className="h-14 text-base" />
+            <Label htmlFor={field.name} className="text-base font-semibold text-gray-900">
+              {field.label}
+              {field.required && <span className="text-red-500 ml-1">*</span>}
+            </Label>
+            <div className="relative">
+              <Input 
+                id={field.name} 
+                type={field.type} 
+                placeholder={field.placeholder} 
+                value={formData[field.name] || ''} 
+                onChange={(e) => {
+                  const value = field.type === 'number' ? (e.target.value === '' ? '' : Number(e.target.value)) : e.target.value;
+                  handleFieldChange(field.name, value, field);
+                }} 
+                className={`h-14 text-base bg-gray-50 border-2 hover:border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 ${
+                  errors[field.name] ? 'border-red-300 bg-red-50' : 'border-gray-200'
+                }`}
+                min={field.type === 'number' && field.name === 'quantity' ? 1 : undefined}
+                max={field.type === 'number' && field.name === 'quantity' ? 10 : undefined}
+              />
+              {field.type === 'number' && field.name === 'quantity' && (
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-400">
+                  1-10
+                </div>
+              )}
+            </div>
+            {field.type === 'number' && field.name === 'quantity' && !errors[field.name] && (
+              <p className="text-xs text-gray-500">Enter a number between 1 and 10</p>
+            )}
+            <ErrorMessage field={field.name} />
           </div>
         );
     }
@@ -177,10 +336,15 @@ const ServiceRequestStep = ({ stepConfig, formData, handleInputChange }) => {
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -50 }}
       transition={{ duration: 0.3 }}
-      className="space-y-8"
+      className="space-y-8 pb-8"
     >
-      <h2 className="text-3xl font-bold text-gray-800">{stepConfig.title}</h2>
-      {stepConfig.fields.map(renderField)}
+      <div className="space-y-2">
+        <h2 className="text-2xl md:text-3xl font-bold text-gray-900">{stepConfig.title}</h2>
+        <p className="text-gray-600">Please fill in the required information below.</p>
+      </div>
+      <div className="space-y-6">
+        {stepConfig.fields.map(renderField)}
+      </div>
     </motion.div>
   );
 };

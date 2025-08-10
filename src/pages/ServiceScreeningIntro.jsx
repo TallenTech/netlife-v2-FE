@@ -5,12 +5,12 @@ import { motion } from 'framer-motion';
 import { ArrowLeft, FileText, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { servicesApi, transformServiceData } from '@/services/servicesApi';
-import { useUserData } from '@/contexts/UserDataContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 const ServiceScreeningIntro = () => {
   const { serviceId } = useParams();
   const navigate = useNavigate();
-  const { activeProfile } = useUserData();
+  const { activeProfile } = useAuth();
   
   const [service, setService] = useState(null);
   const [loading, setLoading] = useState(true);

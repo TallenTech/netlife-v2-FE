@@ -337,3 +337,53 @@ input[type="date"] {
     @apply h-full overflow-hidden;
   }
 }
+/* Form interaction improvements */
+.form-radio:checked {
+  background-color: var(--primary);
+  border-color: var(--primary);
+}
+
+.form-radio:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(142, 59, 255, 0.2);
+}
+
+/* Smooth transitions for all interactive elements */
+input, textarea, select, button {
+  transition: all 0.2s ease-in-out;
+}
+
+/* Better touch targets for mobile */
+@media (max-width: 768px) {
+  input, textarea, select, button {
+    min-height: 44px;
+  }
+  
+  label {
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* Prevent text selection on labels */
+label {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Remove default focus outline and add custom one */
+*:focus {
+  outline: none;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
