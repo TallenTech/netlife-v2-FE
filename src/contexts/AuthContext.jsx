@@ -7,6 +7,7 @@ import React, {
 } from "react";
 import { supabase } from "@/lib/supabase";
 import { profileService } from "@/services/profileService";
+import { getCachedUserData, setCachedUserData } from "@/lib/cache";
 
 const AuthContext = createContext(null);
 
@@ -17,90 +18,82 @@ export const AuthProvider = ({ children }) => {
   const [managedProfiles, setManagedProfiles] = useState([]);
   const [activeProfile, setActiveProfile] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const fetchManagedProfiles = useCallback(async (managerId) => {
-    if (!managerId) return [];
+  useEffect(() => {
+    const cachedData = getCachedUserData();
+    if (cachedData?.profile) {
+      setProfile(cachedData.profile);
+      setManagedProfiles(cachedData.managedProfiles || []);
+      const lastActiveProfileId = localStorage.getItem(
+        "netlife_active_profile_id"
+      );
+      const lastActive = (cachedData.managedProfiles || []).find(
+        (p) => p.id === lastActiveProfileId
+      );
+      setActiveProfile(lastActive || cachedData.profile);
+    }
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      setIsLoading(false);
+    });
+
+    return () => {
+      subscription?.unsubscribe();
+    };
+  }, []);
+
+  const syncWithServer = useCallback(async (authUser) => {
     try {
-      const { data, error } = await supabase
-        .from("managed_profiles")
-        .select("*")
-        .eq("manager_id", managerId);
-      if (error) throw error;
-      return data || [];
-    } catch (error) {
-      console.error("Error fetching managed profiles:", error);
-      return [];
+      const { success, data, error } = await profileService.getUserData();
+      if (!success) throw error;
+
+      const { mainProfile, managedProfiles: dependents } = data;
+
+      if (mainProfile) {
+        setCachedUserData(mainProfile, dependents);
+        setProfile(mainProfile);
+        setManagedProfiles(dependents || []);
+
+        const lastActiveProfileId = localStorage.getItem(
+          "netlife_active_profile_id"
+        );
+        const currentActiveIsValid = [mainProfile, ...(dependents || [])].some(
+          (p) => p.id === lastActiveProfileId
+        );
+
+        if (currentActiveIsValid) {
+          const lastActive = (dependents || []).find(
+            (p) => p.id === lastActiveProfileId
+          );
+          setActiveProfile(lastActive || mainProfile);
+        } else {
+          setActiveProfile(mainProfile);
+        }
+      } else {
+        setProfile(null);
+        setActiveProfile(null);
+      }
+    } catch (e) {
+      console.error("Failed to sync with server:", e);
+      setError(e);
     }
   }, []);
 
   useEffect(() => {
-    const initializeAuth = async () => {
-      try {
-        const {
-          data: { session: initialSession },
-        } = await supabase.auth.getSession();
-        if (initialSession) {
-          const authUser = initialSession.user;
-          setSession(initialSession);
-          setUser(authUser);
-
-          const { data: mainProfile } = await supabase
-            .from("profiles")
-            .select("*")
-            .eq("id", authUser.id)
-            .single();
-          const dependents = await fetchManagedProfiles(authUser.id);
-
-          setProfile(mainProfile);
-          setManagedProfiles(dependents);
-
-          const lastActiveProfileId = localStorage.getItem(
-            "netlife_active_profile_id"
-          );
-          const lastActive = dependents.find(
-            (p) => p.id === lastActiveProfileId
-          );
-          setActiveProfile(lastActive || mainProfile);
-        }
-      } catch (e) {
-        console.error("Error in initial auth setup:", e);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    initializeAuth();
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, newSession) => {
-      if (event === "SIGNED_IN") {
-        setSession(newSession);
-        const authUser = newSession.user;
-        setUser(authUser);
-        const { data: mainProfile } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", authUser.id)
-          .single();
-        const dependents = await fetchManagedProfiles(authUser.id);
-        setProfile(mainProfile);
-        setManagedProfiles(dependents);
-        setActiveProfile(mainProfile);
-      } else if (event === "SIGNED_OUT") {
-        localStorage.removeItem("netlife_active_profile_id");
-        setSession(null);
-        setUser(null);
-        setProfile(null);
-        setManagedProfiles([]);
-        setActiveProfile(null);
-      } else if (event === "USER_UPDATED") {
-        if (newSession) setUser(newSession.user);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [fetchManagedProfiles]);
+    if (user) {
+      syncWithServer(user);
+    } else {
+      localStorage.clear();
+      setProfile(null);
+      setManagedProfiles([]);
+      setActiveProfile(null);
+    }
+  }, [user, syncWithServer]);
 
   const switchActiveProfile = useCallback(
     (profileId) => {
@@ -110,7 +103,6 @@ export const AuthProvider = ({ children }) => {
       } else {
         newActiveProfile = managedProfiles.find((p) => p.id === profileId);
       }
-
       if (newActiveProfile) {
         setActiveProfile(newActiveProfile);
         localStorage.setItem("netlife_active_profile_id", newActiveProfile.id);
@@ -120,50 +112,39 @@ export const AuthProvider = ({ children }) => {
   );
 
   const refreshAuthAndProfiles = useCallback(async () => {
-    const {
-      data: { user: authUser },
-    } = await supabase.auth.getUser();
-    if (authUser) {
-      const { data: mainProfile } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", authUser.id)
-        .single();
-      const dependents = await fetchManagedProfiles(authUser.id);
-      setProfile(mainProfile);
-      setManagedProfiles(dependents);
+    if (user) {
+      await syncWithServer(user);
     }
-  }, [fetchManagedProfiles]);
+  }, [user, syncWithServer]);
 
   const updateProfile = useCallback(
     async (dataToUpdate) => {
       if (!activeProfile || !user)
-        throw new Error("No active profile selected.");
-      let updatedProfile;
-      if (activeProfile.id === profile.id) {
-        const { data, error } = await supabase
-          .from("profiles")
-          .update(dataToUpdate)
-          .eq("id", user.id)
-          .select()
-          .single();
-        if (error) throw error;
-        updatedProfile = data;
-        setProfile(updatedProfile);
-      } else {
-        const { success, data, error } =
+        throw new Error("No active profile selected");
+      try {
+        if (activeProfile.id === profile.id) {
+          await supabase
+            .from("profiles")
+            .update(dataToUpdate)
+            .eq("id", user.id);
+        } else {
           await profileService.updateManagedProfile(
             activeProfile.id,
             dataToUpdate
           );
-        if (!success) throw new Error(error.message);
-        updatedProfile = data;
+        }
+        await refreshAuthAndProfiles();
+      } catch (e) {
+        console.error("Profile update failed:", e);
+        throw e;
       }
-      await refreshAuthAndProfiles();
-      setActiveProfile(updatedProfile);
     },
     [user, profile, activeProfile, refreshAuthAndProfiles]
   );
+
+  const logout = useCallback(async () => {
+    await supabase.auth.signOut();
+  }, []);
 
   const value = {
     user,
@@ -172,9 +153,10 @@ export const AuthProvider = ({ children }) => {
     managedProfiles,
     activeProfile,
     isLoading,
+    error,
     isAuthenticated: !!user && !!activeProfile,
     isPartiallyAuthenticated: !!user && !profile,
-    logout: () => supabase.auth.signOut(),
+    logout,
     fetchManagedProfiles: refreshAuthAndProfiles,
     switchActiveProfile,
     updateProfile,
@@ -186,7 +168,8 @@ export const AuthProvider = ({ children }) => {
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === undefined)
+  if (context === undefined) {
     throw new Error("useAuth must be used within an AuthProvider");
+  }
   return context;
 };

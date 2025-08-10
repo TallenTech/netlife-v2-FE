@@ -7,6 +7,16 @@ const formatError = (error, message) => {
 
 const formatSuccess = (data) => ({ success: true, data });
 
+async function getUserData() {
+  try {
+    const { data, error } = await supabase.rpc("get_user_data_with_dependents");
+    if (error) throw error;
+    return formatSuccess(data);
+  } catch (error) {
+    return formatError(error, "Failed to fetch user data.");
+  }
+}
+
 async function upsertProfile(profileData, userId, phoneNumber) {
   try {
     const profilePayload = {
@@ -164,4 +174,5 @@ export const profileService = {
   checkUsernameAvailability,
   updatePhoneNumber,
   verifyPhoneUpdate,
+  getUserData,
 };

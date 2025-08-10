@@ -41,8 +41,13 @@ function AppWrapper() {
 }
 
 function AppRoutes() {
-  const { isAuthenticated, isPartiallyAuthenticated, isLoading, logout } =
-    useAuth();
+  const {
+    isAuthenticated,
+    isPartiallyAuthenticated,
+    isLoading,
+    error,
+    logout,
+  } = useAuth();
 
   if (isLoading) {
     return (
@@ -50,7 +55,33 @@ function AppRoutes() {
         <div className="h-screen flex items-center justify-center">
           <div className="text-center">
             <NetLifeLogo className="w-16 h-16 animate-pulse mx-auto mb-4" />
-            <p className="text-gray-600 font-medium">Loading NetLife...</p>
+            <p className="text-gray-600 font-medium">
+              Connecting to NetLife...
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="mobile-container bg-white">
+        <div className="h-screen flex items-center justify-center">
+          <div className="text-center p-4">
+            <NetLifeLogo className="w-16 h-16 mx-auto mb-4" />
+            <h2 className="text-xl font-bold text-gray-800 mb-2">
+              Connection Issue
+            </h2>
+            <p className="text-gray-600 mb-4">
+              We're having trouble connecting to our services right now.
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="bg-primary text-white px-6 py-2 rounded-lg font-semibold hover:bg-primary/90 transition"
+            >
+              Try Again
+            </button>
           </div>
         </div>
       </div>
