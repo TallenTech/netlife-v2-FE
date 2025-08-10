@@ -6,13 +6,13 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 // export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Debug environment variables
-console.log("🔍 Supabase Environment Check:");
-console.log("URL:", supabaseUrl || "NOT SET");
-console.log(
-    "Key:",
-    supabaseAnonKey ? `${supabaseAnonKey.substring(0, 20)}...` : "NOT SET"
-);
-console.log("All env vars:", import.meta.env);
+// console.log("🔍 Supabase Environment Check:");
+// console.log("URL:", supabaseUrl || "NOT SET");
+// console.log(
+//     "Key:",
+//     supabaseAnonKey ? `${supabaseAnonKey.substring(0, 20)}...` : "NOT SET"
+// );
+// console.log("All env vars:", import.meta.env);
 
 // Check if environment variables are properly configured
 const isSupabaseConfigured =
@@ -32,11 +32,11 @@ const fallbackKey = "your_supabase_anon_key_here";
 const finalUrl = supabaseUrl || fallbackUrl;
 const finalKey = supabaseAnonKey || fallbackKey;
 
-console.log("🔧 Using URL:", finalUrl);
-console.log(
-    "🔧 Using Key:",
-    finalKey ? `${finalKey.substring(0, 20)}...` : "NOT SET"
-);
+// console.log("🔧 Using URL:", finalUrl);
+// console.log(
+//     "🔧 Using Key:",
+//     finalKey ? `${finalKey.substring(0, 20)}...` : "NOT SET"
+// );
 
 // Create mock client for development when Supabase is not configured
 const createMockClient = () => ({

@@ -379,6 +379,23 @@ export const servicesApi = {
         try {
             validateRequiredFields({ requestId }, ['requestId']);
 
+            // First verify the record exists and get user info for logging
+            const { data: existingRequest, error: fetchError } = await supabase
+                .from('service_requests')
+                .select('id, user_id, service_id')
+                .eq('id', requestId)
+                .single();
+
+            if (fetchError && fetchError.code !== 'PGRST116') {
+                throw new Error(`Failed to verify service request: ${fetchError.message}`);
+            }
+
+            if (!existingRequest) {
+                console.warn('⚠️ Service request not found for deletion:', requestId);
+                return true; // Consider it successfully deleted if it doesn't exist
+            }
+
+            // Delete the service request
             const { error } = await supabase
                 .from('service_requests')
                 .delete()
@@ -388,6 +405,7 @@ export const servicesApi = {
                 throw new Error(`Failed to delete service request: ${error.message}`);
             }
 
+            console.log('✅ Successfully deleted service request:', requestId, 'for user:', existingRequest.user_id);
             return true;
         } catch (error) {
             logError(error, 'servicesApi.deleteServiceRequest', { requestId });
@@ -404,6 +422,23 @@ export const servicesApi = {
         try {
             validateRequiredFields({ resultId }, ['resultId']);
 
+            // First, get the screening result to find related data
+            const { data: screeningResult, error: fetchError } = await supabase
+                .from('screening_results')
+                .select('id, user_id, service_id')
+                .eq('id', resultId)
+                .single();
+
+            if (fetchError && fetchError.code !== 'PGRST116') {
+                throw new Error(`Failed to fetch screening result: ${fetchError.message}`);
+            }
+
+            if (!screeningResult) {
+                console.warn('⚠️ Screening result not found for deletion:', resultId);
+                return true; // Consider it successfully deleted if it doesn't exist
+            }
+
+            // Delete the screening result
             const { error } = await supabase
                 .from('screening_results')
                 .delete()
@@ -413,9 +448,58 @@ export const servicesApi = {
                 throw new Error(`Failed to delete screening result: ${error.message}`);
             }
 
+            console.log('✅ Successfully deleted screening result:', resultId, 'for user:', screeningResult.user_id);
+
+            // Also delete related screening answers
+            try {
+                const { error: answersError } = await supabase
+                    .from('user_screening_answers')
+                    .delete()
+                    .eq('user_id', screeningResult.user_id)
+                    .eq('service_id', screeningResult.service_id);
+
+                if (answersError) {
+                    console.warn('⚠️ Failed to delete related screening answers:', answersError.message);
+                    // Don't throw error here, as the main deletion succeeded
+                } else {
+                    console.log('✅ Successfully deleted related screening answers for user:', screeningResult.user_id, 'service:', screeningResult.service_id);
+                }
+            } catch (answersDeleteError) {
+                console.warn('⚠️ Error deleting screening answers:', answersDeleteError.message);
+                // Continue execution - main deletion was successful
+            }
+
             return true;
         } catch (error) {
             logError(error, 'servicesApi.deleteScreeningResult', { resultId });
+            throw new Error(handleApiError(error));
+        }
+    },
+
+    /**
+     * Delete user screening answers for a specific service
+     * @param {string} userId - The user ID
+     * @param {string} serviceId - The service ID
+     * @returns {Promise<boolean>} True if deletion was successful
+     */
+    async deleteUserScreeningAnswers(userId, serviceId) {
+        try {
+            validateRequiredFields({ userId, serviceId }, ['userId', 'serviceId']);
+
+            const { error } = await supabase
+                .from('user_screening_answers')
+                .delete()
+                .eq('user_id', userId)
+                .eq('service_id', serviceId);
+
+            if (error) {
+                throw new Error(`Failed to delete screening answers: ${error.message}`);
+            }
+
+            console.log('✅ Successfully deleted screening answers for user:', userId, 'service:', serviceId);
+            return true;
+        } catch (error) {
+            logError(error, 'servicesApi.deleteUserScreeningAnswers', { userId, serviceId });
             throw new Error(handleApiError(error));
         }
     },
