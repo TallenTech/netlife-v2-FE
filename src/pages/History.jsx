@@ -28,6 +28,7 @@ const History = () => {
   const [itemToDelete, setItemToDelete] = useState(null);
   const [loading, setLoading] = useState(true);
   const [syncStatus, setSyncStatus] = useState({ isActive: false, lastSync: null });
+  const [manualRefreshActive, setManualRefreshActive] = useState(false);
   const [errorState, setErrorState] = useState({ hasError: false, errorMessage: null, errorType: null });
   const { activeProfile } = useAuth();
   const { toast } = useToast();
@@ -73,12 +74,7 @@ const History = () => {
 
     // Log error for debugging
     if (logToConsole) {
-      console.error(`❌ Error in ${context}:`, {
-        type: errorType,
-        message: error.message,
-        stack: error.stack,
-        timestamp: new Date().toISOString()
-      });
+      // Error logging removed for production
     }
 
     // Update error state if requested
@@ -252,7 +248,6 @@ const History = () => {
                   }
                 }
               } catch (e) {
-                console.warn('Could not determine service title for:', serviceId);
                 serviceTitle = 'Health Service Screening';
               }
 
@@ -273,7 +268,6 @@ const History = () => {
               
               screening.push(screeningRecord);
               records.push(screeningRecord);
-              console.log('✅ Added screening record:', serviceTitle, screeningData.score + '%');
               
               // For records without service slug, try to enhance with database lookup
               if (!screeningData.serviceSlug && serviceId.length > 10) { // Likely a UUID
@@ -281,7 +275,7 @@ const History = () => {
               }
             }
           } catch (error) {
-            console.warn('Failed to parse screening result:', key, error);
+            // Skip corrupted screening result
           }
         }
       }
@@ -291,11 +285,9 @@ const History = () => {
         const currentUser = await servicesApi.getCurrentUser();
         if (currentUser) {
           const databaseRequests = await servicesApi.getUserServiceRequests(currentUser.id);
-          console.log('🔍 Loaded from database:', databaseRequests.length, 'requests');
           
           // Also load screening results from database
           const databaseScreeningResults = await servicesApi.getUserScreeningResults(currentUser.id);
-          console.log('🔍 Loaded screening results from database:', databaseScreeningResults.length, 'results');
           
           // Convert database screening results to history format
           databaseScreeningResults.forEach(dbResult => {
@@ -362,7 +354,6 @@ const History = () => {
           });
         }
       } catch (error) {
-        console.warn('Failed to load history from database:', error.message);
         // Continue with localStorage data only
       }
 
@@ -411,19 +402,17 @@ const History = () => {
         if (key.startsWith('service_request_')) {
           const item = JSON.parse(localStorage.getItem(key));
           if (item.savedToDatabase && item.id && !dbServiceIds.has(item.id)) {
-            console.log('🧹 Cleaning up orphaned service request:', key);
             localStorage.removeItem(key);
           }
         } else if (key.startsWith('screening_results_')) {
           const item = JSON.parse(localStorage.getItem(key));
           if (item.databaseResultId && !dbScreeningIds.has(item.databaseResultId)) {
-            console.log('🧹 Cleaning up orphaned screening result:', key);
             localStorage.removeItem(key);
           }
         }
       }
     } catch (error) {
-      console.warn('Failed to cleanup orphaned data:', error.message);
+      // Cleanup failed, continue
     }
   };
 
@@ -439,23 +428,19 @@ const History = () => {
           if (item.id === databaseId || item.data?.id === databaseId) {
             localStorage.removeItem(key);
             cleanedCount++;
-            console.log('🧹 Cleaned up related localStorage entry:', key);
           }
         } else if (recordType === 'screening_result' && key.startsWith('screening_results_')) {
           const item = JSON.parse(localStorage.getItem(key));
           if (item.databaseResultId === databaseId) {
             localStorage.removeItem(key);
             cleanedCount++;
-            console.log('🧹 Cleaned up related localStorage entry:', key);
           }
         }
       }
       
-      if (cleanedCount > 0) {
-        console.log(`✅ Cleaned up ${cleanedCount} related localStorage entries for ${recordType}:${databaseId}`);
-      }
+
     } catch (error) {
-      console.warn('⚠️ Failed to cleanup related localStorage entries:', error.message);
+      // Cleanup failed, continue
     }
   };
 
@@ -483,9 +468,8 @@ const History = () => {
       }
       
       localStorage.setItem('failed_deletions', JSON.stringify(failedDeletions));
-      console.log('📝 Queued failed deletion for later retry:', recordType, databaseId);
     } catch (error) {
-      console.warn('⚠️ Failed to queue deletion for later:', error.message);
+      // Queue failed, continue
     }
   };
 
@@ -496,13 +480,11 @@ const History = () => {
       // For now, we'll use a simple mapping based on common UUIDs
       // In a real implementation, you'd call: const service = await servicesApi.getServiceById(serviceUUID);
       
-      console.log('🔍 Attempting to enhance screening record for UUID:', serviceUUID);
-      
       // For now, we'll leave the record as is since we don't have the API function
       // The user will see "Health Service Screening" for older records
       
     } catch (error) {
-      console.warn('Failed to enhance screening record:', error);
+      // Enhancement failed, continue
     }
   };
 
@@ -543,17 +525,15 @@ const History = () => {
                 item.savedToDatabase = true;
                 item.id = requestId;
                 localStorage.setItem(key, JSON.stringify(item));
-                
-                console.log('✅ Synced local request to database:', requestId);
               }
             } catch (syncError) {
-              console.warn('Failed to sync request to database:', syncError.message);
+              // Sync failed, continue
             }
           }
         }
       }
     } catch (error) {
-      console.warn('Failed to sync local data to database:', error.message);
+      // Sync failed, continue
     }
   };
 
@@ -563,22 +543,18 @@ const History = () => {
       const failedDeletions = JSON.parse(localStorage.getItem('failed_deletions') || '[]');
       if (failedDeletions.length === 0) return;
 
-      console.log('🔄 Retrying', failedDeletions.length, 'failed deletions...');
       const remainingDeletions = [];
 
       for (const deletion of failedDeletions) {
         try {
           if (deletion.type === 'service_request') {
             await servicesApi.deleteServiceRequest(deletion.id);
-            console.log('✅ Successfully retried service request deletion:', deletion.id);
           } else if (deletion.type === 'screening_result') {
             await servicesApi.deleteScreeningResult(deletion.id);
-            console.log('✅ Successfully retried screening result deletion:', deletion.id);
           } else if (deletion.type === 'screening_answers') {
             // Format: userId_serviceId
             const [userId, serviceId] = deletion.id.split('_');
             await servicesApi.deleteUserScreeningAnswers(userId, serviceId);
-            console.log('✅ Successfully retried screening answers deletion:', deletion.id);
           }
           // Don't add to remaining deletions if successful
         } catch (error) {
@@ -586,9 +562,8 @@ const History = () => {
           if (deletion.retryCount < 3) {
             deletion.retryCount++;
             remainingDeletions.push(deletion);
-            console.warn('⚠️ Retry failed for', deletion.type, deletion.id, '- attempt', deletion.retryCount);
           } else {
-            console.error('❌ Giving up on deletion after 3 attempts:', deletion.type, deletion.id);
+            // Give up after 3 attempts
           }
         }
       }
@@ -596,11 +571,9 @@ const History = () => {
       // Update the queue with remaining failed deletions
       localStorage.setItem('failed_deletions', JSON.stringify(remainingDeletions));
       
-      if (remainingDeletions.length < failedDeletions.length) {
-        console.log('✅ Successfully processed some queued deletions');
-      }
+
     } catch (error) {
-      console.warn('⚠️ Failed to process deletion queue:', error.message);
+      // Retry processing failed, continue
     }
   };
 
@@ -618,9 +591,8 @@ const History = () => {
         await syncLocalDataToDatabase();
         await retryFailedDeletions();
         await refreshFromDatabase(); // Initial background sync
-        console.log('✅ Initial sync completed');
       } catch (error) {
-        console.warn('⚠️ Initial sync failed:', error.message);
+        // Initial sync failed, continue
       }
     }, 2000);
 
@@ -631,12 +603,9 @@ const History = () => {
         if (!isPageVisible) return; // Skip sync when page is not visible
         
         try {
-          const result = await refreshFromDatabase();
-          if (result.removed > 0) {
-            console.log(`🔄 Background sync removed ${result.removed} orphaned items`);
-          }
+          await refreshFromDatabase();
         } catch (error) {
-          console.warn('⚠️ Background sync failed:', error.message);
+          // Background sync failed, continue
         }
       }, 30000);
 
@@ -647,7 +616,7 @@ const History = () => {
         try {
           await retryFailedDeletions();
         } catch (error) {
-          console.warn('⚠️ Retry failed deletions failed:', error.message);
+          // Retry failed, continue
         }
       }, 120000);
     };
@@ -663,12 +632,10 @@ const History = () => {
       isPageVisible = !document.hidden;
       
       if (isPageVisible) {
-        console.log('📱 Page became visible, resuming sync');
         startSyncIntervals();
         // Immediate sync when page becomes visible
         setTimeout(() => refreshFromDatabase(), 1000);
       } else {
-        console.log('🔇 Page hidden, pausing sync');
         stopSyncIntervals();
       }
     };
@@ -684,22 +651,24 @@ const History = () => {
       clearTimeout(initialSyncTimeout);
       stopSyncIntervals();
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-      console.log('🧹 Cleaned up sync intervals and listeners');
     };
   }, [activeProfile]);
 
   // Enhanced background synchronization system
-  const refreshFromDatabase = async (showToast = false) => {
+  const refreshFromDatabase = async (showToast = false, isManualRefresh = false) => {
     try {
-      setSyncStatus({ isActive: true, lastSync: syncStatus.lastSync });
+      // Only show loading state for manual refresh
+      if (isManualRefresh) {
+        setManualRefreshActive(true);
+      }
       
       const currentUser = await servicesApi.getCurrentUser();
       if (!currentUser) {
-        setSyncStatus({ isActive: false, lastSync: syncStatus.lastSync });
+        if (isManualRefresh) {
+          setManualRefreshActive(false);
+        }
         return;
       }
-
-      console.log('🔄 Starting background sync with database...');
 
       // Get fresh data from database
       const [databaseRequests, databaseScreeningResults] = await Promise.all([
@@ -707,10 +676,10 @@ const History = () => {
         servicesApi.getUserScreeningResults(currentUser.id)
       ]);
 
-      console.log('📊 Database state:', {
-        requests: databaseRequests.length,
-        screenings: databaseScreeningResults.length
-      });
+      // console.log('📊 Database state:', {
+      //   requests: databaseRequests.length,
+      //   screenings: databaseScreeningResults.length
+      // });
 
       // Create lookup sets for efficient comparison
       const dbServiceIds = new Set(databaseRequests.map(r => r.id));
@@ -740,7 +709,6 @@ const History = () => {
               const existsInDb = dbServiceIds.has(item.id);
               if (!existsInDb) {
                 shouldRemove = true;
-                console.log('🗑️ Found orphaned service request:', key, 'DB ID:', item.id);
               }
             }
           } else if (key.startsWith('screening_results_')) {
@@ -749,7 +717,6 @@ const History = () => {
               const existsInDb = dbScreeningIds.has(item.databaseResultId);
               if (!existsInDb) {
                 shouldRemove = true;
-                console.log('🗑️ Found orphaned screening result:', key, 'DB ID:', item.databaseResultId);
               }
             }
           }
@@ -757,36 +724,31 @@ const History = () => {
           if (shouldRemove) {
             localStorage.removeItem(key);
             removedCount++;
-            console.log('✅ Removed orphaned localStorage item:', key);
           } else {
             syncedCount++;
           }
         } catch (parseError) {
-          console.warn('⚠️ Failed to parse localStorage item:', key, parseError.message);
           // Optionally remove corrupted items
           localStorage.removeItem(key);
           removedCount++;
         }
       }
 
-      // Log sync results
-      console.log('🔄 Sync completed:', {
-        synced: syncedCount,
-        removed: removedCount,
-        total: localStorageKeys.length
-      });
-
       // Reload history if changes were detected
       if (removedCount > 0) {
-        console.log('📱 Reloading history due to sync changes');
         await loadHistory();
       }
 
-      // Update sync status
+      // Update sync status (always update last sync time)
       setSyncStatus({ isActive: false, lastSync: new Date() });
+      
+      // Stop manual refresh loading state
+      if (isManualRefresh) {
+        setManualRefreshActive(false);
+      }
 
-      // Show user feedback if requested
-      if (showToast) {
+      // Show user feedback if requested (only for manual refresh)
+      if (showToast && isManualRefresh) {
         toast({
           title: 'History Refreshed',
           description: removedCount > 0 
@@ -797,10 +759,14 @@ const History = () => {
 
       return { synced: syncedCount, removed: removedCount };
     } catch (error) {
-      console.warn('⚠️ Background sync failed:', error.message);
       setSyncStatus({ isActive: false, lastSync: syncStatus.lastSync });
       
-      if (showToast) {
+      // Stop manual refresh loading state
+      if (isManualRefresh) {
+        setManualRefreshActive(false);
+      }
+      
+      if (showToast && isManualRefresh) {
         toast({
           title: 'Sync Failed',
           description: 'Unable to sync with server. Please try again.',
@@ -906,7 +872,6 @@ const History = () => {
           try {
             await servicesApi.deleteServiceRequest(itemToDelete.data.id);
             dbDeletionSuccess = true;
-            console.log('✅ Deleted service request from database:', itemToDelete.data.id);
           } catch (dbError) {
             console.warn('⚠️ Failed to delete from database:', dbError.message);
             // Queue for retry if it's a network/temporary issue
@@ -921,9 +886,7 @@ const History = () => {
           try {
             await servicesApi.deleteServiceRequest(dbId);
             dbDeletionSuccess = true;
-            console.log('✅ Deleted database service request:', dbId);
           } catch (dbError) {
-            console.error('❌ Failed to delete database service request:', dbError.message);
             // Queue for retry if it's a network/temporary issue
             if (dbError.message.includes('network') || dbError.message.includes('timeout') || dbError.message.includes('connection')) {
               queueDeletionForLater('service_request', dbId);
@@ -935,7 +898,6 @@ const History = () => {
         if (itemToDelete.id.startsWith('service_request_')) {
           localStorage.removeItem(itemToDelete.id);
           localDeletionSuccess = true;
-          console.log('✅ Deleted service request from localStorage:', itemToDelete.id);
         }
 
         // 3. Clean up any related localStorage entries
@@ -951,7 +913,6 @@ const History = () => {
           try {
             await servicesApi.deleteScreeningResult(itemToDelete.data.databaseResultId);
             dbDeletionSuccess = true;
-            console.log('✅ Deleted screening result from database:', itemToDelete.data.databaseResultId);
           } catch (dbError) {
             console.warn('⚠️ Failed to delete screening result from database:', dbError.message);
             // Queue for retry if it's a network/temporary issue
@@ -965,9 +926,7 @@ const History = () => {
           try {
             await servicesApi.deleteScreeningResult(dbId);
             dbDeletionSuccess = true;
-            console.log('✅ Deleted database screening result:', dbId);
           } catch (dbError) {
-            console.error('❌ Failed to delete database screening result:', dbError.message);
             // Queue for retry if it's a network/temporary issue
             if (dbError.message.includes('network') || dbError.message.includes('timeout') || dbError.message.includes('connection')) {
               queueDeletionForLater('screening_result', dbId);
@@ -981,7 +940,6 @@ const History = () => {
             const currentUser = await servicesApi.getCurrentUser();
             if (currentUser) {
               await servicesApi.deleteUserScreeningAnswers(currentUser.id, itemToDelete.serviceId);
-              console.log('✅ Deleted related screening answers from database');
             }
           } catch (dbError) {
             console.warn('⚠️ Failed to delete screening answers from database:', dbError.message);
@@ -996,7 +954,6 @@ const History = () => {
         if (itemToDelete.id.startsWith('screening_results_')) {
           localStorage.removeItem(itemToDelete.id);
           localDeletionSuccess = true;
-          console.log('✅ Deleted screening result from localStorage:', itemToDelete.id);
         }
 
         // 4. Clean up any related localStorage entries
@@ -1010,7 +967,6 @@ const History = () => {
         // Delete health survey (localStorage only)
         localStorage.removeItem(`netlife_health_survey_${activeProfile.id}`);
         deleteSuccess = true;
-        console.log('✅ Deleted health survey from localStorage');
       }
 
       // Provide user feedback based on results
@@ -1034,7 +990,6 @@ const History = () => {
       }
       
     } catch (error) {
-      console.error('❌ Failed to delete item:', error);
       toast({
         title: 'Delete Failed',
         description: `An error occurred while deleting the record: ${error.message}`,
@@ -1079,18 +1034,21 @@ const History = () => {
             <div className="flex items-center space-x-3">
               {syncStatus.lastSync && (
                 <span className="text-xs text-gray-400 hidden sm:block">
-                  Last sync: {syncStatus.lastSync.toLocaleTimeString()}
+                  Last sync: {new Date(syncStatus.lastSync).toLocaleTimeString([], { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                  })}
                 </span>
               )}
               <Button 
                 variant="outline" 
                 size="sm" 
-                onClick={() => refreshFromDatabase(true)}
-                disabled={loading || syncStatus.isActive}
+                onClick={() => refreshFromDatabase(true, true)}
+                disabled={loading || manualRefreshActive}
                 className="flex items-center space-x-2 hover:bg-gray-50"
               >
-                <RefreshCw size={14} className={loading || syncStatus.isActive ? 'animate-spin' : ''} />
-                <span>{syncStatus.isActive ? 'Syncing...' : 'Refresh'}</span>
+                <RefreshCw size={14} className={loading || manualRefreshActive ? 'animate-spin' : ''} />
+                <span>{manualRefreshActive ? 'Refreshing...' : 'Refresh'}</span>
               </Button>
             </div>
           </div>

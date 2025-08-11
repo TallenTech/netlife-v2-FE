@@ -391,7 +391,6 @@ export const servicesApi = {
             }
 
             if (!existingRequest) {
-                console.warn('⚠️ Service request not found for deletion:', requestId);
                 return true; // Consider it successfully deleted if it doesn't exist
             }
 
@@ -404,8 +403,6 @@ export const servicesApi = {
             if (error) {
                 throw new Error(`Failed to delete service request: ${error.message}`);
             }
-
-            console.log('✅ Successfully deleted service request:', requestId, 'for user:', existingRequest.user_id);
             return true;
         } catch (error) {
             logError(error, 'servicesApi.deleteServiceRequest', { requestId });
@@ -434,7 +431,6 @@ export const servicesApi = {
             }
 
             if (!screeningResult) {
-                console.warn('⚠️ Screening result not found for deletion:', resultId);
                 return true; // Consider it successfully deleted if it doesn't exist
             }
 
@@ -448,8 +444,6 @@ export const servicesApi = {
                 throw new Error(`Failed to delete screening result: ${error.message}`);
             }
 
-            console.log('✅ Successfully deleted screening result:', resultId, 'for user:', screeningResult.user_id);
-
             // Also delete related screening answers
             try {
                 const { error: answersError } = await supabase
@@ -459,13 +453,9 @@ export const servicesApi = {
                     .eq('service_id', screeningResult.service_id);
 
                 if (answersError) {
-                    console.warn('⚠️ Failed to delete related screening answers:', answersError.message);
                     // Don't throw error here, as the main deletion succeeded
-                } else {
-                    console.log('✅ Successfully deleted related screening answers for user:', screeningResult.user_id, 'service:', screeningResult.service_id);
                 }
             } catch (answersDeleteError) {
-                console.warn('⚠️ Error deleting screening answers:', answersDeleteError.message);
                 // Continue execution - main deletion was successful
             }
 
@@ -496,7 +486,6 @@ export const servicesApi = {
                 throw new Error(`Failed to delete screening answers: ${error.message}`);
             }
 
-            console.log('✅ Successfully deleted screening answers for user:', userId, 'service:', serviceId);
             return true;
         } catch (error) {
             logError(error, 'servicesApi.deleteUserScreeningAnswers', { userId, serviceId });
@@ -724,7 +713,7 @@ export const extractCommonFields = (requestData) => {
     if (extracted.delivery_method) {
         const validMethods = ['Home Delivery', 'Facility pickup', 'Community Group Delivery', 'Pick-up from facility'];
         if (!validMethods.includes(extracted.delivery_method)) {
-            console.warn(`Invalid delivery method: ${extracted.delivery_method}`);
+            // Invalid delivery method
         }
     }
 
@@ -758,7 +747,6 @@ export const extractCommonFields = (requestData) => {
         if (selectedDate >= minDate && selectedDate <= maxDate) {
             extracted.preferred_date = dateValue;
         } else {
-            console.warn(`Invalid preferred date: ${dateValue}. Must be between 6 hours and 60 days from now.`);
             extracted.preferred_date = null;
         }
     }
@@ -807,8 +795,7 @@ export const validateServiceRequestFile = (file) => {
 export const validateDeliveryPreferences = (requestData) => {
     const errors = [];
 
-    // Debug: Log the request data being validated
-    console.log('🔍 Validating request data:', requestData);
+    // Validate request data
 
     // Validate delivery method
     if (requestData.deliveryMethod || requestData.accessPoint) {
@@ -845,9 +832,7 @@ export const validateDeliveryPreferences = (requestData) => {
 
     // Validate quantity if provided
     if (requestData.quantity !== undefined && requestData.quantity !== null && requestData.quantity !== '') {
-        console.log('🔍 Validating quantity:', requestData.quantity, 'type:', typeof requestData.quantity);
         const qty = typeof requestData.quantity === 'number' ? requestData.quantity : parseInt(requestData.quantity);
-        console.log('🔍 Parsed quantity:', qty, 'isNaN:', isNaN(qty));
         if (isNaN(qty) || qty < 1 || qty > 10) {
             errors.push('Quantity must be a number between 1 and 10');
         }

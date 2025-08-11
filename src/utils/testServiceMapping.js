@@ -18,26 +18,16 @@ const sampleDatabaseServices = [
  * Test the service transformation mapping
  */
 export const testServiceMapping = () => {
-    console.log('🧪 Testing service mapping...');
-
     const transformedServices = sampleDatabaseServices.map(service => {
         const transformed = transformServiceData(service);
-        console.log(`📋 ${service.name}:`, {
-            category: transformed.category,
-            color: transformed.color,
-            icon: transformed.icon
-        });
         return transformed;
     });
 
-    console.log('✅ Service mapping test complete');
     return transformedServices;
 };
 
 // Test unknown service mapping
 export const testUnknownService = () => {
-    console.log('🧪 Testing unknown service mapping...');
-
     const unknownService = {
         id: '999',
         name: 'Unknown Service',
@@ -46,12 +36,6 @@ export const testUnknownService = () => {
     };
 
     const transformed = transformServiceData(unknownService);
-    console.log('📋 Unknown service mapped to:', {
-        category: transformed.category,
-        color: transformed.color,
-        icon: transformed.icon
-    });
-
     return transformed;
 };
 

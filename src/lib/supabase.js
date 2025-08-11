@@ -23,7 +23,7 @@ const isSupabaseConfigured =
     supabaseUrl.includes("supabase.co") &&
     supabaseAnonKey.startsWith("eyJ");
 
-console.log("✅ Supabase configured:", isSupabaseConfigured);
+// Supabase configuration check
 
 // If environment variables are not working, try direct values for debugging
 const fallbackUrl = "your_supabase_project_url_here";
@@ -77,11 +77,8 @@ const createMockClient = () => ({
 // Always try to create a real client first
 let supabase;
 try {
-    console.log("🚀 Creating Supabase client...");
     supabase = createClient(finalUrl, finalKey);
-    console.log("✅ Supabase client created successfully");
 } catch (error) {
-    console.error("❌ Failed to create Supabase client:", error);
     supabase = createMockClient();
 }
 
@@ -115,9 +112,6 @@ export const authUtils = {
 
 // Export test function for debugging
 export const testDirectConnection = async () => {
-    console.log("🧪 Testing direct Supabase connection...");
-    console.log("🔍 Client type:", typeof supabase.from);
-
     try {
         // Test if we can make a simple query to fetch services
         const result = await supabase
@@ -125,21 +119,12 @@ export const testDirectConnection = async () => {
             .select("id, name, description")
             .limit(5);
 
-        console.log("📊 Query result:", result);
-
         if (result.error) {
-            console.error("❌ Direct connection failed:", result.error);
             return { success: false, error: result.error.message };
         }
 
-        console.log(
-            "✅ Direct connection successful, found",
-            result.data?.length || 0,
-            "services"
-        );
         return { success: true, data: result.data };
     } catch (err) {
-        console.error("❌ Direct connection error:", err);
         return { success: false, error: err.message };
     }
 };
