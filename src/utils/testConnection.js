@@ -20,13 +20,10 @@ export const testSupabaseConnection = async () => {
     };
 
     try {
-        console.log('🔍 Testing Supabase connection...');
-
         // Test 0: Direct connection test
         const directTest = await testDirectConnection();
         if (!directTest.success) {
             results.errors.push(`Direct connection failed: ${directTest.error}`);
-            console.error('❌ Direct connection failed:', directTest.error);
             return results;
         }
 
@@ -34,7 +31,6 @@ export const testSupabaseConnection = async () => {
         try {
             const services = await servicesApi.getServices();
             results.services = true;
-            console.log('✅ Services table accessible:', services.length, 'services found');
 
             if (services.length === 0) {
                 results.errors.push('No services found in database. Run the database-setup.sql script.');
@@ -45,7 +41,6 @@ export const testSupabaseConnection = async () => {
                 try {
                     const questions = await servicesApi.getServiceQuestions(services[0].id);
                     results.questions = true;
-                    console.log('✅ Service questions table accessible:', questions.length, 'questions found');
 
                     if (questions.length === 0) {
                         results.errors.push('No questions found for services. Check service_questions table.');
@@ -56,37 +51,28 @@ export const testSupabaseConnection = async () => {
                         try {
                             const options = await servicesApi.getQuestionOptions(questions[0].id);
                             results.options = true;
-                            console.log('✅ Question options table accessible:', options.length, 'options found');
 
                             if (options.length === 0) {
                                 results.errors.push('No options found for questions. Check question_options table.');
                             }
                         } catch (error) {
                             results.errors.push(`Question options test failed: ${error.message}`);
-                            console.error('❌ Question options test failed:', error);
                         }
                     }
                 } catch (error) {
                     results.errors.push(`Service questions test failed: ${error.message}`);
-                    console.error('❌ Service questions test failed:', error);
                 }
             }
         } catch (error) {
             results.errors.push(`Services test failed: ${error.message}`);
-            console.error('❌ Services test failed:', error);
         }
 
         results.connection = results.services;
 
-        if (results.connection && results.errors.length === 0) {
-            console.log('🎉 All tests passed! Your Supabase setup is working correctly.');
-        } else {
-            console.log('⚠️ Some tests failed. Check the errors above.');
-        }
+        // Test completed
 
     } catch (error) {
         results.errors.push(`Connection test failed: ${error.message}`);
-        console.error('❌ Connection test failed:', error);
     }
 
     return results;
@@ -98,20 +84,6 @@ export const testSupabaseConnection = async () => {
  */
 export const runConnectionTest = async () => {
     const results = await testSupabaseConnection();
-
-    console.log('\n📊 Test Results Summary:');
-    console.log('Connection:', results.connection ? '✅' : '❌');
-    console.log('Services:', results.services ? '✅' : '❌');
-    console.log('Questions:', results.questions ? '✅' : '❌');
-    console.log('Options:', results.options ? '✅' : '❌');
-
-    if (results.errors.length > 0) {
-        console.log('\n🚨 Errors:');
-        results.errors.forEach((error, index) => {
-            console.log(`${index + 1}. ${error}`);
-        });
-    }
-
     return results;
 };
 
