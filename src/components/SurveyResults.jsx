@@ -48,16 +48,16 @@ const SurveyResults = ({ onGoToDashboard }) => {
   return (
     <div className="mobile-container bg-gray-50">
       <div className="min-h-screen flex flex-col">
-        <div className="p-6 pt-12 flex items-center justify-center bg-gray-50">
+        <div className="p-6 pt-8 flex items-center justify-center bg-gray-50">
           <NetLifeLogo className="w-10 h-10 text-primary" />
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto px-6 pb-6">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="text-center mb-6"
+            className="text-center mb-8 mt-4"
           >
             <h1 className="text-2xl font-bold text-gray-900">Your Health Profile, {firstName}</h1>
             <p className="text-gray-500">Anonymous, personalized recommendations</p>
@@ -67,15 +67,15 @@ const SurveyResults = ({ onGoToDashboard }) => {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.2, duration: 0.5 }}
-            className="bg-secondary-light-green/50 p-6 rounded-2xl text-center mb-6"
+            className="bg-secondary-light-green/50 p-8 rounded-2xl text-center mb-8"
           >
             <p className="font-semibold text-green-800">Prevention Score</p>
             <p className="text-6xl font-bold text-green-900 my-1">{score}/10</p>
             <p className="text-green-800">You're taking great care of your health!</p>
           </motion.div>
 
-          <div className="mb-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-3">Priority Recommendations</h3>
+          <div className="mb-8">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">Priority Recommendations</h3>
             <div className="space-y-3">
               <div className="bg-white p-4 rounded-xl border flex items-start space-x-4">
                 <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center flex-shrink-0">
@@ -100,8 +100,8 @@ const SurveyResults = ({ onGoToDashboard }) => {
             </div>
           </div>
 
-          <div className="mb-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-3">Recommended Videos</h3>
+          <div className="mb-8">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">Recommended Videos</h3>
             <div className="space-y-2">
               <button onClick={() => navigate('/videos')} className="w-full bg-white p-3 rounded-xl border flex items-center space-x-4 text-left">
                 <div className="w-12 h-12 bg-secondary-light-green/70 rounded-lg flex items-center justify-center">
@@ -124,8 +124,8 @@ const SurveyResults = ({ onGoToDashboard }) => {
             </div>
           </div>
 
-          <div>
-            <h3 className="text-lg font-bold text-gray-900 mb-3">Quick Access Services</h3>
+          <div className="mb-6">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">Quick Access Services</h3>
             <div className="space-y-2">
               <button onClick={() => navigate('/services')} className="w-full bg-white p-4 rounded-xl border flex justify-between items-center text-left">
                 <div>

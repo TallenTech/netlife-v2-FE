@@ -18,6 +18,7 @@ import jsPDF from 'jspdf';
 import { serviceRequestForms } from '@/data/serviceRequestForms';
 import { useNavigate } from 'react-router-dom';
 import { servicesApi } from '@/services/servicesApi';
+import { formatSmartTime } from '@/utils/timeUtils';
 
 const tabs = ['Services', 'Screening', 'Records'];
 
@@ -154,7 +155,7 @@ const History = () => {
               const recordItem = {
                 id: key,
                 title: formConfig?.title || 'Service Request',
-                date: new Date(timestamp).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: '2-digit' }),
+                date: formatSmartTime(timestamp),
                 status: 'Submitted',
                 icon: HeartPulse,
                 data: item,
@@ -173,7 +174,7 @@ const History = () => {
         const surveyRecord = {
           id: `health_survey_result_${activeProfile.id}`,
           title: 'Health Risk Assessment',
-          date: new Date(parsedSurvey.completedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: '2-digit' }),
+          date: formatSmartTime(parsedSurvey.completedAt),
           status: 'Complete',
           result: `${parsedSurvey.score}/10 Score`,
           icon: FileText,
@@ -254,7 +255,7 @@ const History = () => {
                 id: key,
                 title: serviceTitle,
                 date: screeningData.completedAt ? 
-                  new Date(screeningData.completedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: '2-digit' }) :
+                  formatSmartTime(screeningData.completedAt) :
                   'Recently',
                 status: 'Complete',
                 result: `${screeningData.score}% Eligibility Score`,
@@ -301,7 +302,7 @@ const History = () => {
               const screeningRecord = {
                 id: `db_screening_result_${dbResult.id}`,
                 title: `${dbResult.services?.name || 'Health Service'} - Screening`,
-                date: new Date(dbResult.completed_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: '2-digit' }),
+                date: formatSmartTime(dbResult.completed_at),
                 status: 'Complete',
                 result: `${dbResult.score}% Eligibility Score`,
                 icon: FileText,
@@ -335,7 +336,7 @@ const History = () => {
               const recordItem = {
                 id: `db_service_request_${dbRequest.id}`,
                 title: dbRequest.services?.name || 'Service Request',
-                date: new Date(dbRequest.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: '2-digit' }),
+                date: formatSmartTime(dbRequest.created_at),
                 status: dbRequest.status === 'pending' ? 'Submitted' : dbRequest.status,
                 icon: HeartPulse,
                 data: {

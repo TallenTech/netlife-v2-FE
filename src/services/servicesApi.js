@@ -522,6 +522,126 @@ export const servicesApi = {
     },
 
     /**
+     * Fetch all videos from the videos table
+     * @returns {Promise<Video[]>} Array of video objects
+     */
+    async getVideos() {
+        try {
+            return await retryWithBackoff(async () => {
+                const { data, error } = await supabase
+                    .from('videos')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (error) {
+                    throw new Error(`Failed to fetch videos: ${error.message}`);
+                }
+
+                return data || [];
+            });
+        } catch (error) {
+            logError(error, 'servicesApi.getVideos');
+            throw new Error(handleApiError(error));
+        }
+    },
+
+    /**
+     * Get a single video by ID
+     * @param {string} videoId - The video ID
+     * @returns {Promise<Video|null>} Video object or null if not found
+     */
+    async getVideoById(videoId) {
+        try {
+            validateRequiredFields({ videoId }, ['videoId']);
+
+            return await retryWithBackoff(async () => {
+                const { data, error } = await supabase
+                    .from('videos')
+                    .select('*')
+                    .eq('id', videoId)
+                    .single();
+
+                if (error) {
+                    if (error.code === 'PGRST116') {
+                        // No rows returned
+                        return null;
+                    }
+                    throw new Error(`Failed to fetch video: ${error.message}`);
+                }
+
+                return data;
+            });
+        } catch (error) {
+            logError(error, 'servicesApi.getVideoById', { videoId });
+            throw new Error(handleApiError(error));
+        }
+    },
+
+    /**
+     * Get recent videos for dashboard (limited number)
+     * @param {number} limit - Number of videos to fetch (default: 3)
+     * @returns {Promise<Video[]>} Array of recent video objects
+     */
+    async getRecentVideos(limit = 3) {
+        try {
+            return await retryWithBackoff(async () => {
+                const { data, error } = await supabase
+                    .from('videos')
+                    .select('*')
+                    .order('created_at', { ascending: false })
+                    .limit(limit);
+
+                if (error) {
+                    throw new Error(`Failed to fetch recent videos: ${error.message}`);
+                }
+
+                return data || [];
+            });
+        } catch (error) {
+            logError(error, 'servicesApi.getRecentVideos', { limit });
+            throw new Error(handleApiError(error));
+        }
+    },
+
+    /**
+     * Get recent service requests for dashboard (limited number)
+     * @param {string} userId - The user ID
+     * @param {number} limit - Number of service requests to fetch (default: 2)
+     * @returns {Promise<ServiceRequest[]>} Array of recent service request objects
+     */
+    async getRecentServiceRequests(userId, limit = 2) {
+        try {
+            validateRequiredFields({ userId }, ['userId']);
+
+            return await retryWithBackoff(async () => {
+                const { data, error } = await supabase
+                    .from('service_requests')
+                    .select(`
+                        *,
+                        services (
+                            id,
+                            name,
+                            description,
+                            slug
+                        )
+                    `)
+                    .eq('user_id', userId)
+                    .order('created_at', { ascending: false })
+                    .limit(limit);
+
+                if (error) {
+                    throw new Error(`Failed to fetch recent service requests: ${error.message}`);
+                }
+
+                return data || [];
+            });
+        } catch (error) {
+            logError(error, 'servicesApi.getRecentServiceRequests', { userId, limit });
+            throw new Error(handleApiError(error));
+        }
+    },
+
+    /**
      * Get service by slug
      * @param {string} slug - The service slug
      * @returns {Promise<Service|null>} Service object or null if not found
