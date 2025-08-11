@@ -187,62 +187,7 @@ export const servicesApi = {
         }
     },
 
-    /**
-     * Upload file attachment for service request
-     * @param {File} file - The file to upload
-     * @param {string} userId - The user ID for file organization
-     * @returns {Promise<FileAttachment>} The uploaded file information
-     */
-    async uploadServiceRequestAttachment(file, userId) {
-        try {
-            validateRequiredFields({ file, userId }, ['file', 'userId']);
 
-            // Validate file type and size
-            const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
-            const maxSize = 10 * 1024 * 1024; // 10MB
-
-            if (!allowedTypes.includes(file.type)) {
-                throw new Error('Invalid file type. Only PDF, JPEG, and PNG files are allowed.');
-            }
-
-            if (file.size > maxSize) {
-                throw new Error('File size too large. Maximum size is 10MB.');
-            }
-
-            // Generate unique filename
-            const fileExtension = file.name.split('.').pop();
-            const uniqueFilename = `${userId}/${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExtension}`;
-            const storagePath = `service-request-attachments/${uniqueFilename}`;
-
-            // Upload to Supabase storage
-            const { data: uploadData, error: uploadError } = await supabase.storage
-                .from('attachments')
-                .upload(storagePath, file);
-
-            if (uploadError) {
-                throw new Error(`Failed to upload file: ${uploadError.message}`);
-            }
-
-            // Get public URL
-            const { data: { publicUrl } } = supabase.storage
-                .from('attachments')
-                .getPublicUrl(storagePath);
-
-            // Return file attachment object
-            return {
-                id: uploadData.path,
-                filename: file.name,
-                file_type: file.type,
-                file_size: file.size,
-                storage_path: storagePath,
-                public_url: publicUrl,
-                uploaded_at: new Date().toISOString()
-            };
-        } catch (error) {
-            logError(error, 'servicesApi.uploadServiceRequestAttachment', { fileName: file?.name, userId });
-            throw new Error(handleApiError(error));
-        }
-    },
 
     /**
      * Get service requests for a user
@@ -462,6 +407,75 @@ export const servicesApi = {
             return true;
         } catch (error) {
             logError(error, 'servicesApi.deleteScreeningResult', { resultId });
+            throw new Error(handleApiError(error));
+        }
+    },
+
+    /**
+     * Submit service request with enhanced error handling for sync operations
+     * @param {Object} request - Service request data
+     * @param {boolean} isSync - Whether this is a sync operation (more lenient validation)
+     * @returns {Promise<string>} The created request ID
+     */
+    async submitServiceRequestForSync(request, isSync = true) {
+        try {
+            validateRequiredFields(request, ['user_id', 'service_id', 'request_data']);
+
+            // For sync operations, try to auto-fix common validation issues
+            if (isSync && request.request_data) {
+                const requestData = { ...request.request_data };
+
+                // Auto-fix delivery location issues
+                const deliveryMethod = requestData.deliveryMethod || requestData.accessPoint;
+                const locationBasedMethods = ['Home Delivery', 'Community Group Delivery'];
+
+                if (locationBasedMethods.includes(deliveryMethod) && !requestData.deliveryLocation) {
+                    // Try to use address field or set a default
+                    requestData.deliveryLocation = requestData.address || 'Location to be confirmed';
+                }
+
+                // Ensure delivery method is set
+                if (!requestData.deliveryMethod && !requestData.accessPoint) {
+                    requestData.deliveryMethod = 'Facility pickup';
+                }
+
+                // Update the request with sanitized data
+                request.request_data = requestData;
+            }
+
+            // Validate delivery preferences
+            const validation = validateDeliveryPreferences(request.request_data);
+            if (!validation.isValid) {
+                throw new Error(`Invalid delivery preferences: ${validation.errors.join(', ')}`);
+            }
+
+            // Extract common fields from request_data for easier querying
+            const extractedFields = extractCommonFields(request.request_data);
+
+            // Prepare the complete request data
+            const requestData = {
+                user_id: request.user_id,
+                service_id: request.service_id,
+                request_data: request.request_data,
+                attachments: request.attachments,
+                status: 'pending',
+                created_at: new Date().toISOString(),
+                ...extractedFields
+            };
+
+            const { data, error } = await supabase
+                .from('service_requests')
+                .insert([requestData])
+                .select('id')
+                .single();
+
+            if (error) {
+                throw new Error(`Failed to submit service request: ${error.message}`);
+            }
+
+            return data.id;
+        } catch (error) {
+            logError(error, 'servicesApi.submitServiceRequestForSync', { request, isSync });
             throw new Error(handleApiError(error));
         }
     },
