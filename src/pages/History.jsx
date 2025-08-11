@@ -18,6 +18,7 @@ import jsPDF from 'jspdf';
 import { serviceRequestForms } from '@/data/serviceRequestForms';
 import { useNavigate } from 'react-router-dom';
 import { servicesApi } from '@/services/servicesApi';
+import { formatSmartTime } from '@/utils/timeUtils';
 
 const tabs = ['Services', 'Screening', 'Records'];
 
@@ -130,10 +131,9 @@ const History = () => {
     </div>
   );
 
-  useEffect(() => {
+  // Function to load history data
+  const loadHistory = async () => {
     if (!activeProfile) return;
-
-    const loadHistory = async () => {
       setLoading(true);
       const services = [];
       const screening = [];
@@ -155,7 +155,7 @@ const History = () => {
               const recordItem = {
                 id: key,
                 title: formConfig?.title || 'Service Request',
-                date: new Date(timestamp).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: '2-digit' }),
+                date: formatSmartTime(timestamp),
                 status: 'Submitted',
                 icon: HeartPulse,
                 data: item,
@@ -174,7 +174,7 @@ const History = () => {
         const surveyRecord = {
           id: `health_survey_result_${activeProfile.id}`,
           title: 'Health Risk Assessment',
-          date: new Date(parsedSurvey.completedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: '2-digit' }),
+          date: formatSmartTime(parsedSurvey.completedAt),
           status: 'Complete',
           result: `${parsedSurvey.score}/10 Score`,
           icon: FileText,
@@ -255,7 +255,7 @@ const History = () => {
                 id: key,
                 title: serviceTitle,
                 date: screeningData.completedAt ? 
-                  new Date(screeningData.completedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: '2-digit' }) :
+                  formatSmartTime(screeningData.completedAt) :
                   'Recently',
                 status: 'Complete',
                 result: `${screeningData.score}% Eligibility Score`,
@@ -302,7 +302,7 @@ const History = () => {
               const screeningRecord = {
                 id: `db_screening_result_${dbResult.id}`,
                 title: `${dbResult.services?.name || 'Health Service'} - Screening`,
-                date: new Date(dbResult.completed_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: '2-digit' }),
+                date: formatSmartTime(dbResult.completed_at),
                 status: 'Complete',
                 result: `${dbResult.score}% Eligibility Score`,
                 icon: FileText,
@@ -336,7 +336,7 @@ const History = () => {
               const recordItem = {
                 id: `db_service_request_${dbRequest.id}`,
                 title: dbRequest.services?.name || 'Service Request',
-                date: new Date(dbRequest.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: '2-digit' }),
+                date: formatSmartTime(dbRequest.created_at),
                 status: dbRequest.status === 'pending' ? 'Submitted' : dbRequest.status,
                 icon: HeartPulse,
                 data: {
@@ -375,9 +375,13 @@ const History = () => {
       await cleanupOrphanedLocalData(services, screening);
       
       setLoading(false);
-    };
+  };
 
-    loadHistory();
+  // Load history when activeProfile changes
+  useEffect(() => {
+    if (activeProfile) {
+      loadHistory();
+    }
   }, [activeProfile]);
 
   // Function to clean up localStorage data that no longer exists in database
@@ -488,50 +492,162 @@ const History = () => {
     }
   };
 
+  // Function to sanitize and validate service request data before sync
+  const sanitizeServiceRequestData = (requestData) => {
+    if (!requestData || typeof requestData !== 'object') return null;
+
+    try {
+      // Create a copy to avoid modifying original data
+      const sanitized = { ...requestData };
+
+      // Handle delivery method and location validation
+      const deliveryMethod = sanitized.deliveryMethod || sanitized.accessPoint;
+      if (deliveryMethod) {
+        const locationBasedMethods = ['Home Delivery', 'Community Group Delivery'];
+        
+        // If location-based delivery method but no location provided, set default
+        if (locationBasedMethods.includes(deliveryMethod) && !sanitized.deliveryLocation) {
+          // Try multiple fallback sources for location
+          sanitized.deliveryLocation = 
+            sanitized.address || 
+            sanitized.location || 
+            sanitized.deliveryAddress ||
+            'Location to be confirmed';
+        }
+      }
+
+      // Ensure required fields have fallback values
+      if (!sanitized.deliveryMethod && !sanitized.accessPoint) {
+        sanitized.deliveryMethod = 'Facility pickup'; // Safe default
+      }
+
+      // Clean up date fields
+      if (sanitized.deliveryDate && isNaN(new Date(sanitized.deliveryDate).getTime())) {
+        delete sanitized.deliveryDate;
+      }
+      if (sanitized.preferredDate && isNaN(new Date(sanitized.preferredDate).getTime())) {
+        delete sanitized.preferredDate;
+      }
+
+      // Ensure basic required fields exist
+      if (!sanitized.contactMethod) {
+        sanitized.contactMethod = 'phone'; // Default contact method
+      }
+
+      // Clean up any null or undefined values that might cause issues
+      Object.keys(sanitized).forEach(key => {
+        if (sanitized[key] === null || sanitized[key] === undefined) {
+          delete sanitized[key];
+        }
+      });
+
+      return sanitized;
+    } catch (error) {
+      // If sanitization fails, return null to mark for removal
+      return null;
+    }
+  };
+
   // Function to sync localStorage data to database (for backup)
   const syncLocalDataToDatabase = async () => {
     try {
       const currentUser = await servicesApi.getCurrentUser();
       if (!currentUser) return;
 
+      const keysToRemove = []; // Track problematic entries for cleanup
+
       // Find localStorage service requests that haven't been synced to database
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
         if (key.startsWith('service_request_')) {
-          const item = JSON.parse(localStorage.getItem(key));
-          
-          // Check if this item belongs to current user and hasn't been synced
-          if (item.profile && 
-              (item.profile.id === activeProfile.id || 
-               item.profile.phoneNumber === activeProfile.phoneNumber) &&
-              !item.savedToDatabase) {
+          try {
+            const item = JSON.parse(localStorage.getItem(key));
             
-            try {
-              // Get service data
-              const serviceId = key.split('_')[2];
-              const serviceData = await servicesApi.getServiceBySlug(serviceId);
+            // Check if this item belongs to current user and hasn't been synced
+            if (item.profile && 
+                (item.profile.id === activeProfile.id || 
+                 item.profile.phoneNumber === activeProfile.phoneNumber) &&
+                !item.savedToDatabase) {
               
-              if (serviceData) {
-                const serviceRequestData = {
-                  user_id: currentUser.id,
-                  service_id: serviceData.id,
-                  request_data: item.request,
-                  attachments: item.request.attachments || null
-                };
-
-                const requestId = await servicesApi.submitServiceRequest(serviceRequestData);
+              try {
+                // Get service data
+                const serviceId = key.split('_')[2];
+                const serviceData = await servicesApi.getServiceBySlug(serviceId);
                 
-                // Update localStorage item to mark as synced
-                item.savedToDatabase = true;
-                item.id = requestId;
-                localStorage.setItem(key, JSON.stringify(item));
+                if (serviceData && item.request) {
+                  // Sanitize the request data before submission
+                  const sanitizedRequest = sanitizeServiceRequestData(item.request);
+                  
+                  if (sanitizedRequest) {
+                    const serviceRequestData = {
+                      user_id: currentUser.id,
+                      service_id: serviceData.id,
+                      request_data: sanitizedRequest,
+                      attachments: sanitizedRequest.attachments || null
+                    };
+
+                    const requestId = await servicesApi.submitServiceRequestForSync(serviceRequestData, true);
+                    
+                    // Update localStorage item to mark as synced
+                    item.savedToDatabase = true;
+                    item.id = requestId;
+                    localStorage.setItem(key, JSON.stringify(item));
+                  } else {
+                    // Request data is too corrupted, mark for removal
+                    keysToRemove.push(key);
+                  }
+                } else {
+                  // Service not found or invalid request, mark for removal
+                  keysToRemove.push(key);
+                }
+              } catch (syncError) {
+                // Categorize sync errors
+                const errorMessage = syncError.message.toLowerCase();
+                
+                // Permanent validation errors - remove these entries
+                const permanentErrors = [
+                  'invalid delivery preferences',
+                  'validation failed',
+                  'required field',
+                  'invalid date format',
+                  'service not found',
+                  'user not found'
+                ];
+                
+                const isPermanentError = permanentErrors.some(error => 
+                  errorMessage.includes(error)
+                );
+                
+                if (isPermanentError) {
+                  // Mark problematic entry for removal
+                  keysToRemove.push(key);
+                } else {
+                  // Temporary errors (network, server issues) - keep for retry
+                  // These will be retried on next sync cycle
+                }
               }
-            } catch (syncError) {
-              // Sync failed, continue
             }
+          } catch (parseError) {
+            // Corrupted localStorage entry, mark for removal
+            keysToRemove.push(key);
           }
         }
       }
+
+      // Clean up problematic entries
+      if (keysToRemove.length > 0) {
+        keysToRemove.forEach(key => {
+          try {
+            localStorage.removeItem(key);
+          } catch (removeError) {
+            // Ignore removal errors
+          }
+        });
+        
+        // Optionally notify user about cleanup (only for manual refresh)
+        // This helps users understand why some requests might disappear
+      }
+
     } catch (error) {
       // Sync failed, continue
     }
@@ -868,19 +984,18 @@ const History = () => {
       // Handle different types of items with comprehensive cleanup
       if (itemToDelete.type === 'service_request') {
         // 1. Delete from database first (database-first strategy)
-        if (itemToDelete.data.savedToDatabase && itemToDelete.data.id) {
+        if (itemToDelete.data?.savedToDatabase && itemToDelete.data?.id) {
           try {
             await servicesApi.deleteServiceRequest(itemToDelete.data.id);
             dbDeletionSuccess = true;
           } catch (dbError) {
-            console.warn('⚠️ Failed to delete from database:', dbError.message);
             // Queue for retry if it's a network/temporary issue
-            if (dbError.message.includes('network') || dbError.message.includes('timeout') || dbError.message.includes('connection')) {
+            if (dbError.message?.includes('network') || dbError.message?.includes('timeout') || dbError.message?.includes('connection')) {
               queueDeletionForLater('service_request', itemToDelete.data.id);
             }
             // Continue with localStorage cleanup even if database deletion fails
           }
-        } else if (itemToDelete.id.startsWith('db_service_request_')) {
+        } else if (itemToDelete.id?.startsWith('db_service_request_')) {
           // This is a database-only record
           const dbId = itemToDelete.id.replace('db_service_request_', '');
           try {
@@ -888,21 +1003,29 @@ const History = () => {
             dbDeletionSuccess = true;
           } catch (dbError) {
             // Queue for retry if it's a network/temporary issue
-            if (dbError.message.includes('network') || dbError.message.includes('timeout') || dbError.message.includes('connection')) {
+            if (dbError.message?.includes('network') || dbError.message?.includes('timeout') || dbError.message?.includes('connection')) {
               queueDeletionForLater('service_request', dbId);
             }
           }
         }
 
         // 2. Delete from localStorage
-        if (itemToDelete.id.startsWith('service_request_')) {
-          localStorage.removeItem(itemToDelete.id);
-          localDeletionSuccess = true;
+        if (itemToDelete.id?.startsWith('service_request_')) {
+          try {
+            localStorage.removeItem(itemToDelete.id);
+            localDeletionSuccess = true;
+          } catch (localError) {
+            // localStorage deletion failed
+          }
         }
 
         // 3. Clean up any related localStorage entries
-        if (dbDeletionSuccess && itemToDelete.data.id) {
-          await cleanupRelatedLocalStorageEntries('service_request', itemToDelete.data.id);
+        if (dbDeletionSuccess && itemToDelete.data?.id) {
+          try {
+            await cleanupRelatedLocalStorageEntries('service_request', itemToDelete.data.id);
+          } catch (cleanupError) {
+            // Cleanup failed, but main deletion succeeded
+          }
         }
 
         deleteSuccess = dbDeletionSuccess || localDeletionSuccess;
@@ -914,7 +1037,6 @@ const History = () => {
             await servicesApi.deleteScreeningResult(itemToDelete.data.databaseResultId);
             dbDeletionSuccess = true;
           } catch (dbError) {
-            console.warn('⚠️ Failed to delete screening result from database:', dbError.message);
             // Queue for retry if it's a network/temporary issue
             if (dbError.message.includes('network') || dbError.message.includes('timeout') || dbError.message.includes('connection')) {
               queueDeletionForLater('screening_result', itemToDelete.data.databaseResultId);
@@ -942,7 +1064,6 @@ const History = () => {
               await servicesApi.deleteUserScreeningAnswers(currentUser.id, itemToDelete.serviceId);
             }
           } catch (dbError) {
-            console.warn('⚠️ Failed to delete screening answers from database:', dbError.message);
             // Queue this for retry if it's a network issue
             if (dbError.message.includes('network') || dbError.message.includes('timeout')) {
               queueDeletionForLater('screening_answers', `${currentUser?.id}_${itemToDelete.serviceId}`);
@@ -980,7 +1101,7 @@ const History = () => {
         });
         
         // Reload history to reflect changes immediately
-        await loadHistory();
+        loadHistory();
       } else {
         toast({
           title: 'Delete Failed',

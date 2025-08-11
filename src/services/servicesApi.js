@@ -187,62 +187,7 @@ export const servicesApi = {
         }
     },
 
-    /**
-     * Upload file attachment for service request
-     * @param {File} file - The file to upload
-     * @param {string} userId - The user ID for file organization
-     * @returns {Promise<FileAttachment>} The uploaded file information
-     */
-    async uploadServiceRequestAttachment(file, userId) {
-        try {
-            validateRequiredFields({ file, userId }, ['file', 'userId']);
 
-            // Validate file type and size
-            const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
-            const maxSize = 10 * 1024 * 1024; // 10MB
-
-            if (!allowedTypes.includes(file.type)) {
-                throw new Error('Invalid file type. Only PDF, JPEG, and PNG files are allowed.');
-            }
-
-            if (file.size > maxSize) {
-                throw new Error('File size too large. Maximum size is 10MB.');
-            }
-
-            // Generate unique filename
-            const fileExtension = file.name.split('.').pop();
-            const uniqueFilename = `${userId}/${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExtension}`;
-            const storagePath = `service-request-attachments/${uniqueFilename}`;
-
-            // Upload to Supabase storage
-            const { data: uploadData, error: uploadError } = await supabase.storage
-                .from('attachments')
-                .upload(storagePath, file);
-
-            if (uploadError) {
-                throw new Error(`Failed to upload file: ${uploadError.message}`);
-            }
-
-            // Get public URL
-            const { data: { publicUrl } } = supabase.storage
-                .from('attachments')
-                .getPublicUrl(storagePath);
-
-            // Return file attachment object
-            return {
-                id: uploadData.path,
-                filename: file.name,
-                file_type: file.type,
-                file_size: file.size,
-                storage_path: storagePath,
-                public_url: publicUrl,
-                uploaded_at: new Date().toISOString()
-            };
-        } catch (error) {
-            logError(error, 'servicesApi.uploadServiceRequestAttachment', { fileName: file?.name, userId });
-            throw new Error(handleApiError(error));
-        }
-    },
 
     /**
      * Get service requests for a user
@@ -467,6 +412,75 @@ export const servicesApi = {
     },
 
     /**
+     * Submit service request with enhanced error handling for sync operations
+     * @param {Object} request - Service request data
+     * @param {boolean} isSync - Whether this is a sync operation (more lenient validation)
+     * @returns {Promise<string>} The created request ID
+     */
+    async submitServiceRequestForSync(request, isSync = true) {
+        try {
+            validateRequiredFields(request, ['user_id', 'service_id', 'request_data']);
+
+            // For sync operations, try to auto-fix common validation issues
+            if (isSync && request.request_data) {
+                const requestData = { ...request.request_data };
+
+                // Auto-fix delivery location issues
+                const deliveryMethod = requestData.deliveryMethod || requestData.accessPoint;
+                const locationBasedMethods = ['Home Delivery', 'Community Group Delivery'];
+
+                if (locationBasedMethods.includes(deliveryMethod) && !requestData.deliveryLocation) {
+                    // Try to use address field or set a default
+                    requestData.deliveryLocation = requestData.address || 'Location to be confirmed';
+                }
+
+                // Ensure delivery method is set
+                if (!requestData.deliveryMethod && !requestData.accessPoint) {
+                    requestData.deliveryMethod = 'Facility pickup';
+                }
+
+                // Update the request with sanitized data
+                request.request_data = requestData;
+            }
+
+            // Validate delivery preferences
+            const validation = validateDeliveryPreferences(request.request_data);
+            if (!validation.isValid) {
+                throw new Error(`Invalid delivery preferences: ${validation.errors.join(', ')}`);
+            }
+
+            // Extract common fields from request_data for easier querying
+            const extractedFields = extractCommonFields(request.request_data);
+
+            // Prepare the complete request data
+            const requestData = {
+                user_id: request.user_id,
+                service_id: request.service_id,
+                request_data: request.request_data,
+                attachments: request.attachments,
+                status: 'pending',
+                created_at: new Date().toISOString(),
+                ...extractedFields
+            };
+
+            const { data, error } = await supabase
+                .from('service_requests')
+                .insert([requestData])
+                .select('id')
+                .single();
+
+            if (error) {
+                throw new Error(`Failed to submit service request: ${error.message}`);
+            }
+
+            return data.id;
+        } catch (error) {
+            logError(error, 'servicesApi.submitServiceRequestForSync', { request, isSync });
+            throw new Error(handleApiError(error));
+        }
+    },
+
+    /**
      * Delete user screening answers for a specific service
      * @param {string} userId - The user ID
      * @param {string} serviceId - The service ID
@@ -504,6 +518,126 @@ export const servicesApi = {
         } catch (error) {
             logError(error, 'servicesApi.isAuthenticated');
             return false;
+        }
+    },
+
+    /**
+     * Fetch all videos from the videos table
+     * @returns {Promise<Video[]>} Array of video objects
+     */
+    async getVideos() {
+        try {
+            return await retryWithBackoff(async () => {
+                const { data, error } = await supabase
+                    .from('videos')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (error) {
+                    throw new Error(`Failed to fetch videos: ${error.message}`);
+                }
+
+                return data || [];
+            });
+        } catch (error) {
+            logError(error, 'servicesApi.getVideos');
+            throw new Error(handleApiError(error));
+        }
+    },
+
+    /**
+     * Get a single video by ID
+     * @param {string} videoId - The video ID
+     * @returns {Promise<Video|null>} Video object or null if not found
+     */
+    async getVideoById(videoId) {
+        try {
+            validateRequiredFields({ videoId }, ['videoId']);
+
+            return await retryWithBackoff(async () => {
+                const { data, error } = await supabase
+                    .from('videos')
+                    .select('*')
+                    .eq('id', videoId)
+                    .single();
+
+                if (error) {
+                    if (error.code === 'PGRST116') {
+                        // No rows returned
+                        return null;
+                    }
+                    throw new Error(`Failed to fetch video: ${error.message}`);
+                }
+
+                return data;
+            });
+        } catch (error) {
+            logError(error, 'servicesApi.getVideoById', { videoId });
+            throw new Error(handleApiError(error));
+        }
+    },
+
+    /**
+     * Get recent videos for dashboard (limited number)
+     * @param {number} limit - Number of videos to fetch (default: 3)
+     * @returns {Promise<Video[]>} Array of recent video objects
+     */
+    async getRecentVideos(limit = 3) {
+        try {
+            return await retryWithBackoff(async () => {
+                const { data, error } = await supabase
+                    .from('videos')
+                    .select('*')
+                    .order('created_at', { ascending: false })
+                    .limit(limit);
+
+                if (error) {
+                    throw new Error(`Failed to fetch recent videos: ${error.message}`);
+                }
+
+                return data || [];
+            });
+        } catch (error) {
+            logError(error, 'servicesApi.getRecentVideos', { limit });
+            throw new Error(handleApiError(error));
+        }
+    },
+
+    /**
+     * Get recent service requests for dashboard (limited number)
+     * @param {string} userId - The user ID
+     * @param {number} limit - Number of service requests to fetch (default: 2)
+     * @returns {Promise<ServiceRequest[]>} Array of recent service request objects
+     */
+    async getRecentServiceRequests(userId, limit = 2) {
+        try {
+            validateRequiredFields({ userId }, ['userId']);
+
+            return await retryWithBackoff(async () => {
+                const { data, error } = await supabase
+                    .from('service_requests')
+                    .select(`
+                        *,
+                        services (
+                            id,
+                            name,
+                            description,
+                            slug
+                        )
+                    `)
+                    .eq('user_id', userId)
+                    .order('created_at', { ascending: false })
+                    .limit(limit);
+
+                if (error) {
+                    throw new Error(`Failed to fetch recent service requests: ${error.message}`);
+                }
+
+                return data || [];
+            });
+        } catch (error) {
+            logError(error, 'servicesApi.getRecentServiceRequests', { userId, limit });
+            throw new Error(handleApiError(error));
         }
     },
 
