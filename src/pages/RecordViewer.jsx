@@ -539,6 +539,68 @@ const RecordViewer = () => {
           </div>
         </div>
 
+        {/* Profile Information - Show who requested the service */}
+        {(() => {
+          const profileInfo = data?._profileInfo;
+          const requestProfile = record?.data?.profile || record?.profile;
+          
+          // Always show profile information section
+          const isForMainUser = profileInfo?.isMainUser ?? true; // Default to main user for legacy records
+          const recipientName = profileInfo?.profileName || requestProfile?.username || 'Account Owner';
+          const requestedBy = profileInfo?.requestedBy || requestProfile?.username || 'Account Owner';
+          
+          // Determine if this is a legacy record (no profile info)
+          const isLegacyRecord = !profileInfo;
+          
+          return (
+            <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+              <h3 className="text-lg font-bold text-purple-900 mb-3 flex items-center gap-2">
+                <User size={20} />
+                Request Information
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm font-semibold text-purple-700">Requested By</p>
+                  <p className="text-lg text-purple-900">{requestedBy}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-purple-700">Service For</p>
+                  <p className="text-lg text-purple-900 flex items-center gap-2">
+                    {isForMainUser ? (
+                      <>
+                        <User size={16} className="text-purple-600" />
+                        {recipientName} {isLegacyRecord ? '' : '(Self)'}
+                      </>
+                    ) : (
+                      <>
+                        <User size={16} className="text-purple-600" />
+                        {recipientName} (Family Member)
+                      </>
+                    )}
+                  </p>
+                </div>
+              </div>
+              
+              {/* Show different notes based on record type */}
+              {!isForMainUser && !isLegacyRecord && (
+                <div className="mt-3 p-3 bg-purple-100 rounded-md">
+                  <p className="text-sm text-purple-800">
+                    <strong>Note:</strong> This service was requested by the account owner for a family member.
+                  </p>
+                </div>
+              )}
+              
+              {isLegacyRecord && (
+                <div className="mt-3 p-3 bg-gray-100 rounded-md">
+                  <p className="text-sm text-gray-600">
+                    <strong>Legacy Record:</strong> This request was made before profile tracking was implemented.
+                  </p>
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
         {/* Personal Information */}
         {(data?.fullName || data?.phoneNumber || data?.email) && (
           <div className="bg-gray-50 p-4 rounded-lg">
@@ -681,23 +743,59 @@ const RecordViewer = () => {
     );
   };
 
-  const renderHealthSurvey = () => (
-    <div className="space-y-6">
-      <div className="text-center bg-primary/10 p-6 rounded-2xl">
-        <p className="font-semibold text-primary">Prevention Score</p>
-        <p className="text-6xl font-bold text-primary my-1">{recordData.score}/10</p>
-        <p className="text-primary/80">A great result!</p>
+  const renderHealthSurvey = () => {
+    // Extract profile information from the record ID
+    const profileId = recordId.replace('health_survey_result_', '');
+    const requestProfile = record?.data?.profile || record?.profile;
+    const profileName = requestProfile?.username || 'User';
+    
+    return (
+      <div className="space-y-6">
+        <div className="text-center bg-primary/10 p-6 rounded-2xl">
+          <p className="font-semibold text-primary">Prevention Score</p>
+          <p className="text-6xl font-bold text-primary my-1">{recordData.score}/10</p>
+          <p className="text-primary/80">A great result!</p>
+        </div>
+        
+        {/* Profile Information for Health Survey */}
+        <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+          <h3 className="text-lg font-bold text-purple-900 mb-3 flex items-center gap-2">
+            <User size={20} />
+            Survey Information
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <p className="text-sm font-semibold text-purple-700">Survey Completed By</p>
+              <p className="text-lg text-purple-900 flex items-center gap-2">
+                <User size={16} className="text-purple-600" />
+                {profileName}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-purple-700">Risk Level</p>
+              <p className="text-lg text-purple-900">
+                {recordData.score >= 8 ? 'Low Risk' : recordData.score >= 5 ? 'Moderate Risk' : 'Higher Risk'}
+              </p>
+            </div>
+          </div>
+          <div className="mt-3 p-3 bg-purple-100 rounded-md">
+            <p className="text-sm text-purple-800">
+              <strong>Note:</strong> This health risk assessment helps identify potential health concerns and provides personalized recommendations.
+            </p>
+          </div>
+        </div>
+        
+        <div>
+          <h3 className="text-lg font-bold text-gray-900 mb-3">Recommendations</h3>
+          <ul className="list-disc list-inside space-y-2 text-gray-700">
+            {recordData.recommendations?.map((rec, index) => (
+              <li key={index}>{rec}</li>
+            ))}
+          </ul>
+        </div>
       </div>
-      <div>
-        <h3 className="text-lg font-bold text-gray-900 mb-3">Recommendations</h3>
-        <ul className="list-disc list-inside space-y-2 text-gray-700">
-          {recordData.recommendations?.map((rec, index) => (
-            <li key={index}>{rec}</li>
-          ))}
-        </ul>
-      </div>
-    </div>
-  );
+    );
+  };
 
   const renderScreeningResult = () => {
     const data = record.type === 'database_screening_result' ? recordData : recordData;
@@ -745,6 +843,44 @@ const RecordViewer = () => {
             </div>
           </div>
         </div>
+
+        {/* Profile Information for Screening */}
+        {(() => {
+          // For screening results, we need to infer profile information
+          // Since screening results don't currently store profile info directly,
+          // we'll show basic information based on the record context
+          const requestProfile = record?.data?.profile || record?.profile;
+          const profileName = requestProfile?.username || 'User';
+          
+          return (
+            <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+              <h3 className="text-lg font-bold text-purple-900 mb-3 flex items-center gap-2">
+                <User size={20} />
+                Screening Information
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm font-semibold text-purple-700">Screened For</p>
+                  <p className="text-lg text-purple-900 flex items-center gap-2">
+                    <User size={16} className="text-purple-600" />
+                    {profileName}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-purple-700">Result</p>
+                  <p className="text-lg text-purple-900">
+                    {data.eligible ? 'Eligible for Service' : 'Not Currently Eligible'}
+                  </p>
+                </div>
+              </div>
+              <div className="mt-3 p-3 bg-purple-100 rounded-md">
+                <p className="text-sm text-purple-800">
+                  <strong>Note:</strong> This screening determines eligibility for the requested health service.
+                </p>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Screening Answers */}
         {answers && (
