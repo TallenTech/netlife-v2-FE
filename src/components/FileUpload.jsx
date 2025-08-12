@@ -1,18 +1,38 @@
 import React, { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { UploadCloud, X, File } from 'lucide-react';
+import { UploadCloud, X, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from './ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
+// File upload component with drag-and-drop support and validation
 
 const FileUpload = ({ onFileSelect, previewUrl, className, children, isAvatar = false, healthRecords = [] }) => {
     const [preview, setPreview] = useState(previewUrl);
     const [fileName, setFileName] = useState('');
     const [dialogOpen, setDialogOpen] = useState(false);
+    const [error, setError] = useState('');
 
     const onDrop = useCallback(acceptedFiles => {
         const file = acceptedFiles[0];
         if (file) {
+            // Clear any previous errors
+            setError('');
+            
+            // Basic client-side validation (detailed validation will happen in API)
+            const maxSize = 5 * 1024 * 1024; // 5MB
+            const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
+            
+            if (!allowedTypes.includes(file.type)) {
+                setError('Please upload PDF, JPEG, or PNG files only.');
+                return;
+            }
+            
+            if (file.size > maxSize) {
+                setError('File size must be under 5MB.');
+                return;
+            }
+            
+            // File is valid, proceed with processing
             setFileName(file.name);
             const reader = new FileReader();
             reader.onload = () => {
@@ -31,6 +51,7 @@ const FileUpload = ({ onFileSelect, previewUrl, className, children, isAvatar = 
         e.stopPropagation();
         setPreview(null);
         setFileName('');
+        setError('');
         if (onFileSelect) {
             onFileSelect(null);
         }
@@ -60,7 +81,7 @@ const FileUpload = ({ onFileSelect, previewUrl, className, children, isAvatar = 
                 <div className="flex items-center gap-3 overflow-hidden">
                     {preview.startsWith('data:image') ? 
                         <img src={preview} alt="Preview" className="h-12 w-12 rounded-md object-cover flex-shrink-0" /> :
-                        <File className="h-10 w-10 text-primary flex-shrink-0" />
+                        <FileText className="h-10 w-10 text-primary flex-shrink-0" />
                     }
                     <p className="font-medium text-sm truncate" title={fileName}>{fileName || "Uploaded File"}</p>
                 </div>
@@ -93,6 +114,14 @@ const FileUpload = ({ onFileSelect, previewUrl, className, children, isAvatar = 
                         </DialogTrigger>
                     </div>
                     <p className="text-xs mt-2">Images & PDF supported, up to 5MB</p>
+                    {error && (
+                        <div className="mt-3 p-2 bg-red-50 border border-red-200 rounded-md">
+                            <p className="text-sm text-red-600 flex items-center gap-1">
+                                <X size={14} />
+                                {error}
+                            </p>
+                        </div>
+                    )}
                 </div>
             </div>
              <DialogContent>
@@ -104,7 +133,7 @@ const FileUpload = ({ onFileSelect, previewUrl, className, children, isAvatar = 
                         <ul className="space-y-2">
                             {healthRecords.map((record, i) => (
                                 <li key={i} onClick={() => handleRecordSelect(record)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 cursor-pointer">
-                                    <File className="h-6 w-6 text-primary flex-shrink-0"/>
+                                    <FileText className="h-6 w-6 text-primary flex-shrink-0"/>
                                     <div className="flex-grow overflow-hidden">
                                         <p className="font-semibold truncate">{record.name}</p>
                                         <p className="text-xs text-gray-500">{new Date(record.uploadedAt).toLocaleDateString()}</p>

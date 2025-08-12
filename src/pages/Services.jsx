@@ -12,12 +12,9 @@ import { testServiceMapping } from '@/utils/testServiceMapping';
 // Add test function for questions
 const testServiceQuestions = async (serviceId) => {
   try {
-    console.log(`🧪 Testing questions for service: ${serviceId}`);
     const questions = await servicesApi.getServiceQuestions(serviceId);
-    console.log(`📋 Found ${questions.length} questions:`, questions);
     return questions;
   } catch (error) {
-    console.error('❌ Failed to fetch questions:', error);
     return [];
   }
 };
@@ -52,11 +49,6 @@ const Services = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Debug environment variables
-    console.log('🔍 Environment Variables Debug:');
-    console.log('VITE_SUPABASE_URL:', import.meta.env.VITE_SUPABASE_URL);
-    console.log('VITE_SUPABASE_ANON_KEY:', import.meta.env.VITE_SUPABASE_ANON_KEY ? 'SET' : 'NOT SET');
-    
     loadServices();
     
     // Run connection test in development
@@ -97,7 +89,6 @@ const Services = () => {
       setServices(transformedServices);
       
     } catch (err) {
-      console.error('Failed to load services:', err);
       setError(err.message);
       
       // Try to use cached services if available
@@ -121,7 +112,7 @@ const Services = () => {
         timestamp: Date.now()
       }));
     } catch (error) {
-      console.warn('Failed to cache services:', error);
+      // Cache failed, continue
     }
   };
 
@@ -139,7 +130,7 @@ const Services = () => {
         }
       }
     } catch (error) {
-      console.warn('Failed to load cached services:', error);
+      // Cache load failed, continue
     }
     return [];
   };

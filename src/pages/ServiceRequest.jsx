@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { serviceRequestForms } from '@/data/serviceRequestForms';
 import { useAuth } from '@/contexts/AuthContext';
-import { servicesApi } from '@/services/servicesApi';
+import { servicesApi, ATTACHMENT_ERROR_MESSAGES } from '@/services/servicesApi';
 import ServiceRequestStep from '@/components/service-request/ServiceRequestStep';
 import PreviewStep from '@/components/service-request/PreviewStep';
 import SuccessConfirmation from '@/components/service-request/SuccessConfirmation';
@@ -168,20 +168,20 @@ const ServiceRequest = () => {
         throw new Error('User not authenticated');
       }
 
-      // Handle file uploads if any
-      const processedFormData = await processFileUploads(formData, currentUser.id);
-
+      // Extract attachment from form data (check all possible field names)
+      const attachment = formData.attachment || formData.file || formData.document || 
+                        formData.hivTestResult || formData.medicalRecord || formData.prescription || 
+                        formData.labResult || formData.healthRecord || null;
+      
       // Prepare service request data
       const serviceRequestData = {
         user_id: currentUser.id,
         service_id: serviceData.id,
-        request_data: processedFormData,
-        attachments: processedFormData.attachments || null
+        request_data: formData,
+        attachments: attachment
       };
 
-      // Debug: Log the form data before submission
-      console.log('🔍 Form data being submitted:', processedFormData);
-      console.log('🔍 Service request data:', serviceRequestData);
+      // Service request data prepared for submission
 
       // Submit to database
       const requestId = await servicesApi.submitServiceRequest(serviceRequestData);
@@ -190,7 +190,7 @@ const ServiceRequest = () => {
       const finalData = {
         id: requestId,
         profile: activeProfile,
-        request: processedFormData,
+        request: formData,
         completedAt: new Date().toISOString(),
         savedToDatabase: true
       };
@@ -209,7 +209,22 @@ const ServiceRequest = () => {
 
     } catch (error) {
       console.error('Failed to submit service request:', error);
-      setSubmitError(error.message);
+      
+      // Provide user-friendly error messages for attachment issues
+      let userFriendlyError = error.message;
+      if (error.message.includes('attachment') || error.message.includes('file')) {
+        // Check if it's a known attachment error
+        const attachmentErrors = Object.values(ATTACHMENT_ERROR_MESSAGES);
+        const isKnownAttachmentError = attachmentErrors.some(msg => error.message.includes(msg));
+        
+        if (isKnownAttachmentError) {
+          userFriendlyError = error.message; // Already user-friendly
+        } else {
+          userFriendlyError = 'There was an issue processing your attachment. Your request has been saved, but you may need to re-upload the file.';
+        }
+      }
+      
+      setSubmitError(userFriendlyError);
       
       // Fallback to localStorage only (graceful degradation)
       try {
@@ -238,40 +253,7 @@ const ServiceRequest = () => {
     }
   };
 
-  const processFileUploads = async (data, userId) => {
-    const processedData = { ...data };
-    const attachments = [];
 
-    // Process each field that might contain files
-    for (const [key, value] of Object.entries(data)) {
-      if (value instanceof File) {
-        try {
-          const uploadedFile = await servicesApi.uploadServiceRequestAttachment(value, userId);
-          attachments.push(uploadedFile);
-          // Replace file object with file reference
-          processedData[key] = {
-            type: 'file_reference',
-            filename: uploadedFile.filename,
-            file_id: uploadedFile.id
-          };
-        } catch (uploadError) {
-          console.error(`Failed to upload file ${key}:`, uploadError);
-          // Keep original filename as fallback
-          processedData[key] = {
-            type: 'file_upload_failed',
-            filename: value.name,
-            error: uploadError.message
-          };
-        }
-      }
-    }
-
-    if (attachments.length > 0) {
-      processedData.attachments = attachments;
-    }
-
-    return processedData;
-  };
 
   const renderStepContent = () => {
     if (isPreviewStep) {

@@ -1,90 +1,147 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Helmet } from "react-helmet";
 import { useUserData } from "@/contexts/UserDataContext";
-import { Play, Eye, Tag, Search } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { Play, Eye, Tag, Search, Video, BookOpen, AlertCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { servicesApi } from "@/services/servicesApi";
+import { useToast } from "@/components/ui/use-toast";
+import { formatSmartTime } from "@/utils/timeUtils";
 
-const videos = [
-  {
-    id: 1,
-    title: "Understanding HIV Prevention",
-    duration: "4:32",
-    views: "2.1k",
-    category: "Prevention",
-    thumbnail: "hiv-prevention-video-thumbnail",
-    description:
-      "Learn about the most effective methods to prevent HIV transmission, including condoms and regular testing.",
-  },
-  {
-    id: 2,
-    title: "How PrEP Works",
-    duration: "6:15",
-    views: "1.8k",
-    category: "Prevention",
-    thumbnail: "prep-explainer-video-thumbnail",
-    description:
-      "A deep dive into Pre-Exposure Prophylaxis (PrEP), how it works, and who it is for.",
-  },
-  {
-    id: 3,
-    title: "Getting Tested: What to Expect",
-    duration: "3:45",
-    views: "3.2k",
-    category: "Testing",
-    thumbnail: "hiv-testing-process-video-thumbnail",
-    description:
-      "This video walks you through the HIV testing process, from counseling to getting your results.",
-  },
-  {
-    id: 4,
-    title: "Living Well with HIV",
-    duration: "7:20",
-    views: "1.5k",
-    category: "Treatment",
-    thumbnail: "living-with-hiv-video-thumbnail",
-    description:
-      "Discover how to live a long, healthy life with HIV through proper treatment, diet, and mental health support.",
-  },
-  {
-    id: 5,
-    title: "Healthy Relationships & Communication",
-    duration: "5:10",
-    views: "2.7k",
-    category: "Relationships",
-    thumbnail: "healthy-relationships-video-thumbnail",
-    description:
-      "Learn the importance of communication and trust in maintaining healthy sexual relationships.",
-  },
-  {
-    id: 6,
-    title: "All About PEP",
-    duration: "4:55",
-    views: "1.2k",
-    category: "Treatment",
-    thumbnail: "pep-explainer-video-thumbnail",
-    description:
-      "Post-Exposure Prophylaxis (PEP) is an emergency medication. Find out when and how to use it.",
-  },
-];
-
-const filters = ["All", "Prevention", "Testing", "Treatment", "Relationships"];
+// Helper function to extract video categories from database videos
+const extractCategories = (videos) => {
+  const categories = [...new Set(videos.map(video => video.source).filter(Boolean))];
+  return ["All", ...categories];
+};
 
 const Videos = () => {
   const [activeFilter, setActiveFilter] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
-  const { userData } = useUserData();
+  const [videos, setVideos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  // Safe destructuring with fallback
+  const userDataContext = useUserData();
+  const authContext = useAuth();
+  const { activeProfile, user } = authContext || {};
+  const userData = userDataContext?.userData || userDataContext?.activeProfile;
   const navigate = useNavigate();
+  const { toast } = useToast();
+
+  // Fetch videos from database
+  useEffect(() => {
+    const fetchVideos = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const fetchedVideos = await servicesApi.getVideos();
+        setVideos(fetchedVideos);
+      } catch (error) {
+        console.error('Failed to fetch videos:', error);
+        setError(error.message);
+        toast({
+          title: "Error loading videos",
+          description: "Failed to load videos. Please try again later.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchVideos();
+  }, [toast]);
+
+  // Get dynamic categories from videos
+  const filters = extractCategories(videos);
 
   const filteredVideos = videos.filter((video) => {
     const matchesFilter =
-      activeFilter === "All" || video.category === activeFilter;
+      activeFilter === "All" || video.source === activeFilter;
     const matchesSearch = video.title
       .toLowerCase()
       .includes(searchTerm.toLowerCase());
     return matchesFilter && matchesSearch;
   });
+
+  // Helper function to format video duration (if stored as seconds)
+  const formatDuration = (duration) => {
+    if (!duration) return "0:00";
+    if (typeof duration === 'string' && duration.includes(':')) {
+      return duration; // Already formatted
+    }
+    const minutes = Math.floor(duration / 60);
+    const seconds = duration % 60;
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  // Loading state
+  if (loading) {
+    return (
+      <>
+        <Helmet>
+          <title>Health Videos - NetLife</title>
+        </Helmet>
+        <div className="p-4 md:p-6 bg-white min-h-screen">
+          <header className="mb-6">
+            <h1 className="text-3xl font-extrabold text-gray-900">
+              Health Library
+            </h1>
+            <p className="text-gray-500">Loading videos...</p>
+          </header>
+          <div className="space-y-4">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="flex items-center space-x-4 bg-gray-50 border p-3 rounded-2xl animate-pulse">
+                <div className="w-28 h-20 bg-gray-200 rounded-lg flex-shrink-0"></div>
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                  <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                  <div className="h-3 bg-gray-200 rounded w-1/4"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <>
+        <Helmet>
+          <title>Health Videos - NetLife</title>
+        </Helmet>
+        <div className="p-4 md:p-6 bg-white min-h-screen">
+          <header className="mb-6">
+            <h1 className="text-3xl font-extrabold text-gray-900">
+              Health Library
+            </h1>
+            <p className="text-gray-500">
+              Hi {userData?.name || activeProfile?.name || user?.email || 'there'}, here's some content for you.
+            </p>
+          </header>
+          <div className="text-center py-16">
+            <AlertCircle className="mx-auto h-12 w-12 text-red-500 mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Failed to load videos
+            </h3>
+            <p className="text-gray-500 mb-4">{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
@@ -97,7 +154,7 @@ const Videos = () => {
             Health Library
           </h1>
           <p className="text-gray-500">
-            Hi {userData?.username}, here's some content for you.
+            Hi {userData?.name || activeProfile?.name || user?.email || 'there'}, here's some content for you.
           </p>
         </header>
 
@@ -129,7 +186,38 @@ const Videos = () => {
         </div>
 
         <div className="space-y-4">
-          {filteredVideos.length > 0 ? (
+          {videos.length === 0 ? (
+            // Empty state when no videos in database
+            <div className="text-center py-16">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                className="max-w-md mx-auto"
+              >
+                <div className="w-24 h-24 bg-gradient-to-br from-primary to-secondary-teal rounded-full flex items-center justify-center mx-auto mb-6">
+                  <Video className="h-12 w-12 text-white" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">
+                  No Videos Available Yet
+                </h3>
+                <p className="text-gray-500 mb-6">
+                  We're working on adding educational health videos to help you stay informed. 
+                  Check back soon for valuable content about HIV prevention, testing, and treatment.
+                </p>
+                <div className="flex items-center justify-center space-x-4 text-sm text-gray-400">
+                  <div className="flex items-center">
+                    <BookOpen className="h-4 w-4 mr-1" />
+                    <span>Educational Content</span>
+                  </div>
+                  <div className="flex items-center">
+                    <Play className="h-4 w-4 mr-1" />
+                    <span>Video Library</span>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          ) : filteredVideos.length > 0 ? (
             filteredVideos.map((video, index) => (
               <motion.div
                 key={video.id}
@@ -142,26 +230,44 @@ const Videos = () => {
                 className="flex items-center space-x-4 bg-gray-50 border p-3 rounded-2xl cursor-pointer hover:bg-gray-100 transition-colors"
               >
                 <div className="w-28 h-20 bg-gradient-to-br from-primary to-secondary-teal rounded-lg flex items-center justify-center flex-shrink-0 relative overflow-hidden">
-                  <img
-                    alt={video.title}
-                    className="absolute inset-0 w-full h-full object-cover opacity-30"
-                    src="https://images.unsplash.com/photo-1567443024551-f3e3cc2be870"
-                  />
-                  <Play size={28} className="text-white drop-shadow-lg" />
+                  {video.video_url ? (
+                    <video
+                      className="absolute inset-0 w-full h-full object-cover"
+                      src={video.video_url}
+                      muted
+                      preload="metadata"
+                    />
+                  ) : (
+                    <img
+                      alt={video.title}
+                      className="absolute inset-0 w-full h-full object-cover opacity-30"
+                      src="https://images.unsplash.com/photo-1567443024551-f3e3cc2be870"
+                    />
+                  )}
+                  <Play size={28} className="text-white drop-shadow-lg relative z-10" />
                 </div>
                 <div className="flex-1">
-                  <span className="bg-primary/10 text-primary text-xs font-semibold px-2 py-1 rounded-full flex items-center w-fit mb-1">
-                    <Tag size={12} className="mr-1" />
-                    {video.category}
-                  </span>
+                  {video.source && (
+                    <span className="bg-primary/10 text-primary text-xs font-semibold px-2 py-1 rounded-full flex items-center w-fit mb-1">
+                      <Tag size={12} className="mr-1" />
+                      {video.source}
+                    </span>
+                  )}
                   <h3 className="font-bold text-gray-800 leading-tight">
                     {video.title}
                   </h3>
-                  <div className="flex items-center space-x-3 text-xs text-gray-500 mt-1">
-                    <span>{video.duration}</span>
+                  {video.description && (
+                    <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                      {video.description}
+                    </p>
+                  )}
+                  <div className="flex items-center space-x-3 text-xs text-gray-500 mt-2">
                     <span className="flex items-center">
-                      <Eye size={12} className="mr-1" />
-                      {video.views}
+                      <Play size={12} className="mr-1" />
+                      Video
+                    </span>
+                    <span>
+                      {formatSmartTime(video.created_at)}
                     </span>
                   </div>
                 </div>

@@ -60,18 +60,27 @@ export const createError = (message, code = 'UNKNOWN_ERROR', details = {}) => {
 
 /**
  * Log errors with context
- * @param {Error} error - The error object
+ * @param {Error|null} error - The error object (null for informational logging)
  * @param {string} context - Context where the error occurred
  * @param {Object} additionalData - Additional data to log
  */
 export const logError = (error, context = 'Unknown', additionalData = {}) => {
-    console.error(`[${context}] Error:`, {
-        message: error.message,
-        stack: error.stack,
-        context,
-        additionalData,
-        timestamp: new Date().toISOString()
-    });
+    if (error) {
+        console.error(`[${context}] Error:`, {
+            message: error.message,
+            stack: error.stack,
+            context,
+            additionalData,
+            timestamp: new Date().toISOString()
+        });
+    } else {
+        // Informational logging when error is null
+        console.log(`[${context}] Info:`, {
+            context,
+            additionalData,
+            timestamp: new Date().toISOString()
+        });
+    }
 };
 
 /**

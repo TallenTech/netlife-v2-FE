@@ -3,7 +3,7 @@
  * Tests all core functionality with mock Supabase responses
  */
 
-import { servicesApi, transformServiceData, transformQuestionData, calculateEligibility, extractCommonFields, validateServiceRequestFile, validateDeliveryPreferences } from '../servicesApi';
+import { servicesApi, transformServiceData, transformQuestionData, calculateEligibility, extractCommonFields, validateServiceRequestFile, validateAttachmentUrl, validateDeliveryPreferences, ATTACHMENT_ERROR_MESSAGES } from '../servicesApi';
 import { supabase } from '@/lib/supabase';
 
 // Mock Supabase
@@ -623,26 +623,75 @@ describe('Data Transformation Utilities', () => {
             expect(() => validateServiceRequestFile(mockFile)).not.toThrow();
         });
 
-        it('should reject invalid file type', () => {
+        it('should reject invalid file type with detailed message', () => {
             const mockFile = {
                 type: 'text/plain',
                 size: 1024
             };
 
-            expect(() => validateServiceRequestFile(mockFile)).toThrow('Invalid file type');
+            expect(() => validateServiceRequestFile(mockFile)).toThrow('Please upload PDF, JPEG, or PNG files only');
         });
 
-        it('should reject oversized file', () => {
+        it('should reject oversized file with detailed message', () => {
             const mockFile = {
                 type: 'application/pdf',
-                size: 15 * 1024 * 1024 // 15MB
+                size: 6 * 1024 * 1024 // 6MB (over 5MB limit)
             };
 
-            expect(() => validateServiceRequestFile(mockFile)).toThrow('File size too large');
+            expect(() => validateServiceRequestFile(mockFile)).toThrow('File size must be under 5MB');
         });
 
         it('should reject null file', () => {
             expect(() => validateServiceRequestFile(null)).toThrow('No file provided');
+        });
+
+        it('should reject corrupted file (missing properties)', () => {
+            const mockFile = {
+                type: 'application/pdf'
+                // Missing size property
+            };
+
+            expect(() => validateServiceRequestFile(mockFile)).toThrow('File appears to be corrupted');
+        });
+
+        it('should reject empty file', () => {
+            const mockFile = {
+                type: 'application/pdf',
+                size: 0
+            };
+
+            expect(() => validateServiceRequestFile(mockFile)).toThrow('File appears to be corrupted');
+        });
+    });
+
+    describe('validateAttachmentUrl', () => {
+        it('should validate valid HTTPS URL', () => {
+            const validUrl = 'https://example.com/storage/v1/object/public/attachments/file.pdf';
+            expect(() => validateAttachmentUrl(validUrl)).not.toThrow();
+        });
+
+        it('should validate valid HTTP URL', () => {
+            const validUrl = 'http://example.com/file.pdf';
+            expect(() => validateAttachmentUrl(validUrl)).not.toThrow();
+        });
+
+        it('should reject invalid URL format', () => {
+            const invalidUrl = 'not-a-url';
+            expect(() => validateAttachmentUrl(invalidUrl)).toThrow('Invalid attachment URL');
+        });
+
+        it('should reject non-HTTP protocols', () => {
+            const invalidUrl = 'ftp://example.com/file.pdf';
+            expect(() => validateAttachmentUrl(invalidUrl)).toThrow('Invalid attachment URL');
+        });
+
+        it('should reject null or undefined URL', () => {
+            expect(() => validateAttachmentUrl(null)).toThrow('Invalid attachment URL');
+            expect(() => validateAttachmentUrl(undefined)).toThrow('Invalid attachment URL');
+        });
+
+        it('should reject non-string URL', () => {
+            expect(() => validateAttachmentUrl(123)).toThrow('Invalid attachment URL');
         });
     });
 
