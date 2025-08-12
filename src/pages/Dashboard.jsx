@@ -364,7 +364,7 @@ const Dashboard = () => {
                 return (
                   <div
                     key={request.id}
-                    onClick={() => navigate(`/record/db_service_request_${request.id}`)}
+                    onClick={() => navigate(`/records/db_service_request_${request.id}`)}
                     className="bg-white border p-4 rounded-2xl flex items-center justify-between cursor-pointer hover:shadow-md hover:border-primary/20 transition-all duration-200 group"
                     title="Click to view request details"
                   >

@@ -26,6 +26,7 @@ import { serviceRequestForms } from '@/data/serviceRequestForms';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getAvatarEmoji } from '@/lib/utils';
 import { servicesApi } from '@/services/servicesApi';
+import AttachmentViewer from '@/components/AttachmentViewer';
 
 const RecordViewer = () => {
   const { recordId } = useParams();
@@ -237,6 +238,31 @@ const RecordViewer = () => {
     
     return String(value);
   }
+
+  // Helper function to extract filename from attachment URL
+  const getAttachmentFileName = (attachmentUrl) => {
+    if (!attachmentUrl) return 'Attachment';
+    
+    try {
+      // Extract filename from URL
+      const url = new URL(attachmentUrl);
+      const pathParts = url.pathname.split('/');
+      const fileName = pathParts[pathParts.length - 1];
+      
+      // If filename has timestamp prefix, try to clean it up
+      if (fileName.includes('_')) {
+        const parts = fileName.split('_');
+        if (parts.length > 2) {
+          // Remove timestamp and random suffix, keep original name
+          return parts.slice(2).join('_');
+        }
+      }
+      
+      return fileName || 'Attachment';
+    } catch (error) {
+      return 'Attachment';
+    }
+  };
 
   // Action handlers
   const handleDownload = () => {
@@ -591,14 +617,47 @@ const RecordViewer = () => {
           </div>
         )}
 
+        {/* Attachments */}
+        {(() => {
+          // Find the attachment URL from various data sources
+          const attachmentUrl = data?.attachments || 
+                               record?.attachments || 
+                               recordData?.attachments ||
+                               record?.data?.attachments ||
+                               record?.data?.request?.attachments;
+          
+          return attachmentUrl ? (
+            <div className="bg-white border border-gray-200 rounded-lg p-4">
+              <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Attachments
+              </h3>
+              <AttachmentViewer 
+                attachmentUrl={attachmentUrl}
+                fileName={getAttachmentFileName(attachmentUrl)}
+              />
+            </div>
+          ) : null;
+        })()}
+
         {/* Additional Information */}
         <div className="bg-gray-50 p-4 rounded-lg">
           <h3 className="text-lg font-bold text-gray-900 mb-3">Additional Details</h3>
           <div className="space-y-3">
             {Object.entries(data || {}).map(([key, value]) => {
-              // Skip already displayed fields
-              const skipFields = ['fullName', 'phoneNumber', 'email', 'age', 'deliveryMethod', 'accessPoint', 'deliveryLocation', 'deliveryDate', 'preferredDate', 'quantity', 'timestamp', 'attachments'];
-              if (skipFields.includes(key) || !value) return null;
+              // Skip already displayed fields and file fields
+              const skipFields = [
+                'fullName', 'phoneNumber', 'email', 'age', 
+                'deliveryMethod', 'accessPoint', 'deliveryLocation', 
+                'deliveryDate', 'preferredDate', 'quantity', 'timestamp', 
+                'attachments',
+                // File fields that should only appear in Attachments section
+                'hivTestResult', 'medicalRecord', 'prescription', 
+                'labResult', 'healthRecord', 'document', 'file', 'attachment'
+              ];
+              
+              // Also skip if the value is a File object
+              if (skipFields.includes(key) || !value || value instanceof File) return null;
 
               let displayValue = '';
               
