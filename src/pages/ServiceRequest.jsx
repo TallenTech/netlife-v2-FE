@@ -15,7 +15,7 @@ import SuccessConfirmation from '@/components/service-request/SuccessConfirmatio
 const ServiceRequest = () => {
   const { serviceId } = useParams();
   const navigate = useNavigate();
-  const { activeProfile } = useAuth();
+  const { activeProfile, profile } = useAuth();
   const formConfig = serviceRequestForms[serviceId];
 
   const [step, setStep] = useState(0);
@@ -173,11 +173,22 @@ const ServiceRequest = () => {
                         formData.hivTestResult || formData.medicalRecord || formData.prescription || 
                         formData.labResult || formData.healthRecord || null;
       
-      // Prepare service request data
+      // Prepare service request data with profile information
+      const enhancedFormData = {
+        ...formData,
+        // Add profile information to track which profile made the request
+        _profileInfo: {
+          profileId: activeProfile.id,
+          profileName: activeProfile.username,
+          isMainUser: activeProfile.id === profile?.id,
+          requestedBy: profile?.username, // Main user who owns the account
+        }
+      };
+      
       const serviceRequestData = {
         user_id: currentUser.id,
         service_id: serviceData.id,
-        request_data: formData,
+        request_data: enhancedFormData,
         attachments: attachment
       };
 
@@ -190,7 +201,7 @@ const ServiceRequest = () => {
       const finalData = {
         id: requestId,
         profile: activeProfile,
-        request: formData,
+        request: enhancedFormData,
         completedAt: new Date().toISOString(),
         savedToDatabase: true
       };

@@ -18,6 +18,7 @@ const PreviewStep = ({
 }) => {
   const [consent, setConsent] = useState(false);
   const {
+    profile,
     activeProfile
   } = useAuth();
   const handleFieldSave = (fieldName, newValue) => {
@@ -26,16 +27,21 @@ const PreviewStep = ({
       [fieldName]: newValue
     }));
   };
-  const userAge = calculateAge(activeProfile?.birthDate);
-  const firstName = activeProfile?.username?.split(' ')[0] || '';
-  const renderAvatar = () => {
-    if (activeProfile.profilePhoto) {
-      return <AvatarImage src={activeProfile.profilePhoto} alt={activeProfile.username} />;
+
+  // Check if requesting for someone else (managed profile)
+  const isRequestingForOther = activeProfile?.id !== profile?.id;
+  
+  const userAge = calculateAge(activeProfile?.birthDate || activeProfile?.date_of_birth);
+  
+  const renderAvatar = (profileData) => {
+    if (profileData?.profilePhoto) {
+      return <AvatarImage src={profileData.profilePhoto} alt={profileData.username} />;
     }
-    if (activeProfile.avatar) {
-      return <AvatarFallback className="text-2xl bg-transparent">{getAvatarEmoji(activeProfile.avatar)}</AvatarFallback>;
+    if (profileData?.avatar) {
+      return <AvatarFallback className="text-2xl bg-transparent">{getAvatarEmoji(profileData.avatar)}</AvatarFallback>;
     }
-    return <AvatarFallback className="text-2xl">{firstName.charAt(0).toUpperCase()}</AvatarFallback>;
+    const name = profileData?.username?.split(' ')[0] || '';
+    return <AvatarFallback className="text-2xl">{name.charAt(0).toUpperCase()}</AvatarFallback>;
   };
   return <motion.div initial={{
     opacity: 0
@@ -44,24 +50,66 @@ const PreviewStep = ({
   }} transition={{
     duration: 0.5
   }} className="space-y-6 pb-24">
+      {/* Account Owner Info - Always shown */}
       <div className="p-4 bg-white rounded-xl border-2 border-gray-100">
         <div className="flex items-center gap-4">
             <Avatar className="h-16 w-16">
-                {renderAvatar()}
+                {renderAvatar(profile)}
             </Avatar>
             <div>
-                <h3 className="font-bold text-lg text-gray-900">Personal Info</h3>
-                <p className="text-sm text-gray-500">Fetched from your profile.</p>
+                <h3 className="font-bold text-lg text-gray-900">Account Owner</h3>
+                <p className="text-sm text-gray-500">Main account holder submitting this request.</p>
             </div>
         </div>
         <div className="mt-4 space-y-3 text-base text-gray-700">
-          <p><strong>Name:</strong> {activeProfile.username}</p>
-          <p><strong>Gender:</strong> {activeProfile.gender}</p>
-          {userAge && <p><strong>Age:</strong> {userAge} years</p>}
-          <p><strong>Phone:</strong> {activeProfile.phoneNumber}</p>
-          <p><strong>Location:</strong> {`${activeProfile.subCounty || ''}${activeProfile.subCounty ? ', ' : ''}${activeProfile.district}`}</p>
+          <p><strong>Name:</strong> {profile?.username}</p>
+          <p><strong>Phone:</strong> {profile?.phoneNumber || profile?.whatsapp_number}</p>
+          <p><strong>Location:</strong> {`${profile?.subCounty || profile?.sub_county || ''}${(profile?.subCounty || profile?.sub_county) ? ', ' : ''}${profile?.district}`}</p>
         </div>
       </div>
+
+      {/* Service Recipient Info - Only shown when requesting for someone else */}
+      {isRequestingForOther && (
+        <div className="p-4 bg-blue-50 rounded-xl border-2 border-blue-200">
+          <div className="flex items-center gap-4">
+              <Avatar className="h-16 w-16">
+                  {renderAvatar(activeProfile)}
+              </Avatar>
+              <div>
+                  <h3 className="font-bold text-lg text-blue-900">Service Recipient</h3>
+                  <p className="text-sm text-blue-600">Person receiving this service.</p>
+              </div>
+          </div>
+          <div className="mt-4 space-y-3 text-base text-blue-800">
+            <p><strong>Name:</strong> {activeProfile?.username}</p>
+            <p><strong>Gender:</strong> {activeProfile?.gender}</p>
+            {userAge && <p><strong>Age:</strong> {userAge} years</p>}
+            <p><strong>Date of Birth:</strong> {activeProfile?.date_of_birth ? new Date(activeProfile.date_of_birth).toLocaleDateString() : (activeProfile?.birthDate ? new Date(activeProfile.birthDate).toLocaleDateString() : 'Not specified')}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Personal Info - Only shown when requesting for self (main user) */}
+      {!isRequestingForOther && (
+        <div className="p-4 bg-white rounded-xl border-2 border-gray-100">
+          <div className="flex items-center gap-4">
+              <Avatar className="h-16 w-16">
+                  {renderAvatar(activeProfile)}
+              </Avatar>
+              <div>
+                  <h3 className="font-bold text-lg text-gray-900">Personal Info</h3>
+                  <p className="text-sm text-gray-500">Fetched from your profile.</p>
+              </div>
+          </div>
+          <div className="mt-4 space-y-3 text-base text-gray-700">
+            <p><strong>Name:</strong> {activeProfile?.username}</p>
+            <p><strong>Gender:</strong> {activeProfile?.gender}</p>
+            {userAge && <p><strong>Age:</strong> {userAge} years</p>}
+            <p><strong>Phone:</strong> {activeProfile?.phoneNumber || activeProfile?.whatsapp_number}</p>
+            <p><strong>Location:</strong> {`${activeProfile?.subCounty || activeProfile?.sub_county || ''}${(activeProfile?.subCounty || activeProfile?.sub_county) ? ', ' : ''}${activeProfile?.district}`}</p>
+          </div>
+        </div>
+      )}
 
       {formConfig.steps.map((stepConfig, index) => <div key={index} className="p-4 bg-white rounded-xl border-2 border-gray-100">
           <div className="flex justify-between items-center mb-2">

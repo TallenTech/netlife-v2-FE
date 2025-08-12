@@ -31,7 +31,7 @@ const History = () => {
   const [syncStatus, setSyncStatus] = useState({ isActive: false, lastSync: null });
   const [manualRefreshActive, setManualRefreshActive] = useState(false);
   const [errorState, setErrorState] = useState({ hasError: false, errorMessage: null, errorType: null });
-  const { activeProfile } = useAuth();
+  const { activeProfile, profile, managedProfiles } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -139,16 +139,42 @@ const History = () => {
       const screening = [];
       const records = [];
       
+      // Check if current active profile is the main user
+      const isMainUser = activeProfile.id === profile?.id;
+      
       // Load from localStorage first (immediate display)
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
         if (key.startsWith('service_request_')) {
           const item = JSON.parse(localStorage.getItem(key));
-          if(item.profile && (
-            item.profile.id === activeProfile.id || 
-            (item.profile.phoneNumber && item.profile.phoneNumber === activeProfile.phoneNumber) ||
-            (item.profile.username && item.profile.username === activeProfile.username)
-          )) {
+          
+          // Profile-based filtering logic
+          let shouldInclude = false;
+          if (isMainUser) {
+            // Main user can see all records (their own + managed profiles)
+            const isMainUserRecord = item.profile && (
+              item.profile.id === profile.id ||
+              (item.profile.phoneNumber && item.profile.phoneNumber === profile.phoneNumber) ||
+              (item.profile.username && item.profile.username === profile.username)
+            );
+            
+            const isManagedProfileRecord = item.profile && managedProfiles && 
+              managedProfiles.some(mp => 
+                mp.id === item.profile.id ||
+                (mp.username && mp.username === item.profile.username)
+              );
+            
+            shouldInclude = isMainUserRecord || isManagedProfileRecord;
+          } else {
+            // Managed profile can only see their own records
+            shouldInclude = item.profile && (
+              item.profile.id === activeProfile.id || 
+              (item.profile.phoneNumber && item.profile.phoneNumber === activeProfile.phoneNumber) ||
+              (item.profile.username && item.profile.username === activeProfile.username)
+            );
+          }
+          
+          if (shouldInclude) {
               const serviceId = key.split('_')[2];
               const timestamp = parseInt(key.split('_')[3]);
               const formConfig = serviceRequestForms[serviceId];
@@ -167,22 +193,74 @@ const History = () => {
         }
       }
 
-      // Load health surveys
-      const surveyData = localStorage.getItem(`netlife_health_survey_${activeProfile.id}`);
-      if (surveyData) {
-        const parsedSurvey = JSON.parse(surveyData);
-        const surveyRecord = {
-          id: `health_survey_result_${activeProfile.id}`,
-          title: 'Health Risk Assessment',
-          date: formatSmartTime(parsedSurvey.completedAt),
-          status: 'Complete',
-          result: `${parsedSurvey.score}/10 Score`,
-          icon: FileText,
-          data: parsedSurvey,
-          type: 'health_survey',
-        };
-        screening.push(surveyRecord);
-        records.push(surveyRecord);
+      // Load health surveys - profile-specific
+      if (isMainUser) {
+        // Main user can see all surveys (their own + managed profiles)
+        // Load main user's survey
+        const mainSurveyData = localStorage.getItem(`netlife_health_survey_${profile.id}`);
+        if (mainSurveyData) {
+          const parsedSurvey = JSON.parse(mainSurveyData);
+          const surveyRecord = {
+            id: `health_survey_result_${profile.id}`,
+            title: 'Health Risk Assessment',
+            date: formatSmartTime(parsedSurvey.completedAt),
+            status: 'Complete',
+            result: `${parsedSurvey.score}/10 Score`,
+            icon: FileText,
+            data: parsedSurvey,
+            type: 'health_survey',
+          };
+          screening.push(surveyRecord);
+          records.push(surveyRecord);
+        }
+        
+        // Load managed profiles' surveys
+        // Note: We'll need to iterate through managed profiles when that data is available
+        // For now, we'll load surveys that match the pattern
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key.startsWith('netlife_health_survey_') && key !== `netlife_health_survey_${profile.id}`) {
+            try {
+              const surveyData = localStorage.getItem(key);
+              if (surveyData) {
+                const parsedSurvey = JSON.parse(surveyData);
+                const profileId = key.replace('netlife_health_survey_', '');
+                const surveyRecord = {
+                  id: `health_survey_result_${profileId}`,
+                  title: 'Health Risk Assessment',
+                  date: formatSmartTime(parsedSurvey.completedAt),
+                  status: 'Complete',
+                  result: `${parsedSurvey.score}/10 Score`,
+                  icon: FileText,
+                  data: parsedSurvey,
+                  type: 'health_survey',
+                };
+                screening.push(surveyRecord);
+                records.push(surveyRecord);
+              }
+            } catch (error) {
+              // Skip corrupted survey data
+            }
+          }
+        }
+      } else {
+        // Managed profile can only see their own survey
+        const surveyData = localStorage.getItem(`netlife_health_survey_${activeProfile.id}`);
+        if (surveyData) {
+          const parsedSurvey = JSON.parse(surveyData);
+          const surveyRecord = {
+            id: `health_survey_result_${activeProfile.id}`,
+            title: 'Health Risk Assessment',
+            date: formatSmartTime(parsedSurvey.completedAt),
+            status: 'Complete',
+            result: `${parsedSurvey.score}/10 Score`,
+            icon: FileText,
+            data: parsedSurvey,
+            type: 'health_survey',
+          };
+          screening.push(surveyRecord);
+          records.push(surveyRecord);
+        }
       }
 
       // Load service screening results
@@ -197,8 +275,17 @@ const History = () => {
             const serviceId = keyParts[2];
             const profileId = keyParts[3];
             
-            // Check if this screening belongs to the current profile
-            if (profileId === activeProfile.id) {
+            // Profile-based filtering for screening results
+            let shouldIncludeScreening = false;
+            if (isMainUser) {
+              // Main user can see all screening results
+              shouldIncludeScreening = true;
+            } else {
+              // Managed profile can only see their own screening results
+              shouldIncludeScreening = (profileId === activeProfile.id);
+            }
+            
+            if (shouldIncludeScreening) {
               // Get service info to create a proper title
               let serviceTitle = 'Service Screening';
               const serviceNameMap = {
@@ -298,7 +385,20 @@ const History = () => {
                Math.abs(new Date(localItem.data.completedAt) - new Date(dbResult.completed_at)) < 60000) // Within 1 minute
             );
             
-            if (!existsInLocal) {
+            // Profile-based filtering for database screening results
+            // Check if the screening result has profile information
+            let shouldIncludeDbScreening = false;
+            if (isMainUser) {
+              // Main user can see all screening results
+              shouldIncludeDbScreening = true;
+            } else {
+              // For managed profiles, we need to check if this screening belongs to them
+              // Since screening results don't store profile info directly, we'll show all for now
+              // This will be improved when we enhance the screening system
+              shouldIncludeDbScreening = true; // Temporary - show all until we have better profile tracking
+            }
+            
+            if (!existsInLocal && shouldIncludeDbScreening) {
               const screeningRecord = {
                 id: `db_screening_result_${dbResult.id}`,
                 title: `${dbResult.services?.name || 'Health Service'} - Screening`,
@@ -332,7 +432,23 @@ const History = () => {
               (localItem.data.request_data && JSON.stringify(localItem.data.request_data) === JSON.stringify(dbRequest.request_data))
             );
             
-            if (!existsInLocal) {
+            // Profile-based filtering for database service requests
+            let shouldIncludeDbRequest = false;
+            if (isMainUser) {
+              // Main user can see all service requests
+              shouldIncludeDbRequest = true;
+            } else {
+              // For managed profiles, check if this request was made by them
+              const profileInfo = dbRequest.request_data?._profileInfo;
+              if (profileInfo) {
+                shouldIncludeDbRequest = profileInfo.profileId === activeProfile.id;
+              } else {
+                // Legacy records without profile info - don't show to managed profiles
+                shouldIncludeDbRequest = false;
+              }
+            }
+            
+            if (!existsInLocal && shouldIncludeDbRequest) {
               const recordItem = {
                 id: `db_service_request_${dbRequest.id}`,
                 title: dbRequest.services?.name || 'Service Request',
