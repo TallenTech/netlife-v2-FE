@@ -1213,6 +1213,13 @@ const History = () => {
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
+                      {/* Attachment indicator */}
+                      {(item.data?.attachments || item.data?.request?.attachments) && (
+                        <div className="flex items-center gap-1 text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                          <FileText size={12} />
+                          <span>Attachment</span>
+                        </div>
+                      )}
                       <span className={`text-xs font-bold px-3 py-1 rounded-full ${item.status === 'Complete' || item.status === 'Submitted' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}>{item.status}</span>
                       <ChevronRight className="h-5 w-5 text-gray-400" />
                     </div>
