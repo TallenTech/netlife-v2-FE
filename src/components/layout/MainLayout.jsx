@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import BottomNav from "@/components/layout/BottomNav";
 import SideNav from "@/components/layout/SideNav";
@@ -28,9 +28,72 @@ import NotFound from "@/pages/NotFound";
 import HealthSurvey from "@/components/HealthSurvey";
 import SurveyResults from "@/components/SurveyResults";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
+import SurveyCompletionDialog from "@/components/survey/SurveyCompletionDialog";
+import { surveyEvents } from "@/utils/surveyEvents";
+import { useAuth } from "@/contexts/AuthContext";
 import TermsOfService from "@/pages/TermsOfService";
 
 const MainLayout = ({ handleLogout }) => {
+  const { activeProfile } = useAuth();
+  const [showSurveyDialog, setShowSurveyDialog] = useState(false);
+
+  // Check for survey return on component mount and focus
+  useEffect(() => {
+    const checkSurveyReturn = () => {
+      const surveyStarted = localStorage.getItem('survey_started');
+      
+      if (surveyStarted && activeProfile?.id) {
+        try {
+          const surveyData = JSON.parse(surveyStarted);
+          
+          // Check if this is the same user who started the survey
+          if (surveyData.userId === activeProfile.id) {
+            // Check if survey was started recently (within last 24 hours)
+            const startedAt = new Date(surveyData.startedAt);
+            const now = new Date();
+            const hoursSinceStart = (now - startedAt) / (1000 * 60 * 60);
+            
+            if (hoursSinceStart < 24) {
+              setShowSurveyDialog(true);
+            } else {
+              // Clean up old survey data
+              localStorage.removeItem('survey_started');
+            }
+          }
+        } catch (error) {
+          console.error('Error parsing survey data:', error);
+          localStorage.removeItem('survey_started');
+        }
+      }
+    };
+
+    // Check on mount
+    checkSurveyReturn();
+
+    // Check when user returns to tab (focus event)
+    const handleFocus = () => {
+      setTimeout(checkSurveyReturn, 1000); // Small delay to ensure user has settled
+    };
+
+    window.addEventListener('focus', handleFocus);
+    
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [activeProfile]);
+
+  const handleSurveyCompletion = (completed) => {
+    if (completed) {
+      // User completed survey - they won't be able to take it again for 3 months
+      console.log('Survey completed successfully');
+      // Emit event to refresh survey status across the app
+      surveyEvents.emitSurveyCompleted(activeProfile?.id, true);
+    } else {
+      // User didn't complete - they can try again anytime
+      console.log('Survey not completed - user can try again');
+    }
+  };
+
   return (
     <div className="relative h-screen overflow-hidden bg-gray-50 md:flex">
       <SideNav handleLogout={handleLogout} />
@@ -91,6 +154,14 @@ const MainLayout = ({ handleLogout }) => {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
+
+      {/* Survey Completion Dialog */}
+      <SurveyCompletionDialog
+        isOpen={showSurveyDialog}
+        onClose={() => setShowSurveyDialog(false)}
+        userId={activeProfile?.id}
+        onCompletion={handleSurveyCompletion}
+      />
     </div>
   );
 };

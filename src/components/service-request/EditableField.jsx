@@ -2,25 +2,52 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Edit, Save } from 'lucide-react';
+import { Edit, Save, FileText, Image, Download, Eye } from 'lucide-react';
+import AttachmentViewer from '@/components/AttachmentViewer';
 
 const EditableField = ({ field, value, onSave }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [currentValue, setCurrentValue] = useState(value);
     const hasOptions = field.type === 'radio' || field.type === 'select';
     
-    // Handle object values (like location data)
+    // Handle object values (like location data and file attachments)
     const getDisplayValue = (val) => {
         if (typeof val === 'object' && val !== null) {
             if (val.address) {
                 return val.address;
+            }
+            // Handle file attachments
+            if (val.path || val.relativePath) {
+                return null; // Will be handled by file preview component
             }
             return JSON.stringify(val);
         }
         return val || '';
     };
     
+    // Check if this is a file attachment
+    const isFileAttachment = (val) => {
+        return typeof val === 'object' && val !== null && (val.path || val.relativePath);
+    };
+    
+    // Get file info for display
+    const getFileInfo = (val) => {
+        if (!isFileAttachment(val)) return null;
+        
+        const fileName = val.path || val.relativePath || 'Unknown file';
+        const fileExtension = fileName.split('.').pop()?.toLowerCase() || '';
+        const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExtension);
+        
+        return {
+            name: fileName,
+            extension: fileExtension,
+            isImage,
+            url: val.path || val.relativePath
+        };
+    };
+    
     const displayValue = getDisplayValue(value);
+    const fileInfo = getFileInfo(value);
 
     const handleSave = () => {
         onSave(currentValue);
@@ -30,6 +57,56 @@ const EditableField = ({ field, value, onSave }) => {
     const handleOpen = () => {
         setCurrentValue(value);
         setIsEditing(true);
+    }
+
+    // Handle file attachment display
+    if (isFileAttachment(value)) {
+        return (
+            <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                        {fileInfo.isImage ? (
+                            <Image className="h-5 w-5 text-blue-600" />
+                        ) : (
+                            <FileText className="h-5 w-5 text-gray-600" />
+                        )}
+                        <div>
+                            <p className="font-medium text-gray-900">{fileInfo.name}</p>
+                            <p className="text-sm text-gray-500">
+                                {fileInfo.extension.toUpperCase()} file
+                            </p>
+                        </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                        <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => window.open(fileInfo.url, '_blank')}
+                        >
+                            <Eye className="h-4 w-4 mr-1" />
+                            View
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleOpen}>
+                            <Edit className="h-4 w-4 text-primary" />
+                        </Button>
+                    </div>
+                </div>
+                
+                {/* File preview for images */}
+                {fileInfo.isImage && (
+                    <div className="mt-3">
+                        <img 
+                            src={fileInfo.url} 
+                            alt={fileInfo.name}
+                            className="max-w-full h-32 object-cover rounded-lg border"
+                            onError={(e) => {
+                                e.target.style.display = 'none';
+                            }}
+                        />
+                    </div>
+                )}
+            </div>
+        );
     }
 
     if (hasOptions) {

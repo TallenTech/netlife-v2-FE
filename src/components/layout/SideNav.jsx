@@ -81,23 +81,12 @@ const SideNav = () => {
         ))}
       </nav>
 
-      <div className="mt-auto">
-        <button
-          onClick={() => navigate("/account/manage-profiles")}
-          className="flex items-center w-full text-left space-x-3 px-4 py-3 rounded-lg mb-2 transition-colors duration-200 text-gray-600 hover:bg-gray-100"
-        >
-          <Users className="w-6 h-6 text-primary" />
-          <div className="flex-1">
-            <p className="font-semibold text-sm">Switch Profile</p>
-          </div>
-          <ChevronsRight className="w-4 h-4 text-gray-400" />
-        </button>
-
+      <div className="mt-auto space-y-2">
         <NavLink
           to="/account"
           className={({ isActive }) =>
             cn(
-              "flex items-center space-x-3 px-4 py-3 rounded-lg mb-2 transition-colors duration-200 text-gray-600 hover:bg-gray-100",
+              "flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors duration-200 text-gray-600 hover:bg-gray-100",
               isActive && "bg-primary/10 text-primary font-bold"
             )
           }
@@ -110,14 +99,17 @@ const SideNav = () => {
             <p className="text-xs text-gray-500">My Account</p>
           </div>
         </NavLink>
-        <Button
-          onClick={logout}
-          variant="ghost"
-          className="w-full justify-start text-red-500 hover:bg-red-50 hover:text-red-600 space-x-3 px-4 py-3"
+        
+        <button
+          onClick={() => navigate("/account/manage-profiles")}
+          className="flex items-center w-full text-left space-x-3 px-4 py-3 rounded-lg transition-colors duration-200 text-gray-600 hover:bg-gray-100"
         >
-          <LogOut className="w-6 h-6" />
-          <span>Logout</span>
-        </Button>
+          <Users className="w-6 h-6 text-primary" />
+          <div className="flex-1">
+            <p className="font-semibold text-sm">Switch Profile</p>
+          </div>
+          <ChevronsRight className="w-4 h-4 text-gray-400" />
+        </button>
       </div>
     </aside>
   );
