@@ -55,3 +55,29 @@ temp/
 .env.production
 config/secrets.js
 src/config/credentials.js
+
+# Database schema and migration files
+*.sql
+database-*.sql
+migrations/
+schema/
+db/
+supabase/migrations/
+supabase/seed.sql
+
+# Database backups and dumps
+*.dump
+*.backup
+*.bak
+database_backup_*
+
+# Test and development databases
+test.db
+dev.db
+*.sqlite
+*.sqlite3
+
+# API keys and configuration files
+supabase-config.json
+firebase-config.json
+aws-config.json

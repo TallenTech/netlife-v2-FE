@@ -290,12 +290,22 @@ const Account = () => {
         <title>Account - {firstName}</title>
       </Helmet>
       <div className="p-4 md:p-6 bg-gray-50 min-h-screen">
-        <header className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">My Account</h1>
-          <p className="text-gray-500">
-            Editing profile for{" "}
-            <span className="font-semibold">{activeProfile?.username}</span>
-          </p>
+        <header className="mb-6 flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">My Account</h1>
+            <p className="text-gray-500">
+              Editing profile for{" "}
+              <span className="font-semibold">{activeProfile?.username}</span>
+            </p>
+          </div>
+          <button
+            onClick={() => navigate("/account/manage-profiles")}
+            className="flex items-center space-x-2 px-3 py-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors duration-200 md:hidden"
+            title="Switch Profile"
+          >
+            <Users className="w-5 h-5" />
+            <span className="text-sm font-medium">Switch</span>
+          </button>
         </header>
 
         <Tabs defaultValue="profile" className="w-full">
