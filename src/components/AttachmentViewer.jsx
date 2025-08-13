@@ -109,12 +109,12 @@ const AttachmentViewer = ({ attachmentUrl, fileName = 'Attachment' }) => {
           <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">PDF Document</h3>
           <p className="text-sm text-gray-500 mb-4">{fileName}</p>
-          <div className="flex gap-2 justify-center">
-            <Button onClick={handleViewExternal} variant="outline">
+          <div className="flex flex-col sm:flex-row gap-2 justify-center">
+            <Button onClick={handleViewExternal} variant="outline" className="w-full sm:w-auto">
               <Eye className="h-4 w-4 mr-2" />
               View PDF
             </Button>
-            <Button onClick={handleDownload}>
+            <Button onClick={handleDownload} className="w-full sm:w-auto">
               <Download className="h-4 w-4 mr-2" />
               Download
             </Button>
@@ -128,12 +128,12 @@ const AttachmentViewer = ({ attachmentUrl, fileName = 'Attachment' }) => {
         <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
         <h3 className="text-lg font-medium text-gray-900 mb-2">Attachment</h3>
         <p className="text-sm text-gray-500 mb-4">{fileName}</p>
-        <div className="flex gap-2 justify-center">
-          <Button onClick={handleViewExternal} variant="outline">
+        <div className="flex flex-col sm:flex-row gap-2 justify-center">
+          <Button onClick={handleViewExternal} variant="outline" className="w-full sm:w-auto">
             <ExternalLink className="h-4 w-4 mr-2" />
             Open
           </Button>
-          <Button onClick={handleDownload}>
+          <Button onClick={handleDownload} className="w-full sm:w-auto">
             <Download className="h-4 w-4 mr-2" />
             Download
           </Button>
@@ -143,19 +143,22 @@ const AttachmentViewer = ({ attachmentUrl, fileName = 'Attachment' }) => {
   };
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-4">
-      <div className="flex items-center justify-between mb-3">
+    <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
         <div className="flex items-center gap-2">
           <FileText className="h-5 w-5 text-gray-500" />
           <span className="font-medium text-gray-900">Attachment</span>
         </div>
-        <div className="flex gap-2">
+        
+        {/* Mobile-first responsive button layout */}
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
           {fileType === 'image' && (
             <Dialog>
               <DialogTrigger asChild>
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" className="w-full sm:w-auto">
                   <Eye className="h-4 w-4 mr-2" />
-                  Preview
+                  <span className="hidden sm:inline">Preview</span>
+                  <span className="sm:hidden">Preview Image</span>
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
@@ -168,20 +171,21 @@ const AttachmentViewer = ({ attachmentUrl, fileName = 'Attachment' }) => {
               </DialogContent>
             </Dialog>
           )}
-          <Button variant="outline" size="sm" onClick={handleDownload}>
+          <Button variant="outline" size="sm" onClick={handleDownload} className="w-full sm:w-auto">
             <Download className="h-4 w-4 mr-2" />
-            Download
+            <span className="hidden sm:inline">Download</span>
+            <span className="sm:hidden">Download File</span>
           </Button>
         </div>
       </div>
       
-      <div className="mb-3">
+      <div>
         {renderPreview()}
       </div>
       
-      <div className="text-xs text-gray-500">
-        <p>File: {fileName}</p>
-        <p>Type: {fileType.toUpperCase()}</p>
+      <div className="text-xs text-gray-500 space-y-1">
+        <p><span className="font-medium">File:</span> {fileName}</p>
+        <p><span className="font-medium">Type:</span> {fileType.toUpperCase()}</p>
       </div>
     </div>
   );

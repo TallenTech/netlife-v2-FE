@@ -5,6 +5,7 @@ import {
   HeartPulse,
   PlayCircle,
   History,
+  FolderOpen,
   LogOut,
   Users,
   ChevronsRight,
@@ -21,6 +22,7 @@ const navItems = [
   { path: "/services", icon: HeartPulse, label: "Services" },
   { path: "/videos", icon: PlayCircle, label: "Videos" },
   { path: "/history", icon: History, label: "History" },
+  { path: "/my-files", icon: FolderOpen, label: "My Files" },
 ];
 
 const SideNav = () => {

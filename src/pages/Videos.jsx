@@ -2,13 +2,14 @@ import React, { useState, useEffect } from "react";
 import { Helmet } from "react-helmet";
 import { useUserData } from "@/contexts/UserDataContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { Play, Eye, Tag, Search, Video, BookOpen, AlertCircle } from "lucide-react";
+import { Play, Tag, Search, Video, BookOpen, AlertCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { servicesApi } from "@/services/servicesApi";
 import { useToast } from "@/components/ui/use-toast";
 import { formatSmartTime } from "@/utils/timeUtils";
+
 
 // Helper function to extract video categories from database videos
 const extractCategories = (videos) => {
@@ -229,7 +230,7 @@ const Videos = () => {
                 }
                 className="flex items-center space-x-4 bg-gray-50 border p-3 rounded-2xl cursor-pointer hover:bg-gray-100 transition-colors"
               >
-                <div className="w-28 h-20 bg-gradient-to-br from-primary to-secondary-teal rounded-lg flex items-center justify-center flex-shrink-0 relative overflow-hidden">
+                <div className="w-28 h-28 bg-gradient-to-br from-primary to-secondary-teal rounded-lg flex items-center justify-center flex-shrink-0 relative overflow-hidden">
                   {video.video_url ? (
                     <video
                       className="absolute inset-0 w-full h-full object-cover"
