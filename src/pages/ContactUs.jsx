@@ -11,8 +11,14 @@ const ContactUs = () => {
         {
             icon: Phone,
             title: "Phone",
-            value: "+256742500500",
-            href: "tel:+256742500500"
+            value: "+256772416701",
+            href: "tel:+256772416701"
+        },
+        {
+            icon: Phone,
+            title: "Phone",
+            value: "+256756306001",
+            href: "tel:+256756306001"
         },
         {
             icon: Mail,
@@ -23,8 +29,8 @@ const ContactUs = () => {
         {
             icon: MessageSquare,
             title: "WhatsApp",
-            value: "+256742500500",
-            href: "https://wa.me/256742500500"
+            value: "+256756306001",
+            href: "https://wa.me/256756306001"
         },
         {
             icon: MapPin,

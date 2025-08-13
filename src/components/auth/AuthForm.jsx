@@ -56,8 +56,8 @@ const AuthForm = ({
       transition={{ duration: 0.5 }}
       className="flex-1 flex flex-col"
     >
-      <div className="space-y-4 mb-8">
-        <label className="text-gray-800 font-medium">
+      <div className="space-y-3 sm:space-y-4 mb-6 sm:mb-8">
+        <label className="text-gray-800 font-medium text-sm sm:text-base">
           WhatsApp Phone Number
         </label>
         <div className="space-y-2">
@@ -73,16 +73,16 @@ const AuthForm = ({
                 {...inputProps}
                 type="tel"
                 placeholder="+256 XXX XXX XXX"
-                className={`text-lg h-14 ${
+                className={`text-base sm:text-lg h-12 sm:h-14 ${
                   phoneError ? "border-red-500 focus:border-red-500" : ""
                 }`}
               />
             )}
           </InputMask>
           {phoneError && (
-            <p className="text-red-500 text-sm flex items-center">
-              <span className="mr-1">⚠️</span>
-              {phoneError}
+            <p className="text-red-500 text-xs sm:text-sm flex items-center">
+              <span className="mr-1 flex-shrink-0">⚠️</span>
+              <span className="min-w-0">{phoneError}</span>
             </p>
           )}
           <p className="text-gray-500 text-xs">
@@ -101,15 +101,15 @@ const AuthForm = ({
           !isPhoneNumberComplete(phoneNumber) ||
           !!phoneError
         }
-        className="w-full h-14 bg-primary text-white hover:bg-primary/90 font-semibold text-lg rounded-xl mb-6"
+        className="w-full h-12 sm:h-14 bg-primary text-white hover:bg-primary/90 font-semibold text-base sm:text-lg rounded-xl mb-4 sm:mb-6"
       >
-        <MessageCircle className="w-5 h-5 mr-2" />
-        {isLogin ? "Login with WhatsApp" : "Join with WhatsApp"}
+        <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+        <span className="truncate">{isLogin ? "Login with WhatsApp" : "Join with WhatsApp"}</span>
       </LoadingButton>
 
       <div className="text-center space-y-2">
-        <p className="text-gray-600 text-sm">No passwords. No emails.</p>
-        <p className="text-gray-500 text-xs">
+        <p className="text-gray-600 text-xs sm:text-sm">No passwords. No emails.</p>
+        <p className="text-gray-500 text-xs leading-relaxed px-2">
           By proceeding, you accept our{" "}
           <Link to="/terms-of-service" className="text-primary underline">
             Terms of Service

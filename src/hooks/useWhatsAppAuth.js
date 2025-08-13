@@ -41,7 +41,6 @@ export const useWhatsAppAuth = (onSuccess) => {
     if (networkStatus === "offline")
       return handleError(toast, "NETWORK_ERROR", "You appear to be offline.");
     handleError(toast, error.code, error.message);
-    console.error(`${operation} error:`, error);
   };
 
   const handlePhoneSubmit = async () => {

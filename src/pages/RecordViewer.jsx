@@ -228,7 +228,8 @@ const RecordViewer = () => {
       } else if (Array.isArray(value)) {
         return value.join(', ');
       } else {
-        return JSON.stringify(value, null, 2);
+        // Don't render complex objects as JSON - return empty string instead
+        return '';
       }
     }
     
@@ -712,7 +713,7 @@ const RecordViewer = () => {
                 'fullName', 'phoneNumber', 'email', 'age', 
                 'deliveryMethod', 'accessPoint', 'deliveryLocation', 
                 'deliveryDate', 'preferredDate', 'quantity', 'timestamp', 
-                'attachments',
+                'attachments', '_profileInfo',
                 // File fields that should only appear in Attachments section
                 'hivTestResult', 'medicalRecord', 'prescription', 
                 'labResult', 'healthRecord', 'document', 'file', 'attachment'
@@ -1067,62 +1068,68 @@ const RecordViewer = () => {
       <Helmet>
         <title>{title} - NetLife Records</title>
       </Helmet>
-      <div className="p-4 md:p-6 bg-gray-50 min-h-screen">
-        <header className="flex items-center justify-between mb-6 gap-4">
-          <div className="flex items-center space-x-4 min-w-0 flex-1">
-            <Button variant="ghost" size="icon" onClick={() => navigate('/history')}>
-              <ArrowLeft />
-            </Button>
-            <h1 className="text-xl font-bold text-gray-900 truncate">{title}</h1>
-          </div>
-          
-          {/* Action buttons - responsive design */}
-          <div className="flex items-center space-x-2">
-            {/* Desktop buttons */}
-            <div className="hidden sm:flex items-center space-x-2">
-              <Button variant="outline" size="sm" onClick={handleDownload}>
-                <Download size={16} className="mr-2" />
-                Download
+      <div className="bg-gray-50 min-h-screen">
+        {/* Sticky header on mobile */}
+        <header className="sticky top-0 z-10 bg-white border-b border-gray-200 p-4 md:p-6 md:bg-gray-50 md:border-none md:relative md:mb-6">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center space-x-4 min-w-0 flex-1">
+              <Button variant="ghost" size="icon" onClick={() => navigate('/history')}>
+                <ArrowLeft />
               </Button>
-              <Button variant="outline" size="sm" onClick={handleShare}>
-                <Share2 size={16} className="mr-2" />
-                Share
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => setDeleteDialogOpen(true)}>
-                <Trash2 size={16} className="mr-2" />
-                Delete
-              </Button>
+              <h1 className="text-xl font-bold text-gray-900 truncate">{title}</h1>
             </div>
+            
+            {/* Action buttons - responsive design */}
+            <div className="flex items-center space-x-2">
+              {/* Desktop buttons */}
+              <div className="hidden sm:flex items-center space-x-2">
+                <Button variant="outline" size="sm" onClick={handleDownload}>
+                  <Download size={16} className="mr-2" />
+                  Download
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleShare}>
+                  <Share2 size={16} className="mr-2" />
+                  Share
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setDeleteDialogOpen(true)}>
+                  <Trash2 size={16} className="mr-2" />
+                  Delete
+                </Button>
+              </div>
 
-            {/* Mobile dropdown menu */}
-            <div className="sm:hidden">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="icon">
-                    <MoreVertical size={16} />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem onClick={handleDownload}>
-                    <Download size={16} className="mr-2" />
-                    Download PDF
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleShare}>
-                    <Share2 size={16} className="mr-2" />
-                    Share Record
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    onClick={() => setDeleteDialogOpen(true)}
-                    className="text-red-600 focus:text-red-600"
-                  >
-                    <Trash2 size={16} className="mr-2" />
-                    Delete Record
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              {/* Mobile dropdown menu */}
+              <div className="sm:hidden">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="icon">
+                      <MoreVertical size={16} />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem onClick={handleDownload}>
+                      <Download size={16} className="mr-2" />
+                      Download PDF
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleShare}>
+                      <Share2 size={16} className="mr-2" />
+                      Share Record
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={() => setDeleteDialogOpen(true)}
+                      className="text-red-600 focus:text-red-600"
+                    >
+                      <Trash2 size={16} className="mr-2" />
+                      Delete Record
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </div>
           </div>
         </header>
+
+        {/* Main content with proper padding */}
+        <div className="p-4 md:p-6">
 
         {loading ? (
           <div className="bg-white p-6 rounded-2xl border">
@@ -1201,6 +1208,8 @@ const RecordViewer = () => {
             {renderEmptyRecord()}
           </div>
         )}
+
+        </div>
 
         {/* Delete Confirmation Dialog */}
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

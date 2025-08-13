@@ -107,15 +107,17 @@ const HealthSurvey = ({ onBack, onComplete }) => {
 
   if (currentStep === 'complete') {
     return (
-      <div className="mobile-container bg-white">
-        <div className="h-screen flex flex-col">
+      <div className="min-h-screen bg-white">
+        <div className="flex flex-col min-h-screen">
           <div className="flex items-center justify-center p-6 pt-12">
-            <NetLifeLogo className="w-12 h-12" />
+            <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-green-600 rounded-xl flex items-center justify-center">
+              <CheckCircle className="w-8 h-8 text-white" />
+            </div>
           </div>
-          <div className="px-6 mb-6">
+          <div className="px-6 mb-6 max-w-4xl mx-auto w-full">
             <Progress value={100} className="h-2" />
           </div>
-          <div className="flex-1 flex flex-col px-6 pb-6">
+          <div className="flex-1 flex flex-col px-6 pb-6 max-w-2xl mx-auto w-full">
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -125,8 +127,8 @@ const HealthSurvey = ({ onBack, onComplete }) => {
               <div className="w-20 h-20 bg-gradient-to-br from-green-400 to-green-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
                 <CheckCircle className="w-12 h-12 text-white" />
               </div>
-              <h1 className="text-2xl font-bold text-gray-900 mb-4">Assessment Complete!</h1>
-              <p className="text-gray-600 text-base leading-relaxed">
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">Assessment Complete!</h1>
+              <p className="text-gray-600 text-base md:text-lg leading-relaxed max-w-lg mx-auto">
                 Thank you for sharing this information with us.
               </p>
             </motion.div>
@@ -137,18 +139,18 @@ const HealthSurvey = ({ onBack, onComplete }) => {
               className="space-y-4 mt-auto"
             >
               <Button
-                  onClick={onComplete}
-                  className="w-full h-14 bg-primary text-white hover:bg-primary/90 font-semibold text-lg rounded-xl"
-                >
-                  View Results
-                </Button>
-                <Button
-                  onClick={() => navigate('/dashboard')}
-                  variant="outline"
-                  className="w-full h-14 text-primary border-primary hover:bg-primary/5 font-semibold text-lg rounded-xl"
-                >
-                  Go to Dashboard
-                </Button>
+                onClick={onComplete}
+                className="w-full h-14 bg-primary text-white hover:bg-primary/90 font-semibold text-lg rounded-xl"
+              >
+                View Results
+              </Button>
+              <Button
+                onClick={() => navigate('/dashboard')}
+                variant="outline"
+                className="w-full h-14 text-primary border-primary hover:bg-primary/5 font-semibold text-lg rounded-xl"
+              >
+                Go to Dashboard
+              </Button>
             </motion.div>
           </div>
         </div>
@@ -157,30 +159,36 @@ const HealthSurvey = ({ onBack, onComplete }) => {
   }
 
   return (
-    <div className="mobile-container bg-white">
-      <div className="h-screen flex flex-col">
-        <div className="flex items-center justify-between p-6 pt-12">
-          <button
-            onClick={handlePrevious}
-            className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-gray-200 transition-all"
-          >
-            <ChevronLeft className="w-6 h-6" />
-          </button>
-          <NetLifeLogo className="w-12 h-12" />
+    <div className="min-h-screen bg-white">
+      <div className="flex flex-col min-h-screen">
+        {/* Compact Sticky Header with back button and progress bar */}
+        <div className="sticky top-0 z-10 bg-white border-b border-gray-100 shadow-sm">
+          <div className="flex items-center px-3 py-2">
+            <button
+              onClick={handlePrevious}
+              className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-gray-200 transition-all"
+            >
+              <ChevronLeft className="w-4 h-4 md:w-6 md:h-6" />
+            </button>
+          </div>
+          <div className="px-3 pb-3 max-w-4xl mx-auto w-full">
+            <Progress value={((currentQuestion + 1) / surveyQuestions.length) * 100} className="h-1.5 md:h-2" />
+            <p className="text-xs md:text-sm text-gray-600 mt-1.5 md:mt-2 text-center">
+              Question {currentQuestion + 1} of {surveyQuestions.length}
+            </p>
+          </div>
         </div>
-        <div className="px-6 mb-6">
-          <Progress value={((currentQuestion + 1) / surveyQuestions.length) * 100} className="h-2" />
-          <p className="text-gray-600 text-sm mt-2">
-            Question {currentQuestion + 1} of {surveyQuestions.length}
-          </p>
+        
+        {/* Main content with SurveyQuestion */}
+        <div className="flex-1 pt-4 md:pt-6">
+          <SurveyQuestion
+            question={surveyQuestions[currentQuestion]}
+            selectedAnswer={answers[surveyQuestions[currentQuestion].id]}
+            onAnswerSelect={handleAnswerSelect}
+            onNext={handleNext}
+            isLastQuestion={currentQuestion === surveyQuestions.length - 1}
+          />
         </div>
-        <SurveyQuestion
-          question={surveyQuestions[currentQuestion]}
-          selectedAnswer={answers[surveyQuestions[currentQuestion].id]}
-          onAnswerSelect={handleAnswerSelect}
-          onNext={handleNext}
-          isLastQuestion={currentQuestion === surveyQuestions.length - 1}
-        />
       </div>
     </div>
   );

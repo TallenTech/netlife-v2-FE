@@ -61,7 +61,7 @@ const Profile = ({ userData, handleLogout }) => {
     };
     return emojiMap[avatarId] || '👤';
   };
-  
+
   return (
     <>
       <Helmet>
@@ -98,11 +98,11 @@ const Profile = ({ userData, handleLogout }) => {
           <div className="space-y-4">
             <div>
               <label className="text-sm font-medium text-gray-700">Username</label>
-              <Input value={profileData.username} onChange={e => setProfileData({...profileData, username: e.target.value})} />
+              <Input value={profileData.username} onChange={e => setProfileData({ ...profileData, username: e.target.value })} />
             </div>
             <div>
               <label className="text-sm font-medium text-gray-700">Preferred Contact Method</label>
-              <Select value={profileData.contactMethod} onValueChange={value => setProfileData({...profileData, contactMethod: value})}>
+              <Select value={profileData.contactMethod} onValueChange={value => setProfileData({ ...profileData, contactMethod: value })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="WhatsApp">WhatsApp</SelectItem>
@@ -116,7 +116,7 @@ const Profile = ({ userData, handleLogout }) => {
         </div>
 
         <div className="bg-white p-4 rounded-2xl border mb-6 space-y-2">
-           <button onClick={() => handleFeatureClick('Health Interests')} className="flex items-center w-full text-left space-x-4 p-2 rounded-lg hover:bg-gray-50">
+          <button onClick={() => handleFeatureClick('Health Interests')} className="flex items-center w-full text-left space-x-4 p-2 rounded-lg hover:bg-gray-50">
             <Heart className="text-primary" size={24} />
             <div>
               <h3 className="font-bold text-gray-800">Health Interests</h3>
@@ -131,7 +131,7 @@ const Profile = ({ userData, handleLogout }) => {
               <p className="text-sm text-gray-500">Add and manage family profiles</p>
             </div>
           </button>
-           <div className="border-t"></div>
+          <div className="border-t"></div>
           <button onClick={() => handleFeatureClick('Upload Health Records')} className="flex items-center w-full text-left space-x-4 p-2 rounded-lg hover:bg-gray-50">
             <FilePlus className="text-primary" size={24} />
             <div>
@@ -150,7 +150,7 @@ const Profile = ({ userData, handleLogout }) => {
             </div>
           </button>
         </div>
-        
+
         <Button onClick={handleLogout} variant="destructive" className="w-full flex items-center space-x-2">
           <LogOut size={16} />
           <span>Safe Exit</span>
