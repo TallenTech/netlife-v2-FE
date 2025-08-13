@@ -18,6 +18,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { servicesApi } from "@/services/servicesApi";
 import { formatRequestTime, formatSmartTime } from "@/utils/timeUtils";
 import { notificationService } from "@/services/notificationService";
+import { surveyService } from "@/services/surveyService";
+import { surveyEvents } from "@/utils/surveyEvents";
+import WhatsAppFloat from "@/components/WhatsAppFloat";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -28,6 +31,13 @@ const Dashboard = () => {
   const [serviceRequests, setServiceRequests] = useState([]);
   const [serviceRequestsLoading, setServiceRequestsLoading] = useState(true);
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
+  const [surveyStatus, setSurveyStatus] = useState({
+    status: 'available',
+    lastCompletedAt: null,
+    nextAvailableAt: null,
+    canTakeSurvey: true
+  });
+  const [surveyStatusLoading, setSurveyStatusLoading] = useState(true);
 
   // Fetch recent videos for the dashboard
   useEffect(() => {
@@ -86,6 +96,35 @@ const Dashboard = () => {
     fetchServiceRequests();
   }, [activeProfile?.id, profile?.id]);
 
+  // Fetch survey status
+  useEffect(() => {
+    const fetchSurveyStatus = async () => {
+      if (!activeProfile?.id) return;
+      
+      try {
+        setSurveyStatusLoading(true);
+        const status = await surveyService.getSurveyStatus(activeProfile.id);
+        setSurveyStatus(status);
+      } catch (error) {
+        console.error('Failed to fetch survey status:', error);
+      } finally {
+        setSurveyStatusLoading(false);
+      }
+    };
+
+    fetchSurveyStatus();
+
+    // Listen for survey completion events to refresh status
+    const unsubscribe = surveyEvents.onSurveyCompleted(({ userId, completed }) => {
+      if (userId === activeProfile?.id && completed) {
+        // Refresh survey status when this user completes a survey
+        fetchSurveyStatus();
+      }
+    });
+
+    return unsubscribe;
+  }, [activeProfile?.id]);
+
   // Fetch unread notification count
   useEffect(() => {
     const fetchUnreadCount = async () => {
@@ -127,6 +166,30 @@ const Dashboard = () => {
       title:
         "🚧 This feature isn't implemented yet—but don't worry! You can request it in your next prompt! 🚀",
     });
+  };
+
+  const handleSurveyClick = () => {
+    if (surveyStatus.canTakeSurvey) {
+      navigate(`/survey/${activeProfile?.id}`);
+    } else {
+      const message = surveyService.getNextAvailableMessage(surveyStatus.nextAvailableAt);
+      toast({
+        title: "Survey Not Available",
+        description: message,
+      });
+    }
+  };
+
+  // Function to refresh survey status (called after survey completion)
+  const refreshSurveyStatus = async () => {
+    if (!activeProfile?.id) return;
+    
+    try {
+      const status = await surveyService.getSurveyStatus(activeProfile.id);
+      setSurveyStatus(status);
+    } catch (error) {
+      console.error('Failed to refresh survey status:', error);
+    }
   };
 
   // Helper function to get video thumbnail colors
@@ -242,16 +305,40 @@ const Dashboard = () => {
             Quick Actions
           </h2>
           <div className="grid grid-cols-2 gap-4">
-            <button
-              onClick={() => navigate(`/survey/${activeProfile?.id}`)}
-              className="bg-gradient-to-br from-primary to-purple-400 text-white p-4 rounded-2xl text-left flex flex-col justify-between h-32 shadow-lg"
-            >
-              <FileText size={24} />
-              <div>
-                <h3 className="font-bold text-lg">New Survey</h3>
-                <p className="text-sm opacity-90">Check your health</p>
+            {surveyStatusLoading ? (
+              // Loading skeleton for survey card
+              <div className="bg-gray-200 p-4 rounded-2xl text-left flex flex-col justify-between h-32 shadow-lg animate-pulse">
+                <div className="w-6 h-6 bg-gray-300 rounded"></div>
+                <div>
+                  <div className="h-5 bg-gray-300 rounded mb-2 w-3/4"></div>
+                  <div className="h-4 bg-gray-300 rounded w-1/2"></div>
+                </div>
               </div>
-            </button>
+            ) : (
+              <button
+                onClick={handleSurveyClick}
+                className={`${
+                  surveyStatus.canTakeSurvey
+                    ? 'bg-gradient-to-br from-primary to-purple-400 text-white'
+                    : 'bg-gradient-to-br from-primary to-purple-400 text-white opacity-75'
+                } p-4 rounded-2xl text-left flex flex-col justify-between h-32 shadow-lg transition-all duration-200 ${
+                  surveyStatus.canTakeSurvey ? 'hover:shadow-xl transform hover:-translate-y-1' : 'cursor-default'
+                }`}
+              >
+                <FileText size={24} />
+                <div>
+                  <h3 className="font-bold text-lg">
+                    {surveyStatus.canTakeSurvey ? 'New Survey' : 'Survey Completed'}
+                  </h3>
+                  <p className="text-sm opacity-90">
+                    {surveyStatus.canTakeSurvey 
+                      ? 'A new survey is available' 
+                      : surveyService.getNextAvailableMessage(surveyStatus.nextAvailableAt)
+                    }
+                  </p>
+                </div>
+              </button>
+            )}
             <button
               onClick={() => navigate("/services")}
               className="bg-gradient-to-br from-secondary-teal to-teal-400 text-white p-4 rounded-2xl text-left flex flex-col justify-between h-32 shadow-lg"
@@ -555,6 +642,9 @@ const Dashboard = () => {
           </div>
         </section>
       </div>
+      
+      {/* WhatsApp Floating Button */}
+      <WhatsAppFloat />
     </>
   );
 };

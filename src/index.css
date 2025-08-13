@@ -422,6 +422,24 @@ html {
   background-color: rgba(255, 255, 255, 0.5);
 }
 
+/* WhatsApp floating button positioning */
+.whatsapp-float {
+  z-index: 9999 !important;
+  pointer-events: auto;
+}
+
+.whatsapp-float button {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+/* Ensure WhatsApp button doesn't interfere with bottom navigation */
+@media (max-width: 768px) {
+  .whatsapp-float {
+    bottom: 5.5rem !important; /* Above bottom navigation */
+  }
+}
+
 /* Remove default focus outline and add custom one */
 *:focus {
   outline: none;
