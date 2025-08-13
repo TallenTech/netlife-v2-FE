@@ -1262,13 +1262,13 @@ const History = () => {
       <div className="p-4 md:p-6 bg-white min-h-screen">
         <header className="mb-6">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <h1 className="text-3xl font-extrabold text-gray-900">Health History</h1>
+            <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 truncate">Health History</h1>
               {loading && (
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
+                <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-b-2 border-primary flex-shrink-0"></div>
               )}
             </div>
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-2 sm:space-x-3">
               {syncStatus.lastSync && (
                 <span className="text-xs text-gray-400 hidden sm:block">
                   Last sync: {new Date(syncStatus.lastSync).toLocaleTimeString([], { 
@@ -1277,19 +1277,33 @@ const History = () => {
                   })}
                 </span>
               )}
+              
+              {/* Mobile: Icon-only button */}
               <Button 
                 variant="outline" 
                 size="sm" 
                 onClick={() => refreshFromDatabase(true, true)}
                 disabled={loading || manualRefreshActive}
-                className="flex items-center space-x-2 hover:bg-gray-50"
+                className="sm:hidden p-2 hover:bg-gray-50"
+                title={manualRefreshActive ? 'Refreshing...' : 'Refresh history'}
+              >
+                <RefreshCw size={16} className={loading || manualRefreshActive ? 'animate-spin' : ''} />
+              </Button>
+              
+              {/* Desktop: Button with text */}
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => refreshFromDatabase(true, true)}
+                disabled={loading || manualRefreshActive}
+                className="hidden sm:flex items-center space-x-2 hover:bg-gray-50"
               >
                 <RefreshCw size={14} className={loading || manualRefreshActive ? 'animate-spin' : ''} />
                 <span>{manualRefreshActive ? 'Refreshing...' : 'Refresh'}</span>
               </Button>
             </div>
           </div>
-          <p className="text-gray-500">Hi {usernameElement}, here's a summary of your activities.</p>
+          <p className="text-gray-500 text-sm sm:text-base">Hi {usernameElement}, here's a summary of your activities.</p>
         </header>
 
         <div className="bg-gray-100 p-1 rounded-full flex justify-around items-center mb-6">

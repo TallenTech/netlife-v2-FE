@@ -21,6 +21,7 @@ import {
   Download,
   ChevronsRight,
   Users,
+  FolderOpen,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -518,6 +519,22 @@ const Account = () => {
                   </h3>
                   <p className="text-sm text-gray-500">
                     Tailor content to your preferences
+                  </p>
+                </div>
+                <ChevronsRight className="text-gray-400" size={16} />
+              </button>
+              <div className="border-t"></div>
+              <button
+                onClick={() => navigate("/my-files")}
+                className="flex items-center w-full text-left space-x-4 p-3 rounded-lg hover:bg-gray-50"
+              >
+                <FolderOpen className="text-primary" size={20} />
+                <div className="flex-1">
+                  <h3 className="font-semibold text-gray-800">
+                    My Files
+                  </h3>
+                  <p className="text-sm text-gray-500">
+                    Store and manage your documents
                   </p>
                 </div>
                 <ChevronsRight className="text-gray-400" size={16} />

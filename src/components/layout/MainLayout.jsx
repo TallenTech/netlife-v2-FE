@@ -22,6 +22,7 @@ import HealthInterests from "@/pages/HealthInterests";
 import ManageProfiles from "@/pages/ManageProfiles";
 import HealthRecords from "@/pages/HealthRecords";
 import AddProfileFlow from "@/pages/AddProfileFlow";
+import MyFiles from "@/pages/MyFiles";
 import NotFound from "@/pages/NotFound";
 
 import HealthSurvey from "@/components/HealthSurvey";
@@ -75,6 +76,7 @@ const MainLayout = ({ handleLogout }) => {
           />
           <Route path="/account/manage-profiles" element={<ManageProfiles />} />
           <Route path="/account/health-records" element={<HealthRecords />} />
+          <Route path="/my-files" element={<MyFiles />} />
           <Route path="/add-profile" element={<AddProfileFlow />} />
 
           <Route path="/privacy" element={<Privacy />} />

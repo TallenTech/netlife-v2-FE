@@ -9,6 +9,7 @@ import {
   HelpCircle,
   Video,
   ChevronRight,
+  User,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
@@ -16,15 +17,17 @@ import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { servicesApi } from "@/services/servicesApi";
 import { formatRequestTime, formatSmartTime } from "@/utils/timeUtils";
+import { notificationService } from "@/services/notificationService";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { activeProfile } = useAuth();
+  const { activeProfile, profile, managedProfiles } = useAuth();
   const [videos, setVideos] = useState([]);
   const [videosLoading, setVideosLoading] = useState(true);
   const [serviceRequests, setServiceRequests] = useState([]);
   const [serviceRequestsLoading, setServiceRequestsLoading] = useState(true);
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
 
   // Fetch recent videos for the dashboard
   useEffect(() => {
@@ -47,12 +50,31 @@ const Dashboard = () => {
   // Fetch recent service requests for the dashboard
   useEffect(() => {
     const fetchServiceRequests = async () => {
-      if (!activeProfile?.id) return;
+      if (!activeProfile?.id || !profile?.id) return;
       
       try {
         setServiceRequestsLoading(true);
-        const recentRequests = await servicesApi.getRecentServiceRequests(activeProfile.id, 2);
-        setServiceRequests(recentRequests);
+        
+        // Always fetch using main user ID (since all requests are stored with main user ID)
+        const allRecentRequests = await servicesApi.getRecentServiceRequests(profile.id, 10); // Get more to filter
+        
+        // Filter based on current profile
+        const isMainUser = activeProfile.id === profile.id;
+        let filteredRequests;
+        
+        if (isMainUser) {
+          // Main user sees all requests (their own + managed profiles)
+          filteredRequests = allRecentRequests;
+        } else {
+          // Managed profile sees only their own requests
+          filteredRequests = allRecentRequests.filter(request => {
+            const profileInfo = request.request_data?._profileInfo;
+            return profileInfo && profileInfo.profileId === activeProfile.id;
+          });
+        }
+        
+        // Limit to 2 most recent after filtering
+        setServiceRequests(filteredRequests.slice(0, 2));
       } catch (error) {
         console.error('Failed to fetch service requests for dashboard:', error);
         // Keep empty array on error - will show fallback content
@@ -62,6 +84,42 @@ const Dashboard = () => {
     };
 
     fetchServiceRequests();
+  }, [activeProfile?.id, profile?.id]);
+
+  // Fetch unread notification count
+  useEffect(() => {
+    const fetchUnreadCount = async () => {
+      if (!activeProfile?.id) return;
+      
+      try {
+        const { success, count } = await notificationService.getUnreadCount(activeProfile.id);
+        if (success) {
+          setUnreadNotificationCount(count);
+        }
+      } catch (error) {
+        console.error('Failed to fetch unread notification count:', error);
+      }
+    };
+
+    fetchUnreadCount();
+    
+    // Set up real-time subscription for notification count updates
+    let subscription;
+    if (activeProfile?.id) {
+      subscription = notificationService.subscribeToNotifications(
+        activeProfile.id,
+        () => {
+          // Refetch count when notifications change
+          fetchUnreadCount();
+        }
+      );
+    }
+
+    return () => {
+      if (subscription) {
+        notificationService.unsubscribeFromNotifications(subscription);
+      }
+    };
   }, [activeProfile?.id]);
 
   const handleFeatureClick = () => {
@@ -146,8 +204,6 @@ const Dashboard = () => {
     score: 8,
     completedAt: Date.now(),
   };
-
-  const notificationCount = 3;
   const firstName = activeProfile?.username?.split(" ")[0] || "";
   const usernameElement = (
     <span className="username-gradient">{firstName}</span>
@@ -169,12 +225,12 @@ const Dashboard = () => {
           <div className="flex-shrink-0">
             <button
               onClick={() => navigate("/notifications")}
-              className="relative p-2 rounded-full bg-white border text-gray-600"
+              className="relative p-2 rounded-full bg-white border text-gray-600 hover:bg-gray-50 transition-colors"
             >
               <Bell size={22} />
-              {notificationCount > 0 && (
+              {unreadNotificationCount > 0 && (
                 <span className="absolute top-0 right-0 h-5 w-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center ring-2 ring-white">
-                  {notificationCount}
+                  {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
                 </span>
               )}
             </button>
@@ -361,31 +417,94 @@ const Dashboard = () => {
             <div className="space-y-3">
               {serviceRequests.map((request) => {
                 const status = getServiceRequestStatus(request.status);
+                const profileInfo = request.request_data?._profileInfo;
+                const isMainUser = activeProfile.id === profile.id;
+                
+                // Determine profile display information
+                const getProfileDisplay = () => {
+                  if (!profileInfo) {
+                    return { name: 'Legacy Request', isForSelf: true, showProfile: false };
+                  }
+                  
+                  const isForSelf = profileInfo.isMainUser;
+                  const profileName = profileInfo.profileName;
+                  
+                  if (isMainUser) {
+                    // Main user viewing - show who the request is for
+                    return {
+                      name: profileName,
+                      isForSelf: isForSelf,
+                      showProfile: true
+                    };
+                  } else {
+                    // Managed profile viewing - only their own requests
+                    return {
+                      name: profileName,
+                      isForSelf: false, // Always show as "for them" since they're viewing their own
+                      showProfile: true
+                    };
+                  }
+                };
+                
+                const profileDisplay = getProfileDisplay();
+                
                 return (
                   <div
                     key={request.id}
                     onClick={() => navigate(`/records/db_service_request_${request.id}`)}
-                    className="bg-white border p-4 rounded-2xl flex items-center justify-between cursor-pointer hover:shadow-md hover:border-primary/20 transition-all duration-200 group"
+                    className="bg-white border p-4 sm:p-5 rounded-2xl cursor-pointer hover:shadow-md hover:border-primary/20 transition-all duration-200 group"
                     title="Click to view request details"
                   >
-                    <div className="flex-1">
-                      <p className="font-semibold text-gray-900">
-                        {getServiceRequestTitle(request)}
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        {formatRequestTime(request.created_at)}
-                      </p>
-                      {request.request_data?.deliveryMethod && (
-                        <p className="text-xs text-gray-400 mt-1">
-                          {request.request_data.deliveryMethod}
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex items-center space-x-2 flex-shrink-0">
-                      <div className={`${status.className} text-xs font-bold px-3 py-1 rounded-full`}>
-                        {status.label}
+                    <div className="space-y-3">
+                      {/* Header with title and status */}
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-gray-900 truncate">
+                            {getServiceRequestTitle(request)}
+                          </h3>
+                        </div>
+                        
+                        <div className="flex items-center space-x-2 flex-shrink-0 ml-3">
+                          <div className={`${status.className} text-xs font-bold px-3 py-1 rounded-full`}>
+                            {status.label}
+                          </div>
+                          <ChevronRight className="h-4 w-4 text-gray-400 group-hover:text-primary transition-colors" />
+                        </div>
                       </div>
-                      <ChevronRight className="h-4 w-4 text-gray-400 group-hover:text-primary transition-colors" />
+                      
+                      {/* Profile tag and metadata */}
+                      <div className="space-y-2">
+                        {/* Profile tag */}
+                        {profileDisplay.showProfile && (
+                          <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1 px-2 py-1 bg-purple-100 rounded-full">
+                              <User size={12} className="text-purple-600" />
+                              <span className="text-xs text-purple-700 font-medium">
+                                {profileDisplay.isForSelf ? 'Self' : profileDisplay.name}
+                              </span>
+                            </div>
+                            {/* Show profile context for main user */}
+                            {isMainUser && !profileDisplay.isForSelf && (
+                              <span className="text-xs text-purple-600 font-medium">
+                                (Family Member)
+                              </span>
+                            )}
+                          </div>
+                        )}
+                        
+                        {/* Date and delivery info */}
+                        <div className="space-y-1">
+                          <p className="text-sm text-gray-500">
+                            {formatRequestTime(request.created_at)}
+                          </p>
+                          
+                          {request.request_data?.deliveryMethod && (
+                            <p className="text-xs text-gray-400">
+                              {request.request_data.deliveryMethod}
+                            </p>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 );
@@ -399,7 +518,10 @@ const Dashboard = () => {
               </div>
               <h3 className="font-semibold text-gray-900 mb-1">No Requests Yet</h3>
               <p className="text-sm text-gray-500 mb-4">
-                Your service requests will appear here when you make them.
+                {activeProfile.id === profile?.id 
+                  ? "Your service requests will appear here when you make them."
+                  : "Service requests for this profile will appear here when made."
+                }
               </p>
               <button
                 onClick={() => navigate("/services")}

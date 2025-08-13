@@ -773,6 +773,8 @@ export const servicesApi = {
                 throw new Error(`Failed to save screening result: ${error.message}`);
             }
 
+
+
             return data.id;
         } catch (error) {
             logError(error, 'servicesApi.saveScreeningResult', { result });
@@ -1205,6 +1207,34 @@ export const servicesApi = {
             });
         } catch (error) {
             logError(error, 'servicesApi.getRecentVideos', { limit });
+            throw new Error(handleApiError(error));
+        }
+    },
+
+    /**
+     * Note: Video notifications are now handled automatically by database triggers
+     * This function is kept for backward compatibility but notifications are created automatically
+     * when videos are inserted into the videos table via the trg_notify_new_video trigger
+     * @param {string} videoTitle - Title of the new video
+     * @param {string} videoId - ID of the new video
+     * @returns {Promise<Object>} Result indicating trigger-based notification
+     */
+    async notifyNewVideo(videoTitle, videoId) {
+        try {
+            // Log that notification will be handled by database trigger
+            logError(null, 'servicesApi.notifyNewVideo', {
+                videoTitle,
+                videoId,
+                action: 'Video notification will be created automatically by database trigger'
+            });
+
+            return {
+                success: true,
+                message: 'Notification will be created automatically by database trigger',
+                triggerBased: true
+            };
+        } catch (error) {
+            logError(error, 'servicesApi.notifyNewVideo', { videoTitle, videoId });
             throw new Error(handleApiError(error));
         }
     },

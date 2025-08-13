@@ -49,7 +49,7 @@ const PreviewStep = ({
     opacity: 1
   }} transition={{
     duration: 0.5
-  }} className="space-y-6 pb-24">
+  }} className="space-y-6 pb-20 md:pb-8">
       {/* Account Owner Info - Always shown */}
       <div className="p-4 bg-white rounded-xl border-2 border-gray-100">
         <div className="flex items-center gap-4">
@@ -129,11 +129,18 @@ const PreviewStep = ({
           </div>
         </div>)}
 
-      <div className="flex items-start space-x-3 mt-6 p-4 bg-primary/5 rounded-lg">
-        <Checkbox id="consent" checked={consent} onCheckedChange={setConsent} className="mt-1" />
-        <label htmlFor="consent" className="text-sm text-gray-700">
-          I confirm that the information provided is accurate and I consent to NetLife processing this request.
-        </label>
+      <div className="mt-6 p-4 bg-primary/5 rounded-lg">
+        <div className="flex items-start space-x-3">
+          <Checkbox 
+            id="consent" 
+            checked={consent} 
+            onCheckedChange={setConsent} 
+            className="mt-0.5 flex-shrink-0" 
+          />
+          <label htmlFor="consent" className="text-sm text-gray-700 leading-relaxed cursor-pointer">
+            I confirm that the information provided is accurate and I consent to NetLife processing this request.
+          </label>
+        </div>
       </div>
       
       {/* Error message */}
@@ -150,17 +157,17 @@ const PreviewStep = ({
 
       {/* Mobile Submit Button */}
       <div className="block md:hidden">
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-50">
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-50 safe-area-inset-bottom">
           <div className="p-4 max-w-[428px] mx-auto">
             <Button 
               onClick={onSubmit} 
               disabled={!consent || submitting} 
-              className="w-full h-14 text-lg bg-primary hover:bg-primary/90 rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed text-white"
+              className="w-full h-12 sm:h-14 text-base sm:text-lg bg-primary hover:bg-primary/90 rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed text-white transition-all duration-200"
             >
               {submitting ? (
                 <div className="flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
-                  Submitting...
+                  <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-b-2 border-white mr-2 sm:mr-3"></div>
+                  <span className="text-sm sm:text-base">Submitting...</span>
                 </div>
               ) : (
                 'Submit Request'
@@ -175,7 +182,7 @@ const PreviewStep = ({
         <Button 
           onClick={onSubmit} 
           disabled={!consent || submitting} 
-          className="w-full h-14 text-lg bg-primary hover:bg-primary/90 rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed text-white"
+          className="w-full h-14 text-lg bg-primary hover:bg-primary/90 rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed text-white transition-all duration-200"
         >
           {submitting ? (
             <div className="flex items-center justify-center">
