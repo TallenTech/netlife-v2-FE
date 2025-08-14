@@ -6,6 +6,7 @@ Table order and constraints may not be valid for execution.
 ## Core Tables
 
 ### services
+
 ```sql
 CREATE TABLE public.services (
     id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -18,6 +19,7 @@ CREATE TABLE public.services (
 ```
 
 ### service_questions
+
 ```sql
 CREATE TABLE public.service_questions (
     id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -32,6 +34,7 @@ CREATE TABLE public.service_questions (
 ```
 
 ### question_options
+
 ```sql
 CREATE TABLE public.question_options (
     id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -45,6 +48,7 @@ CREATE TABLE public.question_options (
 ```
 
 ### user_screening_answers
+
 ```sql
 CREATE TABLE public.user_screening_answers (
     id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -63,13 +67,14 @@ CREATE TABLE public.user_screening_answers (
 ```
 
 ### service_requests
+
 ```sql
 CREATE TABLE public.service_requests (
     id uuid NOT NULL DEFAULT uuid_generate_v4(),
     user_id uuid,
     service_id uuid,
     status text DEFAULT 'pending'::text,
-    request_data jsonb,
+     jsonb,
     created_at timestamp with time zone DEFAULT now(),
     CONSTRAINT service_requests_pkey PRIMARY KEY (id),
     CONSTRAINT service_requests_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id),
@@ -80,6 +85,7 @@ CREATE TABLE public.service_requests (
 ## User Management Tables
 
 ### profiles
+
 ```sql
 CREATE TABLE public.profiles (
     id uuid NOT NULL,
@@ -99,6 +105,7 @@ CREATE TABLE public.profiles (
 ```
 
 ### login_codes
+
 ```sql
 CREATE TABLE public.login_codes (
     id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -115,6 +122,7 @@ CREATE TABLE public.login_codes (
 ## Location Tables
 
 ### districts
+
 ```sql
 CREATE TABLE public.districts (
     id integer NOT NULL DEFAULT nextval('districts_id_seq'::regclass),
@@ -127,6 +135,7 @@ CREATE TABLE public.districts (
 ```
 
 ### sub_counties
+
 ```sql
 CREATE TABLE public.sub_counties (
     id integer NOT NULL DEFAULT nextval('sub_counties_id_seq'::regclass),
@@ -142,6 +151,7 @@ CREATE TABLE public.sub_counties (
 ## Content Tables
 
 ### videos
+
 ```sql
 CREATE TABLE public.videos (
     id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -155,6 +165,7 @@ CREATE TABLE public.videos (
 ```
 
 ### user_videos
+
 ```sql
 CREATE TABLE public.user_videos (
     id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -168,6 +179,7 @@ CREATE TABLE public.user_videos (
 ```
 
 ### notifications
+
 ```sql
 CREATE TABLE public.notifications (
     id uuid NOT NULL DEFAULT uuid_generate_v4(),
