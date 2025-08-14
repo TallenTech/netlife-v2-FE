@@ -25,23 +25,14 @@ import {
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import MobileConfirmDialog from "@/components/ui/MobileConfirmDialog";
 import { useNavigate } from "react-router-dom";
 import FileUpload from "@/components/FileUpload";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getAvatarEmoji } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { profileService } from "@/services/profileService";
+import { settingsService } from "@/services/settingsService";
 
 const Account = () => {
   const { toast } = useToast();
@@ -53,6 +44,7 @@ const Account = () => {
     updateProfile,
     deleteAccount,
     refreshSession,
+    isLoading,
   } = useAuth();
 
   const [profileData, setProfileData] = useState({
@@ -67,11 +59,15 @@ const Account = () => {
   const [phoneOtp, setPhoneOtp] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
   const [settings, setSettings] = useState({
-    autoDelete: "30",
+    autoDelete: "never",
     fakeAccountMode: false,
     silentAlerts: false,
     crisisOverride: true,
   });
+  const [showPurgeDialog, setShowPurgeDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [avatarLoading, setAvatarLoading] = useState(true);
 
   useEffect(() => {
     if (activeProfile) {
@@ -88,12 +84,43 @@ const Account = () => {
           ? `${subCounty}, ${district}`
           : subCounty || district
       );
-    }
-    const savedSettings = localStorage.getItem("netlife_settings");
-    if (savedSettings) {
-      setSettings(JSON.parse(savedSettings));
+      
+      // Load settings from database/localStorage
+      loadUserSettings();
     }
   }, [activeProfile]);
+
+  // Additional effect to handle profile picture updates specifically
+  useEffect(() => {
+    if (activeProfile?.profile_picture !== profileData.profile_picture) {
+      setProfileData(prev => ({
+        ...prev,
+        profile_picture: activeProfile?.profile_picture || null,
+      }));
+    }
+    // Set avatar loading to false once we have profile data
+    if (activeProfile) {
+      setAvatarLoading(false);
+    }
+  }, [activeProfile?.profile_picture, activeProfile]);
+
+  const loadUserSettings = async () => {
+    if (!activeProfile?.id) return;
+    
+    try {
+      const userSettings = await settingsService.loadSettings(activeProfile.id);
+      setSettings(userSettings);
+    } catch (error) {
+      console.error('Error loading settings:', error);
+      // Fallback to default settings
+      setSettings({
+        autoDelete: "never",
+        fakeAccountMode: false,
+        silentAlerts: false,
+        crisisOverride: true,
+      });
+    }
+  };
 
   const handleProfileSave = async () => {
     try {
@@ -119,12 +146,39 @@ const Account = () => {
     }
   };
 
-  const handleSettingsSave = () => {
-    localStorage.setItem("netlife_settings", JSON.stringify(settings));
-    toast({
-      title: "Settings Updated",
-      description: "Your preferences have been saved.",
-    });
+  const handleSettingsSave = async () => {
+    if (!activeProfile?.id) return;
+    
+    try {
+      const result = await settingsService.saveSettings(activeProfile.id, settings);
+      
+      if (result.success) {
+        toast({
+          title: "Settings Updated",
+          description: result.warning || "Your preferences have been saved.",
+        });
+        
+        // Run auto-delete if enabled
+        if (settings.autoDelete !== 'never') {
+          const deleteResult = await settingsService.autoDeleteSurveyResponses(activeProfile.id, settings);
+          if (deleteResult.success && deleteResult.message !== 'Auto-delete disabled') {
+            toast({
+              title: "Data Cleanup",
+              description: deleteResult.message,
+            });
+          }
+        }
+      } else {
+        throw new Error('Failed to save settings');
+      }
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      toast({
+        title: "Settings Save Failed",
+        description: "Could not save your preferences. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const onFileSelect = useCallback((file) => {
@@ -132,13 +186,24 @@ const Account = () => {
       const reader = new FileReader();
       reader.onloadend = () => {
         setProfileData((prev) => ({ ...prev, profile_picture: reader.result }));
+        // Ensure avatar loading is false when we have new image data
+        setAvatarLoading(false);
       };
       reader.readAsDataURL(file);
     }
   }, []);
 
   const renderAvatar = () => {
-    const picture = profileData.profile_picture;
+    // Show loading state while avatar is loading
+    if (avatarLoading) {
+      return (
+        <AvatarFallback className="animate-pulse bg-gray-200">
+          <div className="w-6 h-6 bg-gray-300 rounded-full"></div>
+        </AvatarFallback>
+      );
+    }
+
+    const picture = profileData.profile_picture || activeProfile?.profile_picture;
     if (
       picture &&
       (picture.startsWith("http") || picture.startsWith("data:image"))
@@ -154,7 +219,7 @@ const Account = () => {
         </AvatarFallback>
       );
     }
-    const firstName = profileData.username?.split(" ")[0] || "";
+    const firstName = (profileData.username || activeProfile?.username)?.split(" ")[0] || "";
     return (
       <AvatarFallback>
         {firstName ? firstName.charAt(0).toUpperCase() : "A"}
@@ -162,55 +227,91 @@ const Account = () => {
     );
   };
 
-  const handleDataPurge = () => {
-    localStorage.clear();
-    toast({
-      title: "All Data Purged",
-      description: "Your local data has been cleared. You will be logged out.",
-      variant: "destructive",
-    });
-    setTimeout(logout, 2000);
-  };
-
-  const handleDeleteAccount = async () => {
+  const handleDataPurge = async () => {
+    setIsProcessing(true);
     try {
-      if (deleteAccount) await deleteAccount();
-      else logout();
+      const result = settingsService.purgeLocalData();
+      
+      if (result.success) {
+        toast({
+          title: "All Data Purged",
+          description: "Your local data has been cleared. You will be logged out.",
+          variant: "destructive",
+        });
+        setShowPurgeDialog(false);
+        setTimeout(logout, 2000);
+      } else {
+        throw new Error(result.error);
+      }
     } catch (error) {
+      console.error('Error purging data:', error);
       toast({
-        title: "Error",
-        description: "Could not delete account.",
+        title: "Purge Failed",
+        description: "Could not purge all data. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
-  const handleDataDownload = () => {
+  const handleDeleteAccount = async () => {
+    if (!activeProfile?.id) return;
+    
+    setIsProcessing(true);
     try {
-      const dataToDownload = {};
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key.startsWith("netlife_")) {
-          dataToDownload[key] = JSON.parse(localStorage.getItem(key));
-        }
+      // Use the simple manual deletion method
+      const result = await settingsService.deleteAccount(activeProfile.id);
+      
+      if (result.success) {
+        const message = result.warning 
+          ? "Account partially deleted. Some data may remain on our servers."
+          : "Your account has been permanently deleted.";
+          
+        toast({
+          title: "Account Deleted",
+          description: message,
+          variant: result.warning ? "default" : "destructive",
+        });
+        
+        setShowDeleteDialog(false);
+        
+        // The deletion function already signs out the user
+        // Just redirect to login page after a short delay
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 2000);
+      } else {
+        throw new Error(result.error);
       }
-      const dataStr =
-        "data:text/json;charset=utf-8," +
-        encodeURIComponent(JSON.stringify(dataToDownload, null, 2));
-      const downloadAnchorNode = document.createElement("a");
-      downloadAnchorNode.setAttribute("href", dataStr);
-      downloadAnchorNode.setAttribute(
-        "download",
-        `netlife_data_backup_${new Date().toISOString()}.json`
-      );
-      document.body.appendChild(downloadAnchorNode);
-      downloadAnchorNode.click();
-      downloadAnchorNode.remove();
-      toast({
-        title: "Data Downloaded",
-        description: "Your data has been successfully downloaded.",
-      });
     } catch (error) {
+      console.error('Error deleting account:', error);
+      toast({
+        title: "Delete Failed",
+        description: error.message || "Could not delete account. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleDataDownload = async () => {
+    if (!activeProfile?.id) return;
+    
+    try {
+      const result = await settingsService.downloadAllData(activeProfile.id);
+      
+      if (result.success) {
+        toast({
+          title: "Data Downloaded",
+          description: "Your data has been successfully downloaded.",
+        });
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      console.error('Error downloading data:', error);
       toast({
         title: "Download Failed",
         description: "Could not prepare your data for download.",
@@ -283,6 +384,35 @@ const Account = () => {
   };
 
   const firstName = activeProfile?.username?.split(" ")[0] || "";
+
+  // Show loading state while auth data is being fetched
+  if (isLoading || !activeProfile) {
+    return (
+      <>
+        <Helmet>
+          <title>Account - Loading...</title>
+        </Helmet>
+        <div className="p-4 md:p-6 bg-gray-50 min-h-screen">
+          <div className="animate-pulse">
+            <div className="h-8 bg-gray-200 rounded mb-2 w-48"></div>
+            <div className="h-4 bg-gray-200 rounded mb-6 w-32"></div>
+            <div className="bg-white p-6 rounded-2xl border">
+              <div className="flex flex-col items-center space-y-4 mb-6">
+                <div className="w-24 h-24 bg-gray-200 rounded-full"></div>
+                <div className="h-6 bg-gray-200 rounded w-40"></div>
+                <div className="h-4 bg-gray-200 rounded w-32"></div>
+              </div>
+              <div className="space-y-4">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="h-10 bg-gray-200 rounded"></div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
@@ -627,70 +757,22 @@ const Account = () => {
                     <Download size={16} />
                     <span>Download All Data</span>
                   </Button>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="w-full justify-start space-x-2"
-                      >
-                        <Trash2 size={16} />
-                        <span>Purge Local Data</span>
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>
-                          Are you absolutely sure?
-                        </AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This will permanently delete all data stored on this
-                          device. Your account on the server will not be
-                          affected.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={handleDataPurge}
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        >
-                          Yes, purge data
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        variant="destructive"
-                        className="w-full justify-start space-x-2"
-                      >
-                        <Trash2 size={16} />
-                        <span>Delete Account</span>
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>
-                          Are you absolutely sure?
-                        </AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This action cannot be undone. This will permanently
-                          delete your account and remove all your data from our
-                          servers.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={handleDeleteAccount}
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        >
-                          Yes, delete my account
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                  <Button
+                    onClick={() => setShowPurgeDialog(true)}
+                    variant="outline"
+                    className="w-full justify-start space-x-2"
+                  >
+                    <Trash2 size={16} />
+                    <span>Purge Local Data</span>
+                  </Button>
+                  <Button
+                    onClick={() => setShowDeleteDialog(true)}
+                    variant="destructive"
+                    className="w-full justify-start space-x-2"
+                  >
+                    <Trash2 size={16} />
+                    <span>Delete Account</span>
+                  </Button>
                 </div>
               </div>
               <Button
@@ -702,6 +784,33 @@ const Account = () => {
             </div>
           </TabsContent>
         </Tabs>
+
+        {/* Mobile Confirmation Dialogs */}
+        <MobileConfirmDialog
+          isOpen={showPurgeDialog}
+          onClose={() => setShowPurgeDialog(false)}
+          onConfirm={handleDataPurge}
+          title="Purge Local Data?"
+          description="This will permanently delete all data stored on this device. Your account on the server will not be affected."
+          confirmText="Yes, purge data"
+          cancelText="Cancel"
+          variant="destructive"
+          icon={Trash2}
+          isLoading={isProcessing}
+        />
+
+        <MobileConfirmDialog
+          isOpen={showDeleteDialog}
+          onClose={() => setShowDeleteDialog(false)}
+          onConfirm={handleDeleteAccount}
+          title="Delete Account?"
+          description="This action cannot be undone. This will permanently delete your account and remove all your data from our servers."
+          confirmText="Yes, delete my account"
+          cancelText="Cancel"
+          variant="destructive"
+          icon={Trash2}
+          isLoading={isProcessing}
+        />
       </div>
     </>
   );
