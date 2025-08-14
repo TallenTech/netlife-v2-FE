@@ -190,7 +190,8 @@ const Account = () => {
     }
   };
 
-  const onFileSelect = useCallback((file) => {
+  // File upload callback - temporarily disabled, keeping code for future use
+  /* const onFileSelect = useCallback((file) => {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -200,7 +201,7 @@ const Account = () => {
       };
       reader.readAsDataURL(file);
     }
-  }, []);
+  }, []); */
 
   const renderAvatar = () => {
     // Show loading state while avatar is loading
@@ -462,7 +463,8 @@ const Account = () => {
           <TabsContent value="profile" className="mt-6">
             <div className="bg-white p-4 md:p-6 rounded-2xl border mb-6">
               <div className="flex flex-col items-center text-center space-y-4 mb-6">
-                <FileUpload
+                {/* File Upload functionality temporarily disabled - keeping code for future use */}
+                {/* <FileUpload
                   onFileSelect={onFileSelect}
                   previewUrl={profileData.profile_picture}
                   isAvatar={true}
@@ -470,7 +472,13 @@ const Account = () => {
                   <Avatar className="w-24 h-24 text-5xl border-4 border-white shadow-md">
                     {renderAvatar()}
                   </Avatar>
-                </FileUpload>
+                </FileUpload> */}
+                
+                {/* Display avatar without upload functionality */}
+                <Avatar className="w-24 h-24 text-5xl border-4 border-white shadow-md">
+                  {renderAvatar()}
+                </Avatar>
+                
                 <div>
                   <h2 className="text-lg font-bold">Personal Information</h2>
                   <p className="text-sm text-gray-500">

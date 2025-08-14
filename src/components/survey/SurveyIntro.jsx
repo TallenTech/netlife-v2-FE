@@ -113,7 +113,7 @@ const SurveyIntro = ({ onBack }) => {
             className="text-center mb-6 md:mb-10"
           >
             <h1 className="text-xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 md:mb-6 leading-tight">
-              Welcome <span className="username-gradient">{getUserFirstName()}</span>! We're Here for You 💙
+              Welcome <span className="username-gradient">{getUserFirstName()}</span>
             </h1>
             <p className="text-sm md:text-lg text-gray-600 leading-relaxed max-w-2xl mx-auto px-2 md:px-4">
               Your health and wellbeing matter to us. This caring assessment helps us understand how we can best support you on your health journey - with love, no judgment, and complete privacy.

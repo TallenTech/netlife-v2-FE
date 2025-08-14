@@ -95,7 +95,7 @@ const SurveyCompletionDialog = ({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
-              className="md:hidden fixed inset-0 bg-black/50 z-50"
+              className="md:hidden fixed inset-0 bg-black/60 z-[9998] backdrop-blur-sm"
               onClick={onClose}
             />
 
@@ -110,14 +110,23 @@ const SurveyCompletionDialog = ({
                 stiffness: 300,
                 duration: 0.4 
               }}
-              className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-3xl shadow-2xl max-h-[90vh] overflow-y-auto"
+              className="md:hidden fixed bottom-0 left-0 right-0 z-[9999] bg-white rounded-t-3xl shadow-2xl max-h-[90vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
             >
-              {/* Mobile Handle Bar */}
-              <div className="flex justify-center pt-3 pb-2">
+              {/* Mobile Handle Bar and Close Button */}
+              <div className="flex justify-between items-center pt-3 pb-2 px-6">
+                <div></div>
                 <div className="w-12 h-1 bg-gray-300 rounded-full"></div>
+                <button
+                  onClick={onClose}
+                  className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+                  aria-label="Close"
+                >
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
               </div>
 
-              <div className="px-6 pb-8 pt-4">
+              <div className="px-6 pb-8 pt-4 safe-area-inset-bottom">
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}

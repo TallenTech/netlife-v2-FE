@@ -41,7 +41,7 @@ import { motion } from 'framer-motion';
 const Notifications = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { activeProfile } = useAuth();
+  const { activeProfile, profile } = useAuth();
   
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -50,7 +50,7 @@ const Notifications = () => {
   const [subscription, setSubscription] = useState(null);
 
   useEffect(() => {
-    if (activeProfile) {
+    if (profile) {
       loadNotifications();
       setupRealtimeSubscription();
     }
@@ -60,12 +60,12 @@ const Notifications = () => {
         notificationService.unsubscribeFromNotifications(subscription);
       }
     };
-  }, [activeProfile]);
+  }, [profile]);
 
   const loadNotifications = async () => {
     try {
       setLoading(true);
-      const { success, data } = await notificationService.getUserNotifications(activeProfile.id);
+      const { success, data } = await notificationService.getUserNotifications(profile.id);
       
       if (success) {
         setNotifications(data);
@@ -90,7 +90,7 @@ const Notifications = () => {
 
   const setupRealtimeSubscription = () => {
     const sub = notificationService.subscribeToNotifications(
-      activeProfile.id,
+      profile.id,
       (payload) => {
         console.log('Notification update:', payload);
         // Reload notifications when there's a change
@@ -120,7 +120,7 @@ const Notifications = () => {
 
   const handleMarkAllAsRead = async () => {
     try {
-      const { success } = await notificationService.markAllAsRead(activeProfile.id);
+      const { success } = await notificationService.markAllAsRead(profile.id);
       
       if (success) {
         setNotifications(prev => 

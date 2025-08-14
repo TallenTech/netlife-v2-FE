@@ -10,6 +10,11 @@ import {
   Video,
   ChevronRight,
   User,
+  MoreVertical,
+  Users,
+  Heart,
+  FolderOpen,
+  LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
@@ -21,11 +26,13 @@ import { notificationService } from "@/services/notificationService";
 import { surveyService } from "@/services/surveyService";
 import { surveyEvents } from "@/utils/surveyEvents";
 import WhatsAppFloat from "@/components/WhatsAppFloat";
+import NetLifeLogo from "@/components/NetLifeLogo";
+import { motion, AnimatePresence } from "framer-motion";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { activeProfile, profile, managedProfiles } = useAuth();
+  const { activeProfile, profile, managedProfiles, logout } = useAuth();
   const [videos, setVideos] = useState([]);
   const [videosLoading, setVideosLoading] = useState(true);
   const [serviceRequests, setServiceRequests] = useState([]);
@@ -38,6 +45,7 @@ const Dashboard = () => {
     canTakeSurvey: true
   });
   const [surveyStatusLoading, setSurveyStatusLoading] = useState(true);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   // Fetch recent videos for the dashboard
   useEffect(() => {
@@ -128,10 +136,10 @@ const Dashboard = () => {
   // Fetch unread notification count
   useEffect(() => {
     const fetchUnreadCount = async () => {
-      if (!activeProfile?.id) return;
+      if (!profile?.id) return;
       
       try {
-        const { success, count } = await notificationService.getUnreadCount(activeProfile.id);
+        const { success, count } = await notificationService.getUnreadCount(profile.id);
         if (success) {
           setUnreadNotificationCount(count);
         }
@@ -144,9 +152,9 @@ const Dashboard = () => {
     
     // Set up real-time subscription for notification count updates
     let subscription;
-    if (activeProfile?.id) {
+    if (profile?.id) {
       subscription = notificationService.subscribeToNotifications(
-        activeProfile.id,
+        profile.id,
         () => {
           // Refetch count when notifications change
           fetchUnreadCount();
@@ -159,7 +167,7 @@ const Dashboard = () => {
         notificationService.unsubscribeFromNotifications(subscription);
       }
     };
-  }, [activeProfile?.id]);
+  }, [profile?.id]);
 
   const handleFeatureClick = () => {
     toast({
@@ -277,8 +285,36 @@ const Dashboard = () => {
       <Helmet>
         <title>Dashboard - NetLife</title>
       </Helmet>
-      <div className="p-4 md:p-6 bg-gray-50 min-h-screen">
-        <header className="flex justify-between items-center gap-4 mb-6">
+      
+      {/* Mobile-only fixed header */}
+      <div className="md:hidden fixed top-0 left-0 right-0 z-10 bg-gray-50">
+        <div className="flex justify-between items-center px-4 py-3">
+          <NetLifeLogo className="w-20 h-8" />
+          <div className="flex items-center space-x-0 -mr-4">
+            <button
+              onClick={() => navigate("/notifications")}
+              className="relative p-2 text-gray-600 hover:text-primary transition-colors"
+            >
+              <Bell size={24} />
+              {unreadNotificationCount > 0 && (
+                <span className="absolute top-0 right-0 h-5 w-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center ring-2 ring-gray-50">
+                  {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => setShowMobileMenu(true)}
+              className="p-2 text-gray-600 hover:text-primary transition-colors"
+            >
+              <MoreVertical size={24} />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="p-4 md:p-6 bg-gray-50 min-h-screen pt-16 md:pt-4">
+        {/* Desktop header - hidden on mobile */}
+        <header className="hidden md:flex justify-between items-center gap-4 mb-6">
           <div className="flex-1">
             <h1 className="text-xl md:text-2xl font-bold text-gray-900">
               {getGreeting()}, {usernameElement}!
@@ -299,6 +335,14 @@ const Dashboard = () => {
             </button>
           </div>
         </header>
+
+        {/* Mobile greeting section */}
+        <div className="md:hidden mb-6">
+          <h1 className="text-xl font-bold text-gray-900">
+            {getGreeting()}, {usernameElement}!
+          </h1>
+          <p className="text-sm text-gray-500">How are you feeling today?</p>
+        </div>
 
         <section className="mb-6">
           <h2 className="text-lg font-bold text-gray-800 mb-3">
@@ -626,6 +670,122 @@ const Dashboard = () => {
       
       {/* WhatsApp Floating Button - Temporarily disabled */}
       {/* <WhatsAppFloat /> */}
+
+      {/* Mobile Menu Modal */}
+      <AnimatePresence>
+        {showMobileMenu && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="md:hidden fixed inset-0 bg-black/50 z-[9998]"
+              onClick={() => setShowMobileMenu(false)}
+            />
+
+            {/* Slide-up Modal */}
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ 
+                type: "spring", 
+                damping: 25, 
+                stiffness: 300,
+                duration: 0.4 
+              }}
+              className="md:hidden fixed bottom-0 left-0 right-0 z-[9999] bg-white rounded-t-3xl shadow-2xl max-h-[80vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Handle Bar */}
+              <div className="flex justify-center pt-3 pb-2">
+                <div className="w-12 h-1 bg-gray-300 rounded-full"></div>
+              </div>
+
+              <div className="px-6 pb-8 pt-4 safe-area-inset-bottom">
+                {/* Menu Items */}
+                <div className="space-y-1">
+                  {/* Manage & Switch Profiles */}
+                  <button
+                    onClick={() => {
+                      setShowMobileMenu(false);
+                      navigate("/account/manage-profiles");
+                    }}
+                    className="flex items-center w-full text-left space-x-4 p-4 rounded-xl hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                      <Users className="w-5 h-5 text-purple-600" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-gray-900">Manage & Switch Profiles</h3>
+                      <p className="text-sm text-gray-500">
+                        Currently browsing as: <span className="font-medium">{activeProfile?.full_name || activeProfile?.username}</span>
+                      </p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-gray-400" />
+                  </button>
+
+                  {/* Health Interests */}
+                  <button
+                    onClick={() => {
+                      setShowMobileMenu(false);
+                      navigate("/account/health-interests");
+                    }}
+                    className="flex items-center w-full text-left space-x-4 p-4 rounded-xl hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                      <Heart className="w-5 h-5 text-purple-600" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-gray-900">Health Interests</h3>
+                      <p className="text-sm text-gray-500">Tailor content to your preferences</p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-gray-400" />
+                  </button>
+
+                  {/* My Files */}
+                  <button
+                    onClick={() => {
+                      setShowMobileMenu(false);
+                      navigate("/my-files");
+                    }}
+                    className="flex items-center w-full text-left space-x-4 p-4 rounded-xl hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                      <FolderOpen className="w-5 h-5 text-purple-600" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-gray-900">My Files</h3>
+                      <p className="text-sm text-gray-500">Store and manage your documents</p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-gray-400" />
+                  </button>
+                </div>
+
+                {/* Logout Section */}
+                <div className="mt-8 pt-6 border-t border-gray-200">
+                  <button
+                    onClick={() => {
+                      setShowMobileMenu(false);
+                      logout();
+                    }}
+                    className="flex items-center w-full text-left space-x-4 p-4 rounded-xl hover:bg-red-50 transition-colors"
+                  >
+                    <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                      <LogOut className="w-5 h-5 text-red-600" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-red-600">Logout</h3>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </>
   );
 };
