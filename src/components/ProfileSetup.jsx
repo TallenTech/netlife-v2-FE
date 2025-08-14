@@ -215,66 +215,95 @@ const ProfileSetup = ({
   }, []);
 
   return (
-    <div className="w-full min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-2xl mx-auto">
-        <div className="bg-white rounded-2xl border shadow-sm flex flex-col md:flex-row overflow-hidden">
-          <div className="w-full md:w-1/3 bg-gray-100 p-6 flex flex-col justify-between">
-            <div>
-              <button
-                onClick={handleBack}
-                className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-gray-600 mb-8"
-              >
-                <ChevronLeft className="w-6 h-6" />
-              </button>
-              <h1 className="text-2xl font-bold text-gray-900">
-                {isNewDependent ? "Add New Profile" : "Tell us about yourself"}
-              </h1>
-              <p className="text-gray-600 text-sm mt-2">Step {step} of 2</p>
-            </div>
-            <div className="w-full">
-              <Progress value={step * 50} className="h-2 mt-4" />
-            </div>
-          </div>
+    <div className="w-full min-h-screen bg-gray-50 flex flex-col">
+      {/* Mobile Header */}
+      <div className="md:hidden bg-white border-b px-4 py-3 flex items-center justify-between">
+        <button
+          onClick={handleBack}
+          className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600"
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+        <div className="text-center">
+          <h1 className="text-lg font-bold text-gray-900">
+            {isNewDependent ? "Add Profile" : "Profile Setup"}
+          </h1>
+          <p className="text-gray-500 text-sm">Step {step} of 2</p>
+        </div>
+        <div className="w-10" /> {/* Spacer for centering */}
+      </div>
 
-          <div className="w-full md:w-2/3 p-6 md:p-8 flex flex-col">
-            <div className="flex-1 overflow-y-auto no-scrollbar pr-2 -mr-2">
-              {step === 1 ? (
-                <Step1Details
-                  profileData={profileData}
-                  setProfileData={setProfileData}
-                  errors={errors}
-                  validateField={validateField}
-                  checkUsername={checkUsername}
-                  usernameChecking={usernameChecking}
-                  districts={districts}
-                  subCounties={subCounties}
-                  loadingDistricts={loadingDistricts}
-                  loadingSubCounties={loadingSubCounties}
-                  isNewDependent={isNewDependent}
-                />
-              ) : (
-                <Step2Avatar
-                  profileData={profileData}
-                  setProfileData={setProfileData}
-                  onFileSelect={onFileSelect}
-                  previewUrl={previewUrl}
-                />
-              )}
+      {/* Mobile Progress Bar */}
+      <div className="md:hidden px-4 py-3 bg-white border-b">
+        <Progress value={step * 50} className="h-2" />
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col md:items-center md:justify-center md:p-4">
+        <div className="w-full md:max-w-4xl md:mx-auto">
+          <div className="bg-white md:rounded-2xl md:border md:shadow-sm flex flex-col md:flex-row overflow-hidden min-h-0 flex-1 md:flex-none">
+            {/* Desktop Sidebar */}
+            <div className="hidden md:flex w-full md:w-1/3 bg-gray-100 p-6 flex-col justify-between">
+              <div>
+                <button
+                  onClick={handleBack}
+                  className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-gray-600 mb-8"
+                >
+                  <ChevronLeft className="w-6 h-6" />
+                </button>
+                <h1 className="text-2xl font-bold text-gray-900">
+                  {isNewDependent ? "Add New Profile" : "Tell us about yourself"}
+                </h1>
+                <p className="text-gray-600 text-sm mt-2">Step {step} of 2</p>
+              </div>
+              <div className="w-full">
+                <Progress value={step * 50} className="h-2 mt-4" />
+              </div>
             </div>
-            <div className="mt-8">
-              <Button
-                onClick={handleNext}
-                disabled={isSubmitting || usernameChecking}
-                className="w-full h-12 bg-primary text-white font-semibold text-lg rounded-xl"
-              >
-                {isSubmitting ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : step === 1 ? (
-                  "Continue"
+
+            {/* Form Content */}
+            <div className="w-full md:w-2/3 flex flex-col flex-1">
+              <div className="flex-1 overflow-y-auto p-4 md:p-8">
+                {step === 1 ? (
+                  <Step1Details
+                    profileData={profileData}
+                    setProfileData={setProfileData}
+                    errors={errors}
+                    validateField={validateField}
+                    checkUsername={checkUsername}
+                    usernameChecking={usernameChecking}
+                    districts={districts}
+                    subCounties={subCounties}
+                    loadingDistricts={loadingDistricts}
+                    loadingSubCounties={loadingSubCounties}
+                    isNewDependent={isNewDependent}
+                  />
                 ) : (
-                  "Complete Profile"
+                  <Step2Avatar
+                    profileData={profileData}
+                    setProfileData={setProfileData}
+                    onFileSelect={onFileSelect}
+                    previewUrl={previewUrl}
+                  />
                 )}
-              </Button>
+              </div>
+              
+              {/* Fixed Bottom Button */}
+              <div className="p-4 md:p-8 pt-0 md:pt-4 bg-white border-t md:border-t-0">
+                <Button
+                  onClick={handleNext}
+                  disabled={isSubmitting || usernameChecking}
+                  className="w-full h-12 md:h-14 bg-primary text-white font-semibold text-base md:text-lg rounded-xl"
+                >
+                  {isSubmitting ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : step === 1 ? (
+                    "Continue"
+                  ) : (
+                    "Complete Profile"
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
         </div>

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { motion } from "framer-motion";
 import { MessageCircle, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,17 @@ const VerificationStep = ({
   resendTimer,
   isResendTimerActive,
 }) => {
+  // Auto-submit when all 6 digits are entered
+  useEffect(() => {
+    if (verificationCode.length === 6 && !isLoading.verify) {
+      // Add a small delay to ensure the user sees the complete code
+      const timer = setTimeout(() => {
+        onVerify();
+      }, 300);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [verificationCode, onVerify, isLoading.verify]);
   return (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
@@ -47,10 +58,18 @@ const VerificationStep = ({
           placeholder="_ _ _ _ _ _"
           maxLength="6"
           value={verificationCode}
-          onChange={(e) =>
-            setVerificationCode(e.target.value.replace(/[^0-9]/g, ""))
-          }
-          className="h-12 sm:h-14 lg:h-16 text-center text-xl sm:text-2xl lg:text-3xl font-bold tracking-[0.5em] sm:tracking-[1em] lg:tracking-[1.5em]"
+          onChange={(e) => {
+            const value = e.target.value.replace(/[^0-9]/g, "");
+            setVerificationCode(value);
+          }}
+          className={`h-12 sm:h-14 lg:h-16 text-center text-xl sm:text-2xl lg:text-3xl font-bold tracking-[0.5em] sm:tracking-[1em] lg:tracking-[1.5em] transition-colors duration-200 ${
+            verificationCode.length === 6 
+              ? 'border-green-500 bg-green-50' 
+              : verificationCode.length > 0 
+                ? 'border-primary bg-primary/5' 
+                : ''
+          }`}
+          autoFocus
         />
       </div>
 
@@ -59,9 +78,13 @@ const VerificationStep = ({
         isLoading={isLoading.verify}
         loadingText="Verifying..."
         disabled={verificationCode.length !== 6 || isLoading.verify}
-        className="w-full h-12 sm:h-14 lg:h-16 bg-primary text-white hover:bg-primary/90 font-semibold text-base sm:text-lg lg:text-xl rounded-xl mb-4 sm:mb-6"
+        className={`w-full h-12 sm:h-14 lg:h-16 font-semibold text-base sm:text-lg lg:text-xl rounded-xl mb-4 sm:mb-6 transition-all duration-200 ${
+          verificationCode.length === 6
+            ? 'bg-green-600 hover:bg-green-700 text-white'
+            : 'bg-primary text-white hover:bg-primary/90'
+        }`}
       >
-        Verify Code
+        {verificationCode.length === 6 ? 'Auto-verifying...' : 'Verify Code'}
       </LoadingButton>
 
       <div className="text-center space-y-2 lg:space-y-3">

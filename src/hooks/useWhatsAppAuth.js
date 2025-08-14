@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { whatsappAuth } from "@/services/whatsappService";
+import { supabase } from "@/lib/supabase";
 import { useCountdown } from "./useCountdown";
 import {
   validatePhoneNumber,
@@ -66,12 +67,11 @@ export const useWhatsAppAuth = (onSuccess) => {
   };
 
   const handleVerifyCode = async () => {
-    if (verificationCode.length !== 6)
-      return handleError(
-        toast,
-        "INVALID_CODE",
-        "Please enter the 6-digit code."
-      );
+    if (verificationCode.length !== 6) {
+      setIsLoading((prev) => ({ ...prev, verify: false }));
+      return;
+    }
+
     setIsLoading((prev) => ({ ...prev, verify: true }));
     try {
       const result = await whatsappAuth.verifyCode(
@@ -85,8 +85,20 @@ export const useWhatsAppAuth = (onSuccess) => {
         setIsLoading((prev) => ({ ...prev, verify: false }));
       }
     } catch (error) {
-      handleApiError(error, "verifyCode");
-      setIsLoading((prev) => ({ ...prev, verify: false }));
+      // Check if the error occurred but we actually have a valid session
+      // This can happen when Supabase returns an error but authentication succeeds
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (session && session.user && onSuccess) {
+        // Authentication actually succeeded despite the error
+        console.log('Authentication succeeded despite error:', error);
+        await onSuccess(session.user, activeTab === "login");
+      } else {
+        // Genuine error - just reset the form, no toast
+        console.log('Authentication failed:', error);
+        setVerificationCode("");
+        setIsLoading((prev) => ({ ...prev, verify: false }));
+      }
     }
   };
 
