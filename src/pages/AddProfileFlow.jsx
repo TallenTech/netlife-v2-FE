@@ -4,11 +4,8 @@ import ProfileSetup from "@/components/ProfileSetup";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/lib/supabase";
+import { profileService } from "@/services/profileService";
 
-/**
- * AddProfileFlow is used to add a new DEPENDENT or MANAGED profile
- * to the currently logged-in user's account.
- */
 const AddProfileFlow = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -18,12 +15,10 @@ const AddProfileFlow = () => {
   const searchParams = new URLSearchParams(location.search);
   const editProfileId = searchParams.get("edit");
 
-  /**
-   * This function is called by ProfileSetup when the form is submitted.
-   * It saves the new dependent profile to the 'managed_profiles' table.
-   * @param {object} dependentProfileData - The form data from ProfileSetup.
-   */
-  const handleCreateOrUpdateDependent = async (dependentProfileData) => {
+  const handleCreateOrUpdateDependent = async (
+    dependentProfileData,
+    photoFile
+  ) => {
     if (!profile) {
       toast({
         title: "Error",
@@ -35,17 +30,15 @@ const AddProfileFlow = () => {
 
     const payload = {
       manager_id: profile.id,
-      full_name: dependentProfileData.fullName,
       username: dependentProfileData.username,
       date_of_birth: dependentProfileData.birthDate,
       gender: dependentProfileData.gender,
-      profile_picture: dependentProfileData.avatar,
+      profile_picture: photoFile ? null : dependentProfileData.avatar,
       updated_at: new Date().toISOString(),
     };
 
     let response;
     if (editProfileId) {
-      // Update an existing managed profile
       response = await supabase
         .from("managed_profiles")
         .update(payload)
@@ -53,7 +46,6 @@ const AddProfileFlow = () => {
         .select()
         .single();
     } else {
-      // Insert a new managed profile
       response = await supabase
         .from("managed_profiles")
         .insert(payload)
@@ -69,14 +61,30 @@ const AddProfileFlow = () => {
         description: error.message,
         variant: "destructive",
       });
-    } else {
-      toast({
-        title: `Profile ${editProfileId ? "Updated" : "Created"}!`,
-        description: `${data.username}'s profile is now ready.`,
-      });
-      await fetchManagedProfiles();
-      navigate("/account/manage-profiles");
+      return;
     }
+
+    if (photoFile && data.id) {
+      const uploadResult = await profileService.uploadManagedProfilePhoto(
+        photoFile,
+        data.id
+      );
+      if (!uploadResult.success) {
+        toast({
+          title: "Profile saved, but photo upload failed.",
+          description: uploadResult.error.message,
+          variant: "destructive",
+        });
+      }
+    }
+
+    toast({
+      title: `Profile ${editProfileId ? "Updated" : "Created"}!`,
+      description: `${data.username}'s profile is now ready.`,
+    });
+
+    await fetchManagedProfiles();
+    navigate("/account/manage-profiles");
   };
 
   const existingData = location.state?.profileData;

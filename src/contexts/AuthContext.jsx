@@ -54,7 +54,6 @@ export const AuthProvider = ({ children }) => {
       );
       setActiveProfile(lastActive || mainProfile);
 
-      // Initialize background services for data cleanup
       backgroundService.init();
     } catch (e) {
       console.error("Background sync failed:", e);
@@ -81,20 +80,16 @@ export const AuthProvider = ({ children }) => {
 
   const logout = useCallback(async () => {
     await supabase.auth.signOut();
-    
-    // Clear only auth-related data, preserve user history and records
+
     const keysToRemove = [
-      'netlife_active_profile_id',
-      'netlife_cached_user_data',
-      'netlife_language'
+      "netlife_active_profile_id",
+      "netlife_cached_user_data",
+      "netlife_language",
     ];
-    
-    keysToRemove.forEach(key => {
+
+    keysToRemove.forEach((key) => {
       localStorage.removeItem(key);
     });
-    
-    // Note: We preserve service_request_*, netlife_health_survey_*, and screening_results_* 
-    // so users don't lose their history when they log out and back in
   }, []);
 
   const switchActiveProfile = useCallback(
@@ -125,6 +120,8 @@ export const AuthProvider = ({ children }) => {
         throw new Error("No active profile selected");
       try {
         if (activeProfile.id === profile.id) {
+          // CORRECTED LOGIC: Pass the entire dataToUpdate object.
+          // Supabase will ignore any fields that don't exist in the table.
           await supabase
             .from("profiles")
             .update(dataToUpdate)

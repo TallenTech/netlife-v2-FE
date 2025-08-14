@@ -21,7 +21,6 @@ async function upsertProfile(profileData, userId, phoneNumber) {
   try {
     const profilePayload = {
       id: userId,
-      full_name: profileData.fullName,
       username: profileData.username,
       date_of_birth: profileData.birthDate,
       gender: profileData.gender,
@@ -71,12 +70,38 @@ async function uploadProfilePhoto(file, userId) {
   }
 }
 
+async function uploadManagedProfilePhoto(file, managedProfileId) {
+  try {
+    if (!file) return formatSuccess(null);
+    const fileExt = file.name.split(".").pop();
+    const filePath = `managed-profiles/${managedProfileId}/${Date.now()}.${fileExt}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("profile-pictures")
+      .upload(filePath, file);
+    if (uploadError) throw uploadError;
+
+    const { data } = supabase.storage
+      .from("profile-pictures")
+      .getPublicUrl(filePath);
+
+    const { error: updateError } = await supabase
+      .from("managed_profiles")
+      .update({ profile_picture: data.publicUrl })
+      .eq("id", managedProfileId);
+    if (updateError) throw updateError;
+
+    return formatSuccess({ url: data.publicUrl });
+  } catch (error) {
+    return formatError(error, "Failed to upload managed profile photo.");
+  }
+}
+
 async function updateManagedProfile(profileId, profileData) {
   try {
     const { data, error } = await supabase
       .from("managed_profiles")
       .update({
-        full_name: profileData.full_name,
         username: profileData.username,
         date_of_birth: profileData.date_of_birth,
         gender: profileData.gender,
@@ -102,23 +127,8 @@ async function getDistricts() {
     if (error) throw error;
     return formatSuccess(data);
   } catch (error) {
-    const fallbackDistricts = [{ id: 1, name: "Kampala", region: "Central" }];
-    console.error("Failed to fetch districts, using fallback:", error);
-    return formatError(error, fallbackDistricts);
-  }
-}
-
-async function getSubCounties(districtId) {
-  try {
-    const { data, error } = await supabase
-      .from("sub_counties")
-      .select("id, name")
-      .eq("district_id", districtId);
-    if (error) throw error;
-    return formatSuccess(data);
-  } catch (error) {
-    console.error("Failed to fetch sub-counties:", error);
-    return formatError(error, []);
+    console.error("Failed to fetch districts:", error);
+    return formatError(error, "Failed to fetch districts.");
   }
 }
 
@@ -169,9 +179,9 @@ async function verifyPhoneUpdate(phone, token) {
 export const profileService = {
   upsertProfile,
   uploadProfilePhoto,
+  uploadManagedProfilePhoto,
   updateManagedProfile,
   getDistricts,
-  getSubCounties,
   checkUsernameAvailability,
   updatePhoneNumber,
   verifyPhoneUpdate,
