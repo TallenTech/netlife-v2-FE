@@ -470,156 +470,137 @@ const Dashboard = () => {
         </section>
         */}
 
-        {/* Dynamic Service Requests Section */}
-        <section className="mb-6 space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold text-gray-800">Recent Requests</h2>
-            {serviceRequests.length > 0 && (
-              <button
-                onClick={() => navigate("/history")}
-                className="text-primary text-sm font-semibold hover:underline"
-              >
-                View All
-              </button>
-            )}
-          </div>
-
-          {serviceRequestsLoading ? (
-            // Loading skeleton for service requests
-            <div className="space-y-3">
-              {[...Array(2)].map((_, i) => (
-                <div key={i} className="bg-white border p-4 rounded-2xl">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="h-4 bg-gray-200 rounded mb-2 animate-pulse w-3/4"></div>
-                      <div className="h-3 bg-gray-200 rounded animate-pulse w-1/2"></div>
-                    </div>
-                    <div className="h-6 bg-gray-200 rounded-full animate-pulse w-16"></div>
-                  </div>
-                </div>
-              ))}
+        {/* Dynamic Service Requests Section - Only show if there are requests or loading */}
+        {(serviceRequestsLoading || serviceRequests.length > 0) && (
+          <section className="mb-6 space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold text-gray-800">Recent Requests</h2>
+              {serviceRequests.length > 0 && (
+                <button
+                  onClick={() => navigate("/history")}
+                  className="text-primary text-sm font-semibold hover:underline"
+                >
+                  View All
+                </button>
+              )}
             </div>
-          ) : serviceRequests.length > 0 ? (
-            // Dynamic service requests from database
-            <div className="space-y-3">
-              {serviceRequests.map((request) => {
-                const status = getServiceRequestStatus(request.status);
-                const profileInfo = request.request_data?._profileInfo;
-                const isMainUser = activeProfile.id === profile.id;
-                
-                // Determine profile display information
-                const getProfileDisplay = () => {
-                  if (!profileInfo) {
-                    return { name: 'Legacy Request', isForSelf: true, showProfile: false };
-                  }
+
+            {serviceRequestsLoading ? (
+              // Loading skeleton for service requests
+              <div className="space-y-3">
+                {[...Array(2)].map((_, i) => (
+                  <div key={i} className="bg-white border p-4 rounded-2xl">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="h-4 bg-gray-200 rounded mb-2 animate-pulse w-3/4"></div>
+                        <div className="h-3 bg-gray-200 rounded animate-pulse w-1/2"></div>
+                      </div>
+                      <div className="h-6 bg-gray-200 rounded-full animate-pulse w-16"></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              // Dynamic service requests from database
+              <div className="space-y-3">
+                {serviceRequests.map((request) => {
+                  const status = getServiceRequestStatus(request.status);
+                  const profileInfo = request.request_data?._profileInfo;
+                  const isMainUser = activeProfile.id === profile.id;
                   
-                  const isForSelf = profileInfo.isMainUser;
-                  const profileName = profileInfo.profileName;
+                  // Determine profile display information
+                  const getProfileDisplay = () => {
+                    if (!profileInfo) {
+                      return { name: 'Legacy Request', isForSelf: true, showProfile: false };
+                    }
+                    
+                    const isForSelf = profileInfo.isMainUser;
+                    const profileName = profileInfo.profileName;
+                    
+                    if (isMainUser) {
+                      // Main user viewing - show who the request is for
+                      return {
+                        name: profileName,
+                        isForSelf: isForSelf,
+                        showProfile: true
+                      };
+                    } else {
+                      // Managed profile viewing - only their own requests
+                      return {
+                        name: profileName,
+                        isForSelf: false, // Always show as "for them" since they're viewing their own
+                        showProfile: true
+                      };
+                    }
+                  };
                   
-                  if (isMainUser) {
-                    // Main user viewing - show who the request is for
-                    return {
-                      name: profileName,
-                      isForSelf: isForSelf,
-                      showProfile: true
-                    };
-                  } else {
-                    // Managed profile viewing - only their own requests
-                    return {
-                      name: profileName,
-                      isForSelf: false, // Always show as "for them" since they're viewing their own
-                      showProfile: true
-                    };
-                  }
-                };
-                
-                const profileDisplay = getProfileDisplay();
-                
-                return (
-                  <div
-                    key={request.id}
-                    onClick={() => navigate(`/records/db_service_request_${request.id}`)}
-                    className="bg-white border p-4 sm:p-5 rounded-2xl cursor-pointer hover:shadow-md hover:border-primary/20 transition-all duration-200 group"
-                    title="Click to view request details"
-                  >
-                    <div className="space-y-3">
-                      {/* Header with title and status */}
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-gray-900 truncate">
-                            {getServiceRequestTitle(request)}
-                          </h3>
+                  const profileDisplay = getProfileDisplay();
+                  
+                  return (
+                    <div
+                      key={request.id}
+                      onClick={() => navigate(`/records/db_service_request_${request.id}`)}
+                      className="bg-white border p-4 sm:p-5 rounded-2xl cursor-pointer hover:shadow-md hover:border-primary/20 transition-all duration-200 group"
+                      title="Click to view request details"
+                    >
+                      <div className="space-y-3">
+                        {/* Header with title and status */}
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-gray-900 truncate">
+                              {getServiceRequestTitle(request)}
+                            </h3>
+                          </div>
+                          
+                          <div className="flex items-center space-x-2 flex-shrink-0 ml-3">
+                            <div className={`${status.className} text-xs font-bold px-3 py-1 rounded-full`}>
+                              {status.label}
+                            </div>
+                            <ChevronRight className="h-4 w-4 text-gray-400 group-hover:text-primary transition-colors" />
+                          </div>
                         </div>
                         
-                        <div className="flex items-center space-x-2 flex-shrink-0 ml-3">
-                          <div className={`${status.className} text-xs font-bold px-3 py-1 rounded-full`}>
-                            {status.label}
-                          </div>
-                          <ChevronRight className="h-4 w-4 text-gray-400 group-hover:text-primary transition-colors" />
-                        </div>
-                      </div>
-                      
-                      {/* Profile tag and metadata */}
-                      <div className="space-y-2">
-                        {/* Profile tag */}
-                        {profileDisplay.showProfile && (
-                          <div className="flex items-center gap-2">
-                            <div className="flex items-center gap-1 px-2 py-1 bg-purple-100 rounded-full">
-                              <User size={12} className="text-purple-600" />
-                              <span className="text-xs text-purple-700 font-medium">
-                                {profileDisplay.isForSelf ? 'Self' : profileDisplay.name}
-                              </span>
+                        {/* Profile tag and metadata */}
+                        <div className="space-y-2">
+                          {/* Profile tag */}
+                          {profileDisplay.showProfile && (
+                            <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-1 px-2 py-1 bg-purple-100 rounded-full">
+                                <User size={12} className="text-purple-600" />
+                                <span className="text-xs text-purple-700 font-medium">
+                                  {profileDisplay.isForSelf ? 'Self' : profileDisplay.name}
+                                </span>
+                              </div>
+                              {/* Show profile context for main user */}
+                              {isMainUser && !profileDisplay.isForSelf && (
+                                <span className="text-xs text-purple-600 font-medium">
+                                  (Family Member)
+                                </span>
+                              )}
                             </div>
-                            {/* Show profile context for main user */}
-                            {isMainUser && !profileDisplay.isForSelf && (
-                              <span className="text-xs text-purple-600 font-medium">
-                                (Family Member)
-                              </span>
+                          )}
+                          
+                          {/* Date and delivery info */}
+                          <div className="space-y-1">
+                            <p className="text-sm text-gray-500">
+                              {formatRequestTime(request.created_at)}
+                            </p>
+                            
+                            {request.request_data?.deliveryMethod && (
+                              <p className="text-xs text-gray-400">
+                                {request.request_data.deliveryMethod}
+                              </p>
                             )}
                           </div>
-                        )}
-                        
-                        {/* Date and delivery info */}
-                        <div className="space-y-1">
-                          <p className="text-sm text-gray-500">
-                            {formatRequestTime(request.created_at)}
-                          </p>
-                          
-                          {request.request_data?.deliveryMethod && (
-                            <p className="text-xs text-gray-400">
-                              {request.request_data.deliveryMethod}
-                            </p>
-                          )}
                         </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            // Empty state when no service requests
-            <div className="bg-white border rounded-2xl p-6 text-center">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                <HeartPulse className="h-8 w-8 text-gray-400" />
+                  );
+                })}
               </div>
-              <h3 className="font-semibold text-gray-900 mb-1">No Requests Yet</h3>
-              <p className="text-sm text-gray-500 mb-4">
-                {activeProfile.id === profile?.id 
-                  ? "Your service requests will appear here when you make them."
-                  : "Service requests for this profile will appear here when made."
-                }
-              </p>
-              <button
-                onClick={() => navigate("/services")}
-                className="inline-flex items-center text-primary text-sm font-semibold hover:underline"
-              >
-                Request a Service
-                <ChevronRight className="h-3 w-3 ml-1" />
-              </button>
-            </div>
-          )}
-        </section>
+            )}
+          </section>
+        )}
 
         <section>
           <h2 className="text-lg font-bold text-gray-800 mb-3">Quick Help</h2>
@@ -643,8 +624,8 @@ const Dashboard = () => {
         </section>
       </div>
       
-      {/* WhatsApp Floating Button */}
-      <WhatsAppFloat />
+      {/* WhatsApp Floating Button - Temporarily disabled */}
+      {/* <WhatsAppFloat /> */}
     </>
   );
 };

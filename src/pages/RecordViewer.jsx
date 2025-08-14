@@ -1213,7 +1213,8 @@ const RecordViewer = () => {
 
         {/* Delete Confirmation Dialog */}
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-          <AlertDialogContent>
+          <AlertDialogContent
+          >
             <AlertDialogHeader>
               <AlertDialogTitle>Delete Record</AlertDialogTitle>
               <AlertDialogDescription>
