@@ -179,9 +179,9 @@ const ServiceRequest = () => {
         // Add profile information to track which profile made the request
         _profileInfo: {
           profileId: activeProfile.id,
-          profileName: activeProfile.username,
+          profileName: activeProfile.full_name || activeProfile.username,
           isMainUser: activeProfile.id === profile?.id,
-          requestedBy: profile?.username, // Main user who owns the account
+          requestedBy: profile?.full_name || profile?.username, // Main user who owns the account
         }
       };
       

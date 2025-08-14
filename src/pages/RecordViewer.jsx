@@ -206,12 +206,13 @@ const RecordViewer = () => {
 
   const renderAvatar = (p) => {
     if (p?.profilePhoto) {
-        return <AvatarImage src={p.profilePhoto} alt={p.username} />
+        return <AvatarImage src={p.profilePhoto} alt={p.full_name || p.username} />
     }
     if (p?.avatar) {
         return <AvatarFallback className="text-2xl bg-transparent">{getAvatarEmoji(p.avatar)}</AvatarFallback>
     }
-    return <AvatarFallback>{p?.username?.charAt(0).toUpperCase()}</AvatarFallback>
+    const name = (p?.full_name || p?.username)?.charAt(0).toUpperCase() || '';
+    return <AvatarFallback>{name}</AvatarFallback>
   }
 
   // Helper function to safely render any value as a string
@@ -282,7 +283,7 @@ const RecordViewer = () => {
       // User info
       pdf.setFontSize(12);
       pdf.setFont(undefined, 'normal');
-      pdf.text(`User: ${record.profile.username}`, margin, yPosition);
+      pdf.text(`User: ${record.profile.full_name || record.profile.username}`, margin, yPosition);
       yPosition += 10;
 
       const date = recordData.created_at ? new Date(recordData.created_at).toLocaleDateString() :
@@ -547,8 +548,8 @@ const RecordViewer = () => {
           
           // Always show profile information section
           const isForMainUser = profileInfo?.isMainUser ?? true; // Default to main user for legacy records
-          const recipientName = profileInfo?.profileName || requestProfile?.username || 'Account Owner';
-          const requestedBy = profileInfo?.requestedBy || requestProfile?.username || 'Account Owner';
+          const recipientName = profileInfo?.profileName || requestProfile?.full_name || requestProfile?.username || 'Account Owner';
+          const requestedBy = profileInfo?.requestedBy || requestProfile?.full_name || requestProfile?.username || 'Account Owner';
           
           // Determine if this is a legacy record (no profile info)
           const isLegacyRecord = !profileInfo;
@@ -748,7 +749,7 @@ const RecordViewer = () => {
     // Extract profile information from the record ID
     const profileId = recordId.replace('health_survey_result_', '');
     const requestProfile = record?.data?.profile || record?.profile;
-    const profileName = requestProfile?.username || 'User';
+    const profileName = requestProfile?.full_name || requestProfile?.username || 'User';
     
     return (
       <div className="space-y-6">
@@ -851,7 +852,7 @@ const RecordViewer = () => {
           // Since screening results don't currently store profile info directly,
           // we'll show basic information based on the record context
           const requestProfile = record?.data?.profile || record?.profile;
-          const profileName = requestProfile?.username || 'User';
+          const profileName = requestProfile?.full_name || requestProfile?.username || 'User';
           
           return (
             <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
@@ -1148,7 +1149,7 @@ const RecordViewer = () => {
               </Avatar>
               <div>
                 <h2 className="font-bold text-lg text-gray-900">
-                  <span className="username-gradient">{record.profile.username}</span>
+                  <span className="username-gradient">{record.profile.full_name || record.profile.username}</span>
                 </h2>
                 <p className="text-sm text-gray-500">Record Details</p>
               </div>

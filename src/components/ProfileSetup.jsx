@@ -263,7 +263,7 @@ const ProfileSetup = ({
 
             {/* Form Content */}
             <div className="w-full md:w-2/3 flex flex-col flex-1">
-              <div className="flex-1 overflow-y-auto p-4 md:p-8">
+              <div className={`flex-1 overflow-y-auto p-4 md:p-8 ${step === 2 ? 'pb-8 md:pb-8' : ''}`}>
                 {step === 1 ? (
                   <Step1Details
                     profileData={profileData}
@@ -289,7 +289,7 @@ const ProfileSetup = ({
               </div>
               
               {/* Fixed Bottom Button */}
-              <div className="p-4 md:p-8 pt-0 md:pt-4 bg-white border-t md:border-t-0">
+              <div className={`p-4 md:p-8 bg-white ${step === 2 ? 'pt-6 md:pt-4 border-t md:border-t-0' : 'pt-0 md:pt-4 border-t md:border-t-0'}`}>
                 <Button
                   onClick={handleNext}
                   disabled={isSubmitting || usernameChecking}

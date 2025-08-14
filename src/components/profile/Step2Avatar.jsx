@@ -43,7 +43,7 @@ export const Step2Avatar = ({
     <motion.div
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
-      className="space-y-6"
+      className="space-y-6 pb-8 md:pb-0"
     >
       <div className="text-center">
         <h2 className="text-2xl font-bold">Choose an Avatar</h2>
@@ -70,12 +70,13 @@ export const Step2Avatar = ({
           </button>
         ))}
       </div>
-      <div className="relative flex items-center py-2">
+      {/* Photo Upload Section - Temporarily disabled, keeping code for future use */}
+      {/* <div className="relative flex items-center py-2">
         <div className="flex-grow border-t border-gray-300"></div>
         <span className="flex-shrink mx-4 text-gray-500 text-sm">OR</span>
         <div className="flex-grow border-t border-gray-300"></div>
       </div>
-      <FileUpload onFileSelect={onFileSelect} previewUrl={previewUrl} />
+      <FileUpload onFileSelect={onFileSelect} previewUrl={previewUrl} /> */}
     </motion.div>
   );
 };

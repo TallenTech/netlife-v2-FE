@@ -116,7 +116,7 @@ const ScreeningResults = () => {
   const gradientClass = eligible 
     ? 'from-green-400 to-teal-400' 
     : 'from-red-400 to-orange-400';
-  const firstName = activeProfile?.username?.split(' ')[0] || '';
+  const firstName = (activeProfile?.full_name || activeProfile?.username)?.split(' ')[0] || '';
 
 
   return (

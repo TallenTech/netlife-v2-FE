@@ -35,6 +35,7 @@ const AddProfileFlow = () => {
 
     const payload = {
       manager_id: profile.id,
+      full_name: dependentProfileData.fullName,
       username: dependentProfileData.username,
       date_of_birth: dependentProfileData.birthDate,
       gender: dependentProfileData.gender,
