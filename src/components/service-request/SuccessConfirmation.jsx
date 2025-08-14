@@ -41,11 +41,11 @@ const ConfettiPiece = () => {
 };
 
 const SuccessConfirmation = ({ onClose, userData }) => {
-  const firstName = userData?.username?.split(' ')[0] || '';
+  const firstName = (userData?.full_name || userData?.username)?.split(' ')[0] || '';
 
   const renderAvatar = () => {
     if (userData?.profilePhoto) {
-        return <AvatarImage src={userData.profilePhoto} alt={userData.username} />
+        return <AvatarImage src={userData.profilePhoto} alt={userData.full_name || userData.username} />
     }
     if (userData?.avatar) {
         return <AvatarFallback className="text-4xl bg-white/30">{getAvatarEmoji(userData.avatar)}</AvatarFallback>

@@ -35,12 +35,12 @@ const PreviewStep = ({
   
   const renderAvatar = (profileData) => {
     if (profileData?.profilePhoto) {
-      return <AvatarImage src={profileData.profilePhoto} alt={profileData.username} />;
+      return <AvatarImage src={profileData.profilePhoto} alt={profileData.full_name || profileData.username} />;
     }
     if (profileData?.avatar) {
       return <AvatarFallback className="text-2xl bg-transparent">{getAvatarEmoji(profileData.avatar)}</AvatarFallback>;
     }
-    const name = profileData?.username?.split(' ')[0] || '';
+    const name = (profileData?.full_name || profileData?.username)?.split(' ')[0] || '';
     return <AvatarFallback className="text-2xl">{name.charAt(0).toUpperCase()}</AvatarFallback>;
   };
   return <motion.div initial={{
@@ -62,7 +62,7 @@ const PreviewStep = ({
             </div>
         </div>
         <div className="mt-4 space-y-3 text-base text-gray-700">
-          <p><strong>Name:</strong> {profile?.username}</p>
+          <p><strong>Name:</strong> {profile?.full_name || profile?.username}</p>
           <p><strong>Phone:</strong> {profile?.phoneNumber || profile?.whatsapp_number}</p>
           <p><strong>Location:</strong> {`${profile?.subCounty || profile?.sub_county || ''}${(profile?.subCounty || profile?.sub_county) ? ', ' : ''}${profile?.district}`}</p>
         </div>
@@ -81,7 +81,7 @@ const PreviewStep = ({
               </div>
           </div>
           <div className="mt-4 space-y-3 text-base text-blue-800">
-            <p><strong>Name:</strong> {activeProfile?.username}</p>
+            <p><strong>Name:</strong> {activeProfile?.full_name || activeProfile?.username}</p>
             <p><strong>Gender:</strong> {activeProfile?.gender}</p>
             {userAge && <p><strong>Age:</strong> {userAge} years</p>}
             <p><strong>Date of Birth:</strong> {activeProfile?.date_of_birth ? new Date(activeProfile.date_of_birth).toLocaleDateString() : (activeProfile?.birthDate ? new Date(activeProfile.birthDate).toLocaleDateString() : 'Not specified')}</p>
@@ -102,7 +102,7 @@ const PreviewStep = ({
               </div>
           </div>
           <div className="mt-4 space-y-3 text-base text-gray-700">
-            <p><strong>Name:</strong> {activeProfile?.username}</p>
+            <p><strong>Name:</strong> {activeProfile?.full_name || activeProfile?.username}</p>
             <p><strong>Gender:</strong> {activeProfile?.gender}</p>
             {userAge && <p><strong>Age:</strong> {userAge} years</p>}
             <p><strong>Phone:</strong> {activeProfile?.phoneNumber || activeProfile?.whatsapp_number}</p>
