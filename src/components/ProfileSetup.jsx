@@ -18,7 +18,7 @@ const ProfileSetup = ({
   isNewDependent = false,
   existingData = null,
 }) => {
-  const { user, refreshSession } = useAuth();
+  const { refreshSession } = useAuth();
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [profileData, setProfileData] = useState({
@@ -160,23 +160,27 @@ const ProfileSetup = ({
   const handleSubmit = async () => {
     setIsSubmitting(true);
 
-    if (onComplete) {
+    if (onComplete && isNewDependent) {
       await onComplete(profileData, profilePhotoFile);
       setIsSubmitting(false);
       return;
     }
 
-    if (!user) {
-      toast({
-        title: "Authentication Error",
-        description: "Please log in again.",
-        variant: "destructive",
-      });
-      setIsSubmitting(false);
-      return navigate("/welcome/auth");
-    }
-
     try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        toast({
+          title: "Authentication Error",
+          description: "Your session has expired. Please log in again.",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return navigate("/welcome/auth");
+      }
+
       const profileResult = await profileService.upsertProfile(
         profileData,
         user.id,
@@ -193,9 +197,15 @@ const ProfileSetup = ({
       });
       if (updateUserError) throw updateUserError;
 
+      await refreshSession();
+
       toast({ title: "Profile Created!", description: "Welcome to NetLife." });
 
-      if (refreshSession) await refreshSession();
+      if (onComplete) {
+        onComplete();
+      } else {
+        navigate("/");
+      }
     } catch (error) {
       toast({
         title: "Profile Creation Failed",
