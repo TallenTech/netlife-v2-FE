@@ -9,6 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { DateOfBirthPicker } from "@/components/ui/DateOfBirthPicker";
 
 const ErrorMessage = ({ error }) =>
   error ? (
@@ -25,9 +26,7 @@ export const Step1Details = ({
   checkUsername,
   usernameChecking,
   districts,
-  subCounties,
   loadingDistricts,
-  loadingSubCounties,
   isNewDependent,
 }) => {
   return (
@@ -36,24 +35,6 @@ export const Step1Details = ({
       animate={{ opacity: 1, x: 0 }}
       className="space-y-5 md:space-y-6 max-w-none"
     >
-      {/* Full Name */}
-      <div className="space-y-2">
-        <label className="block text-gray-800 font-medium text-sm md:text-base">
-          Full Name or Nickname
-        </label>
-        <Input
-          placeholder="Enter your name"
-          value={profileData.fullName}
-          onChange={(e) => {
-            setProfileData((p) => ({ ...p, fullName: e.target.value }));
-            validateField("fullName", e.target.value);
-          }}
-          className="h-11 md:h-12 text-base"
-        />
-        <ErrorMessage error={errors.fullName} />
-      </div>
-
-      {/* Username */}
       <div className="space-y-2">
         <label className="block text-gray-800 font-medium text-sm md:text-base">
           Username
@@ -62,9 +43,11 @@ export const Step1Details = ({
           <Input
             placeholder="Choose a unique username"
             value={profileData.username}
-            onChange={(e) =>
-              setProfileData((p) => ({ ...p, username: e.target.value }))
-            }
+            onChange={(e) => {
+              const newValue = e.target.value;
+              setProfileData((p) => ({ ...p, username: newValue }));
+              validateField("username", newValue);
+            }}
             onBlur={() => checkUsername(profileData.username)}
             className="h-11 md:h-12 text-base pr-10"
           />
@@ -75,25 +58,20 @@ export const Step1Details = ({
         <ErrorMessage error={errors.username} />
       </div>
 
-      {/* Birth Date */}
       <div className="space-y-2">
         <label className="block text-gray-800 font-medium text-sm md:text-base">
           Birth Date
         </label>
-        <input
-          type="date"
+        <DateOfBirthPicker
           value={profileData.birthDate}
-          onChange={(e) => {
-            setProfileData((p) => ({ ...p, birthDate: e.target.value }));
-            validateField("birthDate", e.target.value);
+          onChange={(date) => {
+            setProfileData((p) => ({ ...p, birthDate: date }));
+            validateField("birthDate", date);
           }}
-          max={new Date().toISOString().split("T")[0]}
-          className="flex h-11 md:h-12 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
         />
         <ErrorMessage error={errors.birthDate} />
       </div>
 
-      {/* Gender */}
       <div className="space-y-3">
         <label className="block text-gray-800 font-medium text-sm md:text-base">
           Gender
@@ -119,7 +97,6 @@ export const Step1Details = ({
         <ErrorMessage error={errors.gender} />
       </div>
 
-      {/* Location */}
       {!isNewDependent && (
         <div className="space-y-3">
           <label className="block text-gray-800 font-medium text-sm md:text-base flex items-center">
@@ -137,7 +114,11 @@ export const Step1Details = ({
               >
                 <SelectTrigger className="h-11 md:h-12 text-base">
                   <SelectValue
-                    placeholder={loadingDistricts ? "Loading districts..." : "Select District"}
+                    placeholder={
+                      loadingDistricts
+                        ? "Loading districts..."
+                        : "Select District"
+                    }
                   />
                 </SelectTrigger>
                 <SelectContent>
@@ -150,28 +131,14 @@ export const Step1Details = ({
               </Select>
             </div>
             <div className="space-y-1">
-              <Select
+              <Input
+                placeholder="Sub County (Optional)"
                 value={profileData.subCounty}
-                onValueChange={(v) =>
-                  setProfileData((p) => ({ ...p, subCounty: v }))
+                onChange={(e) =>
+                  setProfileData((p) => ({ ...p, subCounty: e.target.value }))
                 }
-                disabled={!profileData.district || loadingSubCounties}
-              >
-                <SelectTrigger className="h-11 md:h-12 text-base">
-                  <SelectValue
-                    placeholder={
-                      loadingSubCounties ? "Loading..." : "Sub County (Optional)"
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  {subCounties.map((s) => (
-                    <SelectItem key={s.id} value={s.name}>
-                      {s.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                className="h-11 md:h-12 text-base"
+              />
             </div>
           </div>
           <ErrorMessage error={errors.district} />
