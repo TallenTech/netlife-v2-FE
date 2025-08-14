@@ -48,6 +48,7 @@ const Account = () => {
   } = useAuth();
 
   const [profileData, setProfileData] = useState({
+    full_name: "",
     username: "",
     date_of_birth: "",
     gender: "",
@@ -72,6 +73,7 @@ const Account = () => {
   useEffect(() => {
     if (activeProfile) {
       setProfileData({
+        full_name: activeProfile.full_name || "",
         username: activeProfile.username || "",
         date_of_birth: activeProfile.date_of_birth || "",
         gender: activeProfile.gender || "",
@@ -98,11 +100,18 @@ const Account = () => {
         profile_picture: activeProfile?.profile_picture || null,
       }));
     }
+    // Also update full_name if it changes
+    if (activeProfile?.full_name !== profileData.full_name) {
+      setProfileData(prev => ({
+        ...prev,
+        full_name: activeProfile?.full_name || "",
+      }));
+    }
     // Set avatar loading to false once we have profile data
     if (activeProfile) {
       setAvatarLoading(false);
     }
-  }, [activeProfile?.profile_picture, activeProfile]);
+  }, [activeProfile?.profile_picture, activeProfile?.full_name, activeProfile]);
 
   const loadUserSettings = async () => {
     if (!activeProfile?.id) return;
@@ -470,6 +479,20 @@ const Account = () => {
                 </div>
               </div>
               <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-700">
+                    Full Name
+                  </label>
+                  <Input
+                    value={profileData.full_name}
+                    onChange={(e) =>
+                      setProfileData({
+                        ...profileData,
+                        full_name: e.target.value,
+                      })
+                    }
+                  />
+                </div>
                 <div>
                   <label className="text-sm font-medium text-gray-700">
                     Name or Nickname

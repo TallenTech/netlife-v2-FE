@@ -76,6 +76,7 @@ async function updateManagedProfile(profileId, profileData) {
     const { data, error } = await supabase
       .from("managed_profiles")
       .update({
+        full_name: profileData.full_name,
         username: profileData.username,
         date_of_birth: profileData.date_of_birth,
         gender: profileData.gender,
