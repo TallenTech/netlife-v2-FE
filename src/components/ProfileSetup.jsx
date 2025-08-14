@@ -22,7 +22,6 @@ const ProfileSetup = ({
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [profileData, setProfileData] = useState({
-    fullName: "",
     username: "",
     birthDate: "",
     gender: "",
@@ -36,18 +35,15 @@ const ProfileSetup = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [usernameChecking, setUsernameChecking] = useState(false);
   const [districts, setDistricts] = useState([]);
-  const [subCounties, setSubCounties] = useState([]);
   const [loadingDistricts, setLoadingDistricts] = useState(true);
-  const [loadingSubCounties, setLoadingSubCounties] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     if (existingData) {
       setProfileData({
-        fullName: existingData.full_name || existingData.username,
-        username: existingData.username,
-        birthDate: existingData.date_of_birth,
-        gender: existingData.gender,
+        username: existingData.username || "",
+        birthDate: existingData.date_of_birth || "",
+        gender: existingData.gender || "",
         district: existingData.district || "",
         subCounty: existingData.sub_county || "",
         avatar: existingData.profile_picture,
@@ -69,36 +65,23 @@ const ProfileSetup = ({
         setLoadingDistricts(false);
       }
     };
-    loadDistricts();
+    if (!isNewDependent) {
+      loadDistricts();
+    } else {
+      setLoadingDistricts(false);
+    }
     return () => {
       isMounted = false;
     };
-  }, []);
-
-  useEffect(() => {
-    if (profileData.district && districts.length > 0) {
-      const loadSubCounties = async () => {
-        const selectedDistrict = districts.find(
-          (d) => d.name === profileData.district
-        );
-        if (!selectedDistrict) return;
-        setLoadingSubCounties(true);
-        const result = await profileService.getSubCounties(selectedDistrict.id);
-        if (result.success) setSubCounties(result.data);
-        setLoadingSubCounties(false);
-      };
-      loadSubCounties();
-    }
-  }, [profileData.district, districts]);
+  }, [isNewDependent]);
 
   const validateField = useCallback(
     (name, value) => {
       let error = null;
-      if (name === "fullName" && (!value || value.trim().length < 2))
-        error = "Full name must be at least 2 characters.";
-      if (name === "username" && (!value || value.length < 3))
+      if (name === "username" && (!value || value.trim().length < 3))
         error = "Username must be at least 3 characters.";
-      if (name === "birthDate" && !value) error = "Birth date is required.";
+      if (name === "birthDate" && !value)
+        error = "You must be at least 15 years old to register.";
       if (name === "gender" && !value) error = "Gender is required.";
       if (name === "district" && !value && !isNewDependent)
         error = "District is required.";
@@ -135,35 +118,62 @@ const ProfileSetup = ({
   );
 
   const handleNext = () => {
-    const fieldsToValidate = isNewDependent
-      ? ["fullName", "username", "birthDate", "gender"]
-      : ["fullName", "username", "birthDate", "gender", "district"];
-    const isStep1Valid = fieldsToValidate.every((field) =>
-      validateField(field, profileData[field])
-    );
-
-    if (step === 1 && isStep1Valid && !errors.username) {
-      setStep(2);
-    } else if (step === 2) {
+    if (step === 2) {
       handleSubmit();
+      return;
+    }
+
+    if (step === 1) {
+      const fieldsToValidate = isNewDependent
+        ? ["username", "birthDate", "gender"]
+        : ["username", "birthDate", "gender", "district"];
+
+      let isStep1Valid = true;
+      const newErrors = {};
+      fieldsToValidate.forEach((field) => {
+        if (!validateField(field, profileData[field])) {
+          isStep1Valid = false;
+          if (!profileData[field]) {
+            if (field === "birthDate")
+              newErrors[field] =
+                "You must be at least 15 years old to register.";
+            else
+              newErrors[field] = `${
+                field.charAt(0).toUpperCase() + field.slice(1)
+              } is required.`;
+          }
+        }
+      });
+
+      if (errors.username) {
+        isStep1Valid = false;
+      }
+
+      setErrors((prev) => ({ ...prev, ...newErrors }));
+
+      if (isStep1Valid) {
+        setStep(2);
+      }
     }
   };
 
   const handleSubmit = async () => {
+    setIsSubmitting(true);
+
+    if (onComplete) {
+      await onComplete(profileData, profilePhotoFile);
+      setIsSubmitting(false);
+      return;
+    }
+
     if (!user) {
       toast({
         title: "Authentication Error",
         description: "Please log in again.",
         variant: "destructive",
       });
-      return navigate("/welcome/auth");
-    }
-    setIsSubmitting(true);
-
-    if (isNewDependent) {
-      if (onComplete) await onComplete(profileData);
       setIsSubmitting(false);
-      return;
+      return navigate("/welcome/auth");
     }
 
     try {
@@ -186,7 +196,6 @@ const ProfileSetup = ({
       toast({ title: "Profile Created!", description: "Welcome to NetLife." });
 
       if (refreshSession) await refreshSession();
-      if (onComplete) onComplete(profileResult.data);
     } catch (error) {
       toast({
         title: "Profile Creation Failed",
@@ -216,7 +225,6 @@ const ProfileSetup = ({
 
   return (
     <div className="w-full min-h-screen bg-gray-50 flex flex-col">
-      {/* Mobile Header */}
       <div className="md:hidden bg-white border-b px-4 py-3 flex items-center justify-between">
         <button
           onClick={handleBack}
@@ -230,19 +238,16 @@ const ProfileSetup = ({
           </h1>
           <p className="text-gray-500 text-sm">Step {step} of 2</p>
         </div>
-        <div className="w-10" /> {/* Spacer for centering */}
+        <div className="w-10" />
       </div>
 
-      {/* Mobile Progress Bar */}
       <div className="md:hidden px-4 py-3 bg-white border-b">
         <Progress value={step * 50} className="h-2" />
       </div>
 
-      {/* Main Content */}
       <div className="flex-1 flex flex-col md:items-center md:justify-center md:p-4">
         <div className="w-full md:max-w-4xl md:mx-auto">
           <div className="bg-white md:rounded-2xl md:border md:shadow-sm flex flex-col md:flex-row overflow-hidden min-h-0 flex-1 md:flex-none">
-            {/* Desktop Sidebar */}
             <div className="hidden md:flex w-full md:w-1/3 bg-gray-100 p-6 flex-col justify-between">
               <div>
                 <button
@@ -252,7 +257,9 @@ const ProfileSetup = ({
                   <ChevronLeft className="w-6 h-6" />
                 </button>
                 <h1 className="text-2xl font-bold text-gray-900">
-                  {isNewDependent ? "Add New Profile" : "Tell us about yourself"}
+                  {isNewDependent
+                    ? "Add New Profile"
+                    : "Tell us about yourself"}
                 </h1>
                 <p className="text-gray-600 text-sm mt-2">Step {step} of 2</p>
               </div>
@@ -261,9 +268,12 @@ const ProfileSetup = ({
               </div>
             </div>
 
-            {/* Form Content */}
             <div className="w-full md:w-2/3 flex flex-col flex-1">
-              <div className={`flex-1 overflow-y-auto p-4 md:p-8 ${step === 2 ? 'pb-8 md:pb-8' : ''}`}>
+              <div
+                className={`flex-1 overflow-y-auto p-4 md:p-8 ${
+                  step === 2 ? "pb-8 md:pb-8" : ""
+                }`}
+              >
                 {step === 1 ? (
                   <Step1Details
                     profileData={profileData}
@@ -273,9 +283,7 @@ const ProfileSetup = ({
                     checkUsername={checkUsername}
                     usernameChecking={usernameChecking}
                     districts={districts}
-                    subCounties={subCounties}
                     loadingDistricts={loadingDistricts}
-                    loadingSubCounties={loadingSubCounties}
                     isNewDependent={isNewDependent}
                   />
                 ) : (
@@ -287,9 +295,14 @@ const ProfileSetup = ({
                   />
                 )}
               </div>
-              
-              {/* Fixed Bottom Button */}
-              <div className={`p-4 md:p-8 bg-white ${step === 2 ? 'pt-6 md:pt-4 border-t md:border-t-0' : 'pt-0 md:pt-4 border-t md:border-t-0'}`}>
+
+              <div
+                className={`p-4 md:p-8 bg-white ${
+                  step === 2
+                    ? "pt-6 md:pt-4 border-t md:border-t-0"
+                    : "pt-0 md:pt-4 border-t md:border-t-0"
+                }`}
+              >
                 <Button
                   onClick={handleNext}
                   disabled={isSubmitting || usernameChecking}

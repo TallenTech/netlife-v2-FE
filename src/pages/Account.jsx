@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { Helmet } from "react-helmet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,12 +27,12 @@ import { useToast } from "@/components/ui/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import MobileConfirmDialog from "@/components/ui/MobileConfirmDialog";
 import { useNavigate } from "react-router-dom";
-import FileUpload from "@/components/FileUpload";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getAvatarEmoji } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { profileService } from "@/services/profileService";
 import { settingsService } from "@/services/settingsService";
+import { DateOfBirthPicker } from "@/components/ui/DateOfBirthPicker";
 
 const Account = () => {
   const { toast } = useToast();
@@ -42,19 +42,22 @@ const Account = () => {
     user,
     logout,
     updateProfile,
-    deleteAccount,
     refreshSession,
     isLoading,
   } = useAuth();
 
   const [profileData, setProfileData] = useState({
-    full_name: "",
     username: "",
     date_of_birth: "",
     gender: "",
     profile_picture: null,
   });
-  const [location, setLocation] = useState("");
+
+  const [district, setDistrict] = useState("");
+  const [subCounty, setSubCounty] = useState("");
+  const [districts, setDistricts] = useState([]);
+  const [loadingDistricts, setLoadingDistricts] = useState(true);
+
   const [phoneUpdateStep, setPhoneUpdateStep] = useState("idle");
   const [newPhoneNumber, setNewPhoneNumber] = useState("");
   const [phoneOtp, setPhoneOtp] = useState("");
@@ -70,78 +73,70 @@ const Account = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [avatarLoading, setAvatarLoading] = useState(true);
 
+  const isMainProfile = activeProfile?.id === user?.id;
+
+  useEffect(() => {
+    const loadDistricts = async () => {
+      setLoadingDistricts(true);
+      const result = await profileService.getDistricts();
+      if (result.success) {
+        setDistricts(result.data);
+      } else {
+        toast({
+          title: "Error",
+          description: "Could not load districts.",
+          variant: "destructive",
+        });
+      }
+      setLoadingDistricts(false);
+    };
+    if (isMainProfile) {
+      loadDistricts();
+    } else {
+      setLoadingDistricts(false);
+    }
+  }, [toast, isMainProfile]);
+
   useEffect(() => {
     if (activeProfile) {
       setProfileData({
-        full_name: activeProfile.full_name || "",
         username: activeProfile.username || "",
         date_of_birth: activeProfile.date_of_birth || "",
         gender: activeProfile.gender || "",
         profile_picture: activeProfile.profile_picture || null,
       });
-      const subCounty = activeProfile.sub_county || "";
-      const district = activeProfile.district || "";
-      setLocation(
-        subCounty && district
-          ? `${subCounty}, ${district}`
-          : subCounty || district
-      );
-      
-      // Load settings from database/localStorage
-      loadUserSettings();
-    }
-  }, [activeProfile]);
 
-  // Additional effect to handle profile picture updates specifically
-  useEffect(() => {
-    if (activeProfile?.profile_picture !== profileData.profile_picture) {
-      setProfileData(prev => ({
-        ...prev,
-        profile_picture: activeProfile?.profile_picture || null,
-      }));
-    }
-    // Also update full_name if it changes
-    if (activeProfile?.full_name !== profileData.full_name) {
-      setProfileData(prev => ({
-        ...prev,
-        full_name: activeProfile?.full_name || "",
-      }));
-    }
-    // Set avatar loading to false once we have profile data
-    if (activeProfile) {
+      if (isMainProfile) {
+        setDistrict(activeProfile.district || "");
+        setSubCounty(activeProfile.sub_county || "");
+      }
+
+      loadUserSettings();
       setAvatarLoading(false);
     }
-  }, [activeProfile?.profile_picture, activeProfile?.full_name, activeProfile]);
+  }, [activeProfile, isMainProfile]);
 
   const loadUserSettings = async () => {
     if (!activeProfile?.id) return;
-    
     try {
       const userSettings = await settingsService.loadSettings(activeProfile.id);
       setSettings(userSettings);
     } catch (error) {
-      console.error('Error loading settings:', error);
-      // Fallback to default settings
-      setSettings({
-        autoDelete: "never",
-        fakeAccountMode: false,
-        silentAlerts: false,
-        crisisOverride: true,
-      });
+      console.error("Error loading settings:", error);
     }
   };
 
   const handleProfileSave = async () => {
     try {
-      const [sub_county, district] = location.split(",").map((s) => s.trim());
-      const dataToUpdate = {
-        ...profileData,
-        ...(activeProfile?.id === user?.id && {
-          sub_county: sub_county || "",
-          district: district || "",
-        }),
-      };
+      const dataToUpdate = { ...profileData };
+
+      if (isMainProfile) {
+        dataToUpdate.district = district;
+        dataToUpdate.sub_county = subCounty;
+      }
+
       await updateProfile(dataToUpdate);
+
       toast({
         title: "Profile Updated",
         description: "Your changes have been saved successfully.",
@@ -157,31 +152,18 @@ const Account = () => {
 
   const handleSettingsSave = async () => {
     if (!activeProfile?.id) return;
-    
     try {
-      const result = await settingsService.saveSettings(activeProfile.id, settings);
-      
+      const result = await settingsService.saveSettings(
+        activeProfile.id,
+        settings
+      );
       if (result.success) {
         toast({
           title: "Settings Updated",
           description: result.warning || "Your preferences have been saved.",
         });
-        
-        // Run auto-delete if enabled
-        if (settings.autoDelete !== 'never') {
-          const deleteResult = await settingsService.autoDeleteSurveyResponses(activeProfile.id, settings);
-          if (deleteResult.success && deleteResult.message !== 'Auto-delete disabled') {
-            toast({
-              title: "Data Cleanup",
-              description: deleteResult.message,
-            });
-          }
-        }
-      } else {
-        throw new Error('Failed to save settings');
       }
     } catch (error) {
-      console.error('Error saving settings:', error);
       toast({
         title: "Settings Save Failed",
         description: "Could not save your preferences. Please try again.",
@@ -190,21 +172,7 @@ const Account = () => {
     }
   };
 
-  // File upload callback - temporarily disabled, keeping code for future use
-  /* const onFileSelect = useCallback((file) => {
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setProfileData((prev) => ({ ...prev, profile_picture: reader.result }));
-        // Ensure avatar loading is false when we have new image data
-        setAvatarLoading(false);
-      };
-      reader.readAsDataURL(file);
-    }
-  }, []); */
-
   const renderAvatar = () => {
-    // Show loading state while avatar is loading
     if (avatarLoading) {
       return (
         <AvatarFallback className="animate-pulse bg-gray-200">
@@ -212,8 +180,7 @@ const Account = () => {
         </AvatarFallback>
       );
     }
-
-    const picture = profileData.profile_picture || activeProfile?.profile_picture;
+    const picture = profileData.profile_picture;
     if (
       picture &&
       (picture.startsWith("http") || picture.startsWith("data:image"))
@@ -229,7 +196,7 @@ const Account = () => {
         </AvatarFallback>
       );
     }
-    const firstName = (profileData.username || activeProfile?.username)?.split(" ")[0] || "";
+    const firstName = profileData.username?.split(" ")[0] || "";
     return (
       <AvatarFallback>
         {firstName ? firstName.charAt(0).toUpperCase() : "A"}
@@ -241,11 +208,11 @@ const Account = () => {
     setIsProcessing(true);
     try {
       const result = settingsService.purgeLocalData();
-      
       if (result.success) {
         toast({
           title: "All Data Purged",
-          description: "Your local data has been cleared. You will be logged out.",
+          description:
+            "Your local data has been cleared. You will be logged out.",
           variant: "destructive",
         });
         setShowPurgeDialog(false);
@@ -254,7 +221,6 @@ const Account = () => {
         throw new Error(result.error);
       }
     } catch (error) {
-      console.error('Error purging data:', error);
       toast({
         title: "Purge Failed",
         description: "Could not purge all data. Please try again.",
@@ -267,38 +233,26 @@ const Account = () => {
 
   const handleDeleteAccount = async () => {
     if (!activeProfile?.id) return;
-    
     setIsProcessing(true);
     try {
-      // Use the simple manual deletion method
       const result = await settingsService.deleteAccount(activeProfile.id);
-      
       if (result.success) {
-        const message = result.warning 
-          ? "Account partially deleted. Some data may remain on our servers."
-          : "Your account has been permanently deleted.";
-          
         toast({
           title: "Account Deleted",
-          description: message,
-          variant: result.warning ? "default" : "destructive",
+          description: "Your account has been permanently deleted.",
+          variant: "destructive",
         });
-        
         setShowDeleteDialog(false);
-        
-        // The deletion function already signs out the user
-        // Just redirect to login page after a short delay
         setTimeout(() => {
-          window.location.href = '/login';
+          window.location.href = "/login";
         }, 2000);
       } else {
         throw new Error(result.error);
       }
     } catch (error) {
-      console.error('Error deleting account:', error);
       toast({
         title: "Delete Failed",
-        description: error.message || "Could not delete account. Please try again.",
+        description: error.message || "Could not delete account.",
         variant: "destructive",
       });
     } finally {
@@ -308,10 +262,8 @@ const Account = () => {
 
   const handleDataDownload = async () => {
     if (!activeProfile?.id) return;
-    
     try {
       const result = await settingsService.downloadAllData(activeProfile.id);
-      
       if (result.success) {
         toast({
           title: "Data Downloaded",
@@ -321,7 +273,6 @@ const Account = () => {
         throw new Error(result.error);
       }
     } catch (error) {
-      console.error('Error downloading data:', error);
       toast({
         title: "Download Failed",
         description: "Could not prepare your data for download.",
@@ -395,7 +346,6 @@ const Account = () => {
 
   const firstName = activeProfile?.username?.split(" ")[0] || "";
 
-  // Show loading state while auth data is being fetched
   if (isLoading || !activeProfile) {
     return (
       <>
@@ -463,22 +413,9 @@ const Account = () => {
           <TabsContent value="profile" className="mt-6">
             <div className="bg-white p-4 md:p-6 rounded-2xl border mb-6">
               <div className="flex flex-col items-center text-center space-y-4 mb-6">
-                {/* File Upload functionality temporarily disabled - keeping code for future use */}
-                {/* <FileUpload
-                  onFileSelect={onFileSelect}
-                  previewUrl={profileData.profile_picture}
-                  isAvatar={true}
-                >
-                  <Avatar className="w-24 h-24 text-5xl border-4 border-white shadow-md">
-                    {renderAvatar()}
-                  </Avatar>
-                </FileUpload> */}
-                
-                {/* Display avatar without upload functionality */}
                 <Avatar className="w-24 h-24 text-5xl border-4 border-white shadow-md">
                   {renderAvatar()}
                 </Avatar>
-                
                 <div>
                   <h2 className="text-lg font-bold">Personal Information</h2>
                   <p className="text-sm text-gray-500">
@@ -489,21 +426,7 @@ const Account = () => {
               <div className="space-y-4">
                 <div>
                   <label className="text-sm font-medium text-gray-700">
-                    Full Name
-                  </label>
-                  <Input
-                    value={profileData.full_name}
-                    onChange={(e) =>
-                      setProfileData({
-                        ...profileData,
-                        full_name: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-700">
-                    Name or Nickname
+                    Username
                   </label>
                   <Input
                     value={profileData.username}
@@ -525,8 +448,7 @@ const Account = () => {
                     disabled
                   />
                 </div>
-
-                {activeProfile?.id === user?.id ? (
+                {isMainProfile ? (
                   <div>
                     <label className="text-sm font-medium text-gray-700">
                       WhatsApp Number
@@ -555,7 +477,6 @@ const Account = () => {
                     holder.
                   </div>
                 )}
-
                 {phoneUpdateStep === "editing" && (
                   <div className="p-3 border rounded-lg space-y-2">
                     <label className="text-sm font-medium">
@@ -597,19 +518,14 @@ const Account = () => {
                     </Button>
                   </div>
                 )}
-
                 <div>
                   <label className="text-sm font-medium text-gray-700">
                     Date of Birth
                   </label>
-                  <Input
-                    type="date"
+                  <DateOfBirthPicker
                     value={profileData.date_of_birth}
-                    onChange={(e) =>
-                      setProfileData({
-                        ...profileData,
-                        date_of_birth: e.target.value,
-                      })
+                    onChange={(date) =>
+                      setProfileData((p) => ({ ...p, date_of_birth: date }))
                     }
                   />
                 </div>
@@ -636,25 +552,56 @@ const Account = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-700">
-                    Location (Sub-county, District)
-                  </label>
-                  <Input
-                    placeholder="e.g. Kawempe, Kampala"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    disabled={activeProfile?.id !== user?.id}
-                  />
-                  {activeProfile?.id !== user?.id && (
-                    <p className="text-xs text-gray-400 mt-1">
-                      Location can only be set on the main profile.
-                    </p>
-                  )}
-                </div>
+
+                {isMainProfile ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-700">
+                        District
+                      </label>
+                      <Select
+                        value={district}
+                        onValueChange={(value) => setDistrict(value)}
+                        disabled={loadingDistricts}
+                      >
+                        <SelectTrigger>
+                          <SelectValue
+                            placeholder={
+                              loadingDistricts
+                                ? "Loading..."
+                                : "Select District"
+                            }
+                          />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {districts.map((d) => (
+                            <SelectItem key={d.id} value={d.name}>
+                              {d.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-700">
+                        Sub County
+                      </label>
+                      <Input
+                        placeholder="e.g. Kawempe"
+                        value={subCounty}
+                        onChange={(e) => setSubCounty(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-3 border rounded-lg text-center text-sm text-gray-600 bg-gray-50">
+                    Location is managed by the main account holder.
+                  </div>
+                )}
+
                 <Button
                   onClick={handleProfileSave}
-                  className="w-full bg-primary text-white"
+                  className="w-full bg-primary text-white pt-4"
                 >
                   Save Profile Changes
                 </Button>
@@ -701,9 +648,7 @@ const Account = () => {
               >
                 <FolderOpen className="text-primary" size={20} />
                 <div className="flex-1">
-                  <h3 className="font-semibold text-gray-800">
-                    My Files
-                  </h3>
+                  <h3 className="font-semibold text-gray-800">My Files</h3>
                   <p className="text-sm text-gray-500">
                     Store and manage your documents
                   </p>
@@ -721,6 +666,7 @@ const Account = () => {
               <span>Logout</span>
             </Button>
           </TabsContent>
+
           <TabsContent value="settings" className="mt-6">
             <div className="space-y-6">
               <div className="bg-white p-4 md:p-6 rounded-2xl border">
@@ -816,7 +762,6 @@ const Account = () => {
           </TabsContent>
         </Tabs>
 
-        {/* Mobile Confirmation Dialogs */}
         <MobileConfirmDialog
           isOpen={showPurgeDialog}
           onClose={() => setShowPurgeDialog(false)}
