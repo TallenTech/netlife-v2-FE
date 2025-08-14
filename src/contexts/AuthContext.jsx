@@ -7,6 +7,7 @@ import React, {
 } from "react";
 import { supabase } from "@/lib/supabase";
 import { profileService } from "@/services/profileService";
+import { backgroundService } from "@/services/backgroundService";
 import { getCachedUserData, setCachedUserData } from "@/lib/cache";
 
 const AuthContext = createContext(null);
@@ -52,6 +53,9 @@ export const AuthProvider = ({ children }) => {
         (p) => p.id === lastActiveProfileId
       );
       setActiveProfile(lastActive || mainProfile);
+
+      // Initialize background services for data cleanup
+      backgroundService.init();
     } catch (e) {
       console.error("Background sync failed:", e);
     }

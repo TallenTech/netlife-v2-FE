@@ -2,16 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+import MobileConfirmDialog from '@/components/ui/MobileConfirmDialog';
 import { Download, Share2, FileText, HeartPulse, FilePlus, ChevronRight, Trash2, RefreshCw } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import jsPDF from 'jspdf';
@@ -27,6 +18,7 @@ const History = () => {
   const [historyItems, setHistoryItems] = useState({ Services: [], Screening: [], Records: [] });
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [syncStatus, setSyncStatus] = useState({ isActive: false, lastSync: null });
   const [manualRefreshActive, setManualRefreshActive] = useState(false);
@@ -1092,6 +1084,7 @@ const History = () => {
   const handleDeleteConfirm = async () => {
     if (!itemToDelete) return;
 
+    setIsDeleting(true);
     try {
       let deleteSuccess = false;
       let dbDeletionSuccess = false;
@@ -1234,6 +1227,7 @@ const History = () => {
       });
     } finally {
       // Always close dialog and reset state
+      setIsDeleting(false);
       setDeleteDialogOpen(false);
       setItemToDelete(null);
     }
@@ -1381,25 +1375,21 @@ const History = () => {
       </div>
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Record</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete "{itemToDelete?.title}"? This action cannot be undone and will remove the record from both your device and our servers.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setItemToDelete(null)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleDeleteConfirm}
-              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <MobileConfirmDialog
+        isOpen={deleteDialogOpen}
+        onClose={() => {
+          setDeleteDialogOpen(false);
+          setItemToDelete(null);
+        }}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Record?"
+        description={`Are you sure you want to delete "${itemToDelete?.title}"? This action cannot be undone and will remove the record from both your device and our servers.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="destructive"
+        icon={Trash2}
+        isLoading={isDeleting}
+      />
     </>
   );
 };
