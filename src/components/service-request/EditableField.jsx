@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Edit, Save, FileText, Image, Download, Eye } from 'lucide-react';
+import DateTimePicker from '@/components/ui/DateTimePicker';
 import AttachmentViewer from '@/components/AttachmentViewer';
 
 const EditableField = ({ field, value, onSave }) => {
@@ -22,6 +23,24 @@ const EditableField = ({ field, value, onSave }) => {
             }
             return JSON.stringify(val);
         }
+        
+        // Handle datetime display
+        if (field.type === 'datetime-local' && val) {
+            const date = new Date(val);
+            const dateStr = date.toLocaleDateString('en-US', { 
+                weekday: 'short', 
+                month: 'short', 
+                day: 'numeric',
+                year: 'numeric'
+            });
+            const timeStr = date.toLocaleTimeString('en-US', { 
+                hour: 'numeric', 
+                minute: '2-digit',
+                hour12: true 
+            });
+            return `${dateStr} at ${timeStr}`;
+        }
+        
         return val || '';
     };
     
@@ -145,6 +164,39 @@ const EditableField = ({ field, value, onSave }) => {
                 </Dialog>
             </>
         )
+    }
+
+    // Handle datetime editing
+    if (field.type === 'datetime-local') {
+        return (
+            <>
+                <div className="flex items-center justify-between">
+                    <span>{displayValue}</span>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleOpen}>
+                        <Edit className="h-4 w-4 text-primary" />
+                    </Button>
+                </div>
+                <Dialog open={isEditing} onOpenChange={setIsEditing}>
+                    <DialogContent className="max-w-sm">
+                        <DialogHeader>
+                            <DialogTitle>Edit {field.label}</DialogTitle>
+                        </DialogHeader>
+                        <div className="py-4">
+                            <DateTimePicker
+                                value={currentValue || ''}
+                                onChange={setCurrentValue}
+                                label=""
+                                placeholder="Choose date and time"
+                            />
+                        </div>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setIsEditing(false)}>Cancel</Button>
+                            <Button onClick={handleSave}>Save</Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            </>
+        );
     }
 
     if (isEditing) {
