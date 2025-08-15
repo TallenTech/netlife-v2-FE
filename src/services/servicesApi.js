@@ -1606,8 +1606,8 @@ export const extractCommonFields = (requestData) => {
         }
     }
 
-    // Extract preferred date with validation
-    let dateValue = requestData.deliveryDate || requestData.preferredDate;
+    // Extract preferred date with validation (support both old and new field names)
+    let dateValue = requestData.preferredDateTime || requestData.deliveryDate || requestData.preferredDate;
     if (dateValue) {
         // Validate date is within acceptable range (6 hours to 60 days)
         const selectedDate = new Date(dateValue);

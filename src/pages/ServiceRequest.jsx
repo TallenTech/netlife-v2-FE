@@ -5,9 +5,11 @@ import { AnimatePresence } from 'framer-motion';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { useToast } from '@/components/ui/use-toast';
 import { serviceRequestForms } from '@/data/serviceRequestForms';
 import { useAuth } from '@/contexts/AuthContext';
 import { servicesApi, ATTACHMENT_ERROR_MESSAGES } from '@/services/servicesApi';
+import { cn } from '@/lib/utils';
 import ServiceRequestStep from '@/components/service-request/ServiceRequestStep';
 import PreviewStep from '@/components/service-request/PreviewStep';
 import SuccessConfirmation from '@/components/service-request/SuccessConfirmation';
@@ -15,6 +17,7 @@ import SuccessConfirmation from '@/components/service-request/SuccessConfirmatio
 const ServiceRequest = () => {
   const { serviceId } = useParams();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const { activeProfile, profile } = useAuth();
   const formConfig = serviceRequestForms[serviceId];
 
@@ -24,6 +27,8 @@ const ServiceRequest = () => {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
   const [progressLoaded, setProgressLoaded] = useState(false);
+  const [currentStepValid, setCurrentStepValid] = useState(false);
+  const [validationErrors, setValidationErrors] = useState([]);
 
   if (!formConfig) {
     return <div>Service request form not found.</div>;
@@ -123,9 +128,25 @@ const ServiceRequest = () => {
   };
 
   const nextStep = () => {
+    // Validate current step before proceeding
+    if (!currentStepValid && step < totalSteps - 1) {
+      // Show validation errors
+      toast({
+        title: "Please complete all required fields",
+        description: "Fill in all required information before proceeding to the next step.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const newStep = Math.min(step + 1, totalSteps);
     setStep(newStep);
     saveProgress(formData, newStep);
+  };
+
+  const handleValidationChange = (isValid, errors = []) => {
+    setCurrentStepValid(isValid);
+    setValidationErrors(errors);
   };
   
   const prevStep = () => {
@@ -284,6 +305,7 @@ const ServiceRequest = () => {
         stepConfig={formConfig.steps[step]}
         formData={formData}
         handleInputChange={handleInputChange}
+        onValidationChange={handleValidationChange}
       />
     );
   };
@@ -355,9 +377,23 @@ const ServiceRequest = () => {
             {!isPreviewStep && (
               <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-50">
                 <div className="p-4 max-w-[428px] mx-auto">
-                  <Button onClick={nextStep} className="w-full h-14 text-lg font-bold rounded-xl">
-                     {step === totalSteps - 1 ? 'Proceed' : 'Next'}
+                  <Button 
+                    onClick={nextStep} 
+                    disabled={!currentStepValid}
+                    className={cn(
+                      "w-full h-14 text-lg font-bold rounded-xl transition-all duration-200",
+                      !currentStepValid 
+                        ? "bg-gray-300 text-gray-500 cursor-not-allowed hover:bg-gray-300" 
+                        : "bg-primary hover:bg-primary/90"
+                    )}
+                  >
+                     {step === totalSteps - 1 ? 'Review Request' : 'Next Step'}
                   </Button>
+                  {!currentStepValid && validationErrors.length > 0 && (
+                    <p className="text-sm text-red-600 text-center mt-2">
+                      Please complete all required fields above
+                    </p>
+                  )}
                 </div>
               </div>
             )}
@@ -411,13 +447,26 @@ const ServiceRequest = () => {
               {/* Navigation Button - Bottom right, aligned with header buttons */}
               {!isPreviewStep && (
                 <div className="mt-12 flex justify-end">
-                  <Button 
-                    onClick={nextStep} 
-                    className="h-14 px-8 text-lg font-bold rounded-xl shadow-lg hover:shadow-xl transition-shadow"
-                  >
-                    {step === totalSteps - 1 ? 'Proceed' : 'Next'}
-                    <ArrowLeft className="ml-2 h-5 w-5 rotate-180" />
-                  </Button>
+                  <div className="flex flex-col items-end">
+                    <Button 
+                      onClick={nextStep} 
+                      disabled={!currentStepValid}
+                      className={cn(
+                        "h-14 px-8 text-lg font-bold rounded-xl shadow-lg transition-all duration-200",
+                        !currentStepValid 
+                          ? "bg-gray-300 text-gray-500 cursor-not-allowed hover:bg-gray-300 shadow-none" 
+                          : "bg-primary hover:bg-primary/90 hover:shadow-xl"
+                      )}
+                    >
+                      {step === totalSteps - 1 ? 'Review Request' : 'Next Step'}
+                      <ArrowLeft className="ml-2 h-5 w-5 rotate-180" />
+                    </Button>
+                    {!currentStepValid && validationErrors.length > 0 && (
+                      <p className="text-sm text-red-600 mt-2">
+                        Please complete all required fields above
+                      </p>
+                    )}
+                  </div>
                 </div>
               )}
             </div>

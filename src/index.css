@@ -547,3 +547,110 @@ html {
   }
 }
 
+/* Custom styles for DateTimePicker modal */
+.safe-area-inset-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Ensure modal appears above everything */
+.datetime-picker-modal {
+  z-index: 9999;
+}
+
+/* Smooth scrolling for modal content */
+.datetime-picker-content {
+  scroll-behavior: smooth;
+}
+
+/* Touch-friendly interactions */
+.touch-manipulation {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Prevent overscroll bounce on iOS */
+.overscroll-contain {
+  overscroll-behavior: contain;
+}
+
+/* Better touch targets for mobile */
+@media (max-width: 768px) {
+  .datetime-picker-button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Ensure calendar buttons are touch-friendly */
+  .datetime-picker-calendar-day {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Time slot buttons */
+  .datetime-picker-time-slot {
+    min-height: 60px;
+    min-width: 60px;
+  }
+  
+  /* Quick select buttons */
+  .datetime-picker-quick-select {
+    min-height: 60px;
+  }
+}
+
+/* Small phone optimizations */
+@media (max-width: 375px) {
+  .datetime-picker-modal {
+    max-height: 95vh;
+  }
+  
+  .datetime-picker-content {
+    padding: 12px;
+  }
+  
+  .datetime-picker-time-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+}
+
+/* Very small phones (iPhone SE, etc.) */
+@media (max-width: 320px) {
+  .datetime-picker-time-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .datetime-picker-quick-select {
+    padding: 12px;
+    font-size: 14px;
+  }
+}
+
+/* Desktop popover positioning */
+@media (min-width: 768px) {
+  .datetime-picker-popover {
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  }
+  
+  /* Ensure popover doesn't go off-screen */
+  .datetime-picker-popover.popover-right {
+    left: auto;
+    right: 0;
+  }
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+  .datetime-picker-modal,
+  .datetime-picker-popover {
+    transition: none;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .datetime-picker-selected {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+  }
+}
