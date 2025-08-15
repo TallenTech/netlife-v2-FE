@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Helmet } from "react-helmet";
 import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
@@ -13,6 +13,7 @@ import ProfileSetup from "@/components/ProfileSetup";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import TermsOfService from "@/pages/TermsOfService";
 import NotFound from "@/pages/NotFound";
+import { processSyncQueue } from "@/services/offlineSync.js";
 
 function App() {
   return (
@@ -23,6 +24,23 @@ function App() {
 }
 
 function AppWrapper() {
+  useEffect(() => {
+    const handleOnline = () => {
+      console.log("App is online. Processing offline queue...");
+      processSyncQueue();
+    };
+
+    window.addEventListener("online", handleOnline);
+
+    if (navigator.onLine) {
+      handleOnline();
+    }
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+    };
+  }, []);
+
   return (
     <>
       <Helmet>
