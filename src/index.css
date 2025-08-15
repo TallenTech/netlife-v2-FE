@@ -573,6 +573,19 @@ html {
   overscroll-behavior: contain;
 }
 
+/* Allow vertical scrolling within modal content */
+.touch-pan-y {
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Prevent body scroll when modal is open */
+.modal-open {
+  overflow: hidden !important;
+  position: fixed !important;
+  width: 100% !important;
+}
+
 /* Better touch targets for mobile */
 @media (max-width: 768px) {
   .datetime-picker-button {

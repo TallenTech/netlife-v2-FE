@@ -37,6 +37,39 @@ const DateTimePicker = ({
     };
   }, []);
 
+  // Prevent body scroll when mobile modal is open
+  useEffect(() => {
+    if (isMobile && isOpen) {
+      // Store current scroll position
+      const scrollY = window.scrollY;
+      
+      // Prevent body scroll
+      document.body.classList.add('modal-open');
+      document.body.style.top = `-${scrollY}px`;
+      
+      // Prevent touch events on body
+      const preventTouch = (e) => {
+        if (e.target === document.body) {
+          e.preventDefault();
+        }
+      };
+      
+      document.addEventListener('touchmove', preventTouch, { passive: false });
+      
+      return () => {
+        // Restore body scroll
+        document.body.classList.remove('modal-open');
+        document.body.style.top = '';
+        
+        // Restore scroll position
+        window.scrollTo(0, scrollY);
+        
+        // Remove touch event listener
+        document.removeEventListener('touchmove', preventTouch);
+      };
+    }
+  }, [isMobile, isOpen]);
+
   // Initialize from value
   useEffect(() => {
     if (value) {
@@ -349,6 +382,10 @@ const DateTimePicker = ({
                   setIsOpen(false);
                   setStep('date');
                 }}
+                onTouchMove={(e) => {
+                  // Prevent background scroll when touching backdrop
+                  e.preventDefault();
+                }}
               />
 
               {/* Modal */}
@@ -357,13 +394,17 @@ const DateTimePicker = ({
                 animate={{ y: 0 }}
                 exit={{ y: '100%' }}
                 transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-50 overflow-hidden safe-area-inset-bottom"
+                className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-50 overflow-hidden safe-area-inset-bottom flex flex-col"
                 style={{
                   maxHeight: window.innerHeight < 600 ? '95vh' : '90vh' // Adjust for very small screens
                 }}
+                onTouchMove={(e) => {
+                  // Allow touch events within modal
+                  e.stopPropagation();
+                }}
               >
                 {/* Header */}
-                <div className="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200 bg-white sticky top-0 z-10">
+                <div className="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200 bg-white flex-shrink-0">
                   <div className="flex items-center gap-2 sm:gap-3">
                     {step === 'time' && (
                       <button
@@ -392,9 +433,31 @@ const DateTimePicker = ({
 
                 {/* Content */}
                 <div 
-                  className="overflow-y-auto overscroll-contain"
+                  className="flex-1 overflow-y-auto overscroll-contain touch-pan-y"
                   style={{
-                    maxHeight: window.innerHeight < 600 ? 'calc(95vh-70px)' : 'calc(90vh-70px)'
+                    WebkitOverflowScrolling: 'touch' // Smooth scrolling on iOS
+                  }}
+                  onTouchStart={(e) => {
+                    // Mark the start of touch for proper scroll handling
+                    e.currentTarget.dataset.touchStart = e.touches[0].clientY;
+                  }}
+                  onTouchMove={(e) => {
+                    const container = e.currentTarget;
+                    const touchStart = parseFloat(container.dataset.touchStart || '0');
+                    const touchCurrent = e.touches[0].clientY;
+                    const scrollTop = container.scrollTop;
+                    const scrollHeight = container.scrollHeight;
+                    const clientHeight = container.clientHeight;
+                    
+                    // Allow scrolling within bounds
+                    if (
+                      (scrollTop === 0 && touchCurrent > touchStart) || // At top, scrolling down
+                      (scrollTop + clientHeight >= scrollHeight && touchCurrent < touchStart) // At bottom, scrolling up
+                    ) {
+                      e.preventDefault(); // Prevent overscroll
+                    }
+                    
+                    e.stopPropagation(); // Don't let parent handle this
                   }}
                 >
                   {step === 'date' ? (
