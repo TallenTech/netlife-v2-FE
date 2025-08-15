@@ -6,11 +6,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Upload, AlertCircle } from 'lucide-react';
 import LocationSearch from '@/components/LocationSearch';
 import FileUpload from '@/components/FileUpload';
+import DateTimePicker from '@/components/ui/DateTimePicker';
+import ValidationSummary from './ValidationSummary';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { cn } from '@/lib/utils';
 
-const ServiceRequestStep = ({ stepConfig, formData, handleInputChange }) => {
+const ServiceRequestStep = ({ stepConfig, formData, handleInputChange, onValidationChange }) => {
   const [errors, setErrors] = useState({});
+  const [touched, setTouched] = useState({});
   const { toast } = useToast();
   const { activeProfile } = useAuth();
 
@@ -69,19 +73,106 @@ const ServiceRequestStep = ({ stepConfig, formData, handleInputChange }) => {
     return "";
   };
 
+  // Comprehensive field validation
+  const validateField = (field, value) => {
+    if (!field) return "";
+
+    // Check if field is required and empty
+    if (field.required && (!value || value === '' || (Array.isArray(value) && value.length === 0))) {
+      return `${field.label} is required.`;
+    }
+
+    // Skip validation for optional empty fields
+    if (!value || value === '') {
+      return "";
+    }
+
+    // Type-specific validation
+    switch (field.type) {
+      case 'number':
+        if (field.name === 'quantity') {
+          return validateQuantity(value);
+        }
+        break;
+      
+      case 'textarea':
+        return validateTextArea(value);
+      
+      case 'datetime-local':
+        return validateDateTime(value);
+      
+      case 'radio':
+        if (field.required && !field.options.includes(value)) {
+          return `Please select a valid option for ${field.label}.`;
+        }
+        break;
+      
+      case 'select':
+        if (field.required && !field.options.includes(value)) {
+          return `Please select a valid option for ${field.label}.`;
+        }
+        break;
+      
+      case 'file':
+        // File validation is handled separately in FileUpload component
+        break;
+      
+      case 'map':
+        if (field.required && (!value || !value.address)) {
+          return `Please select a location for ${field.label}.`;
+        }
+        break;
+      
+      default:
+        // Text input validation
+        if (typeof value === 'string' && value.trim().length === 0 && field.required) {
+          return `${field.label} is required.`;
+        }
+        break;
+    }
+
+    return "";
+  };
+
+  // Validate all visible fields in current step
+  const validateCurrentStep = () => {
+    const stepErrors = {};
+    let hasErrors = false;
+
+    stepConfig.fields.forEach(field => {
+      // Skip validation for conditional fields that aren't shown
+      if (field.condition && !field.condition(formData)) {
+        return;
+      }
+
+      const error = validateField(field, formData[field.name]);
+      if (error) {
+        stepErrors[field.name] = error;
+        hasErrors = true;
+      }
+    });
+
+    setErrors(stepErrors);
+    return !hasErrors;
+  };
+
+  // Notify parent component about validation status
+  React.useEffect(() => {
+    const isValid = validateCurrentStep();
+    if (onValidationChange) {
+      onValidationChange(isValid);
+    }
+  }, [formData, stepConfig]);
+
   const handleFieldChange = (name, value, field) => {
+    // Mark field as touched
+    setTouched(prev => ({ ...prev, [name]: true }));
+    
+    // Update form data
     handleInputChange(name, value);
     
-    // Real-time validation
-    let error = "";
-    
-    if (field?.type === 'number' && name === 'quantity') {
-      error = validateQuantity(value);
-    } else if (field?.type === 'textarea') {
-      error = validateTextArea(value);
-    } else if (field?.required && !value) {
-      error = validateRequired(value, field.label);
-    }
+    // Validate field immediately if it's been touched
+    const error = validateField(field, value);
     
     if (error) {
       setErrors(prev => ({ ...prev, [name]: error }));
@@ -92,22 +183,31 @@ const ServiceRequestStep = ({ stepConfig, formData, handleInputChange }) => {
     }
   };
 
-  const onDateChange = (e) => {
-    const { name, value } = e.target;
-    const error = validateDateTime(value);
+  const handleFieldBlur = (name, field) => {
+    setTouched(prev => ({ ...prev, [name]: true }));
+    
+    // Validate on blur
+    const error = validateField(field, formData[name]);
     if (error) {
       setErrors(prev => ({ ...prev, [name]: error }));
+    }
+  };
+
+  const onDateTimeChange = (fieldName, value) => {
+    const error = validateDateTime(value);
+    if (error) {
+      setErrors(prev => ({ ...prev, [fieldName]: error }));
       toast({
         title: "Invalid Date",
         description: error,
         variant: "destructive",
       });
     } else {
-        const newErrors = {...errors};
-        delete newErrors[name];
-        setErrors(newErrors);
+      const newErrors = {...errors};
+      delete newErrors[fieldName];
+      setErrors(newErrors);
     }
-    handleFieldChange(name, value);
+    handleFieldChange(fieldName, value);
   };
 
   const handleLocationSelect = (field, locationData) => {
@@ -128,7 +228,8 @@ const ServiceRequestStep = ({ stepConfig, formData, handleInputChange }) => {
   };
 
   const ErrorMessage = ({ field }) => {
-    return errors[field] ? (
+    const hasError = errors[field] && touched[field];
+    return hasError ? (
       <motion.p
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -137,7 +238,15 @@ const ServiceRequestStep = ({ stepConfig, formData, handleInputChange }) => {
         <AlertCircle size={14} /> {errors[field]}
       </motion.p>
     ) : null;
-  }
+  };
+
+  const getFieldClassName = (fieldName, baseClassName) => {
+    const hasError = errors[fieldName] && touched[fieldName];
+    return cn(
+      baseClassName,
+      hasError ? 'border-red-300 bg-red-50 focus:border-red-500 focus:ring-red-200' : ''
+    );
+  };
 
   const renderField = (field) => {
     if (field.condition && !field.condition(formData)) return null;
@@ -160,7 +269,7 @@ const ServiceRequestStep = ({ stepConfig, formData, handleInputChange }) => {
                     className={`flex items-center space-x-4 p-4 rounded-xl cursor-pointer transition-all duration-200 border-2 min-h-[60px] ${
                       isSelected 
                         ? 'border-primary bg-primary/10 shadow-sm' 
-                        : errors[field.name]
+                        : errors[field.name] && touched[field.name]
                         ? 'border-red-300 bg-red-50'
                         : 'border-gray-200 bg-gray-50 hover:border-gray-300 hover:bg-gray-100'
                     }`}
@@ -173,11 +282,14 @@ const ServiceRequestStep = ({ stepConfig, formData, handleInputChange }) => {
                         value={option}
                         checked={isSelected}
                         onChange={(e) => handleFieldChange(field.name, e.target.value, field)}
+                        onBlur={() => handleFieldBlur(field.name, field)}
                         className="sr-only"
                       />
                       <div className={`w-5 h-5 rounded-full border-2 transition-all duration-200 ${
                         isSelected 
                           ? 'border-primary bg-primary' 
+                          : errors[field.name] && touched[field.name]
+                          ? 'border-red-400 bg-white'
                           : 'border-gray-400 bg-white'
                       }`}>
                         {isSelected && (
@@ -204,12 +316,16 @@ const ServiceRequestStep = ({ stepConfig, formData, handleInputChange }) => {
               {field.label}
               {field.required && <span className="text-red-500 ml-1">*</span>}
             </Label>
-            <Select onValueChange={(value) => handleFieldChange(field.name, value, field)} value={formData[field.name] || ""}>
+            <Select 
+              onValueChange={(value) => handleFieldChange(field.name, value, field)} 
+              value={formData[field.name] || ""}
+              onOpenChange={(open) => {
+                if (!open) handleFieldBlur(field.name, field);
+              }}
+            >
               <SelectTrigger 
                 id={field.name} 
-                className={`h-14 text-base bg-gray-50 border-2 hover:border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 ${
-                  errors[field.name] ? 'border-red-300 bg-red-50' : 'border-gray-200'
-                }`}
+                className={getFieldClassName(field.name, 'h-14 text-base bg-gray-50 border-2 hover:border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 border-gray-200')}
               >
                 <SelectValue placeholder={`Select ${field.label.toLowerCase()}`} />
               </SelectTrigger>
@@ -254,10 +370,9 @@ const ServiceRequestStep = ({ stepConfig, formData, handleInputChange }) => {
                 id={field.name}
                 value={formData[field.name] || ''}
                 onChange={(e) => handleFieldChange(field.name, e.target.value, field)}
+                onBlur={() => handleFieldBlur(field.name, field)}
                 placeholder={field.placeholder}
-                className={`w-full min-h-[120px] p-4 bg-gray-50 rounded-xl border-2 hover:border-gray-300 focus:ring-2 focus:ring-primary/20 focus:border-primary text-base transition-all duration-200 resize-none ${
-                  errors[field.name] ? 'border-red-300 bg-red-50' : 'border-gray-200'
-                }`}
+                className={getFieldClassName(field.name, 'w-full min-h-[120px] p-4 bg-gray-50 rounded-xl border-2 hover:border-gray-300 focus:ring-2 focus:ring-primary/20 focus:border-primary text-base transition-all duration-200 resize-none border-gray-200')}
                 maxLength={500}
               />
               <div className="absolute bottom-2 right-2 text-xs text-gray-400">
@@ -271,25 +386,18 @@ const ServiceRequestStep = ({ stepConfig, formData, handleInputChange }) => {
         return <LocationSearch key={field.name} field={field} value={formData[field.name]} onLocationSelect={(val) => handleLocationSelect(field, val)} />;
       case 'datetime-local':
         return (
-          <div key={field.name} className="space-y-2">
-            <Label htmlFor={field.name} className="text-base font-semibold text-gray-900">
-              {field.label}
-              {field.required && <span className="text-red-500 ml-1">*</span>}
-            </Label>
-            <Input 
-              id={field.name} 
-              name={field.name} 
-              type="datetime-local" 
-              value={formData[field.name] || ''} 
-              onChange={onDateChange} 
-              className={`h-14 text-base bg-gray-50 border-2 hover:border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 ${
-                errors[field.name] ? 'border-red-300 bg-red-50' : 'border-gray-200'
-              }`}
+          <div key={field.name}>
+            <DateTimePicker
+              value={formData[field.name] || ''}
+              onChange={(value) => onDateTimeChange(field.name, value)}
+              label={field.label}
+              placeholder="Choose your preferred date and time"
+              required={field.required}
+              error={errors[field.name] && touched[field.name] ? errors[field.name] : null}
             />
             {!errors[field.name] && (
-              <p className="text-xs text-gray-500">Select a date at least 6 hours from now</p>
+              <p className="text-xs text-gray-500 mt-2">Select a date at least 6 hours from now</p>
             )}
-            <ErrorMessage field={field.name} />
           </div>
         );
       default:
@@ -309,9 +417,8 @@ const ServiceRequestStep = ({ stepConfig, formData, handleInputChange }) => {
                   const value = field.type === 'number' ? (e.target.value === '' ? '' : Number(e.target.value)) : e.target.value;
                   handleFieldChange(field.name, value, field);
                 }} 
-                className={`h-14 text-base bg-gray-50 border-2 hover:border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 ${
-                  errors[field.name] ? 'border-red-300 bg-red-50' : 'border-gray-200'
-                }`}
+                onBlur={() => handleFieldBlur(field.name, field)}
+                className={getFieldClassName(field.name, 'h-14 text-base bg-gray-50 border-2 hover:border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 border-gray-200')}
                 min={field.type === 'number' && field.name === 'quantity' ? 1 : undefined}
                 max={field.type === 'number' && field.name === 'quantity' ? 10 : undefined}
               />
@@ -344,6 +451,15 @@ const ServiceRequestStep = ({ stepConfig, formData, handleInputChange }) => {
       </div>
       <div className="space-y-6">
         {stepConfig.fields.map(renderField)}
+      </div>
+      
+      {/* Validation Summary */}
+      <div className="mt-8">
+        <ValidationSummary 
+          errors={errors}
+          stepConfig={stepConfig}
+          formData={formData}
+        />
       </div>
     </motion.div>
   );
