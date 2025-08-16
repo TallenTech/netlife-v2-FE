@@ -5,157 +5,106 @@ import React, {
   useEffect,
   useCallback,
 } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { profileService } from "@/services/profileService";
-import { backgroundService } from "@/services/backgroundService";
-import { getCachedUserData, setCachedUserData } from "@/lib/cache";
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [session, setSession] = useState(null);
   const [user, setUser] = useState(null);
-  const [profile, setProfile] = useState(null);
-  const [managedProfiles, setManagedProfiles] = useState([]);
-  const [activeProfile, setActiveProfile] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [activeProfileId, setActiveProfileId] = useState(null);
+  const [isLoadingSession, setIsLoadingSession] = useState(true);
+  
+  const queryClient = useQueryClient();
 
+  const { 
+    data: userData, 
+    isLoading: isLoadingProfile, 
+    error: profileError 
+  } = useQuery({
+    queryKey: ['userData', user?.id],
+    queryFn: async () => {
+      if (!user?.user_metadata?.display_name) return null;
+      
+      const { success, data, error } = await profileService.getUserData();
+      if (!success) throw error;
+      return data;
+    },
+    enabled: !!user?.user_metadata?.display_name,
+    staleTime: 1000 * 60 * 5,
+    cacheTime: 1000 * 60 * 60,
+  });
+
+  const profile = userData?.mainProfile;
+  const managedProfiles = userData?.managedProfiles || [];
+  const activeProfile = managedProfiles.find(p => p.id === activeProfileId) || profile;
+  
   useEffect(() => {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
-      const authUser = session?.user ?? null;
-      setUser(authUser);
-      setIsLoading(false);
+      setUser(session?.user ?? null);
+      setIsLoadingSession(false);
+
+      if (!session) {
+        queryClient.removeQueries({ queryKey: ['userData'] });
+      }
     });
 
-    return () => {
-      subscription?.unsubscribe();
-    };
-  }, []);
-
-  const fetchFullUserData = useCallback(async () => {
-    try {
-      const { success, data, error } = await profileService.getUserData();
-      if (!success) throw error;
-
-      const { mainProfile, managedProfiles: dependents } = data;
-      setCachedUserData(mainProfile, dependents);
-      setProfile(mainProfile);
-      setManagedProfiles(dependents || []);
-
-      const lastActiveProfileId = localStorage.getItem(
-        "netlife_active_profile_id"
-      );
-      const lastActive = (dependents || []).find(
-        (p) => p.id === lastActiveProfileId
-      );
-      setActiveProfile(lastActive || mainProfile);
-
-      backgroundService.init();
-    } catch (e) {
-      console.error("Background sync failed:", e);
-    }
-  }, []);
+    return () => subscription?.unsubscribe();
+  }, [queryClient]);
 
   useEffect(() => {
-    if (user?.user_metadata?.display_name) {
-      fetchFullUserData();
-    } else {
-      setProfile(null);
-      setManagedProfiles([]);
-      setActiveProfile(null);
+    const lastActiveId = localStorage.getItem("netlife_active_profile_id");
+    if (lastActiveId) {
+      setActiveProfileId(lastActiveId);
+    } else if (profile) {
+      setActiveProfileId(profile.id);
     }
-  }, [user, fetchFullUserData]);
+  }, [profile]);
 
-  const refreshSession = useCallback(async () => {
-    const { data } = await supabase.auth.refreshSession();
-    if (data.user) {
-      setUser(data.user);
-    }
-    return data;
+  const switchActiveProfile = useCallback((profileId) => {
+    setActiveProfileId(profileId);
+    localStorage.setItem("netlife_active_profile_id", profileId);
   }, []);
+
+  const { mutateAsync: updateProfileMutation } = useMutation({
+    mutationFn: async (dataToUpdate) => {
+      if (!activeProfile) throw new Error("No active profile selected");
+
+      if (activeProfile.id === profile?.id) {
+        return profileService.upsertProfile(dataToUpdate, user.id);
+      } else {
+        return profileService.updateManagedProfile(activeProfile.id, dataToUpdate);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['userData', user?.id] });
+    },
+  });
 
   const logout = useCallback(async () => {
     await supabase.auth.signOut();
-
-    const keysToRemove = [
-      "netlife_active_profile_id",
-      "netlife_cached_user_data",
-      "netlife_language",
-    ];
-
-    keysToRemove.forEach((key) => {
-      localStorage.removeItem(key);
-    });
+    localStorage.removeItem("netlife_active_profile_id");
   }, []);
-
-  const switchActiveProfile = useCallback(
-    (profileId) => {
-      let newActiveProfile = null;
-      if (profileId === profile?.id) {
-        newActiveProfile = profile;
-      } else {
-        newActiveProfile = managedProfiles.find((p) => p.id === profileId);
-      }
-      if (newActiveProfile) {
-        setActiveProfile(newActiveProfile);
-        localStorage.setItem("netlife_active_profile_id", newActiveProfile.id);
-      }
-    },
-    [profile, managedProfiles]
-  );
-
-  const refreshAuthAndProfiles = useCallback(async () => {
-    if (user) {
-      await fetchFullUserData();
-    }
-  }, [user, fetchFullUserData]);
-
-  const updateProfile = useCallback(
-    async (dataToUpdate) => {
-      if (!activeProfile || !user)
-        throw new Error("No active profile selected");
-      try {
-        if (activeProfile.id === profile.id) {
-          // CORRECTED LOGIC: Pass the entire dataToUpdate object.
-          // Supabase will ignore any fields that don't exist in the table.
-          await supabase
-            .from("profiles")
-            .update(dataToUpdate)
-            .eq("id", user.id);
-        } else {
-          await profileService.updateManagedProfile(
-            activeProfile.id,
-            dataToUpdate
-          );
-        }
-        await refreshAuthAndProfiles();
-      } catch (e) {
-        console.error("Profile update failed:", e);
-        throw e;
-      }
-    },
-    [user, profile, activeProfile, refreshAuthAndProfiles]
-  );
-
+  
   const value = {
     user,
     session,
     profile,
     managedProfiles,
     activeProfile,
-    isLoading,
-    error,
+    isLoading: isLoadingSession || (!!user && isLoadingProfile),
+    error: profileError,
     isAuthenticated: !!user?.user_metadata?.display_name,
     isPartiallyAuthenticated: !!user && !user?.user_metadata?.display_name,
     logout,
-    fetchManagedProfiles: refreshAuthAndProfiles,
     switchActiveProfile,
-    updateProfile,
-    refreshSession,
+    updateProfile: updateProfileMutation,
+    refreshAuthAndProfiles: () => queryClient.invalidateQueries({ queryKey: ['userData', user?.id] }),
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

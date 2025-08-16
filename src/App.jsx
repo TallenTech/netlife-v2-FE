@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 import { Helmet } from "react-helmet";
 import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
+import { useToast } from "@/components/ui/use-toast";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import ScrollToTop from "@/components/ScrollToTop";
 import MainLayout from "@/components/layout/MainLayout";
@@ -24,13 +25,24 @@ function App() {
 }
 
 function AppWrapper() {
+  const { toast } = useToast();
+
   useEffect(() => {
     const handleOnline = () => {
       console.log("App is online. Processing offline queue...");
       processSyncQueue();
     };
 
+    const handleSyncSuccess = (event) => {
+      toast({
+        title: "Sync Successful",
+        description: event.detail.message,
+        variant: "success",
+      });
+    };
+
     window.addEventListener("online", handleOnline);
+    window.addEventListener("requestSynced", handleSyncSuccess);
 
     if (navigator.onLine) {
       handleOnline();
@@ -38,8 +50,9 @@ function AppWrapper() {
 
     return () => {
       window.removeEventListener("online", handleOnline);
+      window.removeEventListener("requestSynced", handleSyncSuccess);
     };
-  }, []);
+  }, [toast]);
 
   return (
     <>

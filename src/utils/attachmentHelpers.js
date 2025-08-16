@@ -1,14 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import { logError } from "@/utils/errorHandling";
 
-/**
- * Processes and uploads a single file to a PRIVATE Supabase Storage bucket
- * using a secure signed upload URL.
- * @param {File|Blob} file - The file to upload.
- * @param {string} patientUsername - The username of the patient for the filename.
- * @param {number} serviceNumber - The 3-digit number of the service for the filename.
- * @returns {Promise<string|null>} The PERMANENT file PATH, or null if it fails.
- */
 export async function processAndUploadAttachment(
   file,
   patientUsername,
@@ -19,7 +11,6 @@ export async function processAndUploadAttachment(
   }
 
   try {
-    // --- 1. Construct the permanent file path ---
     const originalName = file.name || "attachment";
     const extension = originalName.split(".").pop()?.toLowerCase() || "dat";
     const baseName = originalName
@@ -37,7 +28,6 @@ export async function processAndUploadAttachment(
     const newFileName = `${patientUsername}_${baseName}_${dateString}_${serviceNumberFormatted}.${extension}`;
     const filePath = `user-attachments/${newFileName}`;
 
-    // --- 2. Get a secure, signed URL from Supabase to upload TO ---
     const { data: signedUrlData, error: signedUrlError } =
       await supabase.storage
         .from("attachments")
@@ -53,7 +43,6 @@ export async function processAndUploadAttachment(
 
     const { signedUrl } = signedUrlData;
 
-    // --- 3. Upload the file directly to the signed URL using fetch ---
     const uploadResponse = await fetch(signedUrl, {
       method: "PUT",
       headers: { "Content-Type": file.type },
@@ -67,7 +56,6 @@ export async function processAndUploadAttachment(
       );
     }
 
-    // --- 4. Return the permanent path of the file, NOT the temporary signed URL ---
     return filePath;
   } catch (error) {
     logError(error, "processAndUploadAttachment", { fileName: file.name });
