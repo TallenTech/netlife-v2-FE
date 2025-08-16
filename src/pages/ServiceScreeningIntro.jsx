@@ -4,7 +4,7 @@ import { Helmet } from "react-helmet";
 import { motion } from "framer-motion";
 import { ArrowLeft, FileText, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { transformServiceData } from "@/services/servicesApi";
+import { transformServiceData } from "@/services/servicesApi.utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useServiceBySlug } from "@/hooks/useServiceQueries";
 

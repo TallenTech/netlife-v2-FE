@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useServices } from "@/hooks/useServiceQueries";
-import { transformServiceData } from "@/services/servicesApi";
+import { transformServiceData } from "@/services/servicesApi.utils";
 
 const iconMap = {
   Heart: Heart,
@@ -88,68 +88,11 @@ const Services = () => {
   const [activeFilter, setActiveFilter] = useState("All");
   const navigate = useNavigate();
 
-<<<<<<< HEAD
-  useEffect(() => {
-    loadServices();
-
-    // Run connection test in development
-    if (import.meta.env.DEV) {
-      setTimeout(() => {
-        runConnectionTest();
-        testServiceMapping();
-      }, 1000);
-    }
-  }, []);
-
-  const loadServices = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      // Try to load from cache first for faster initial render
-      const cachedServices = getCachedServices();
-      if (cachedServices.length > 0) {
-        setServices(cachedServices);
-        setLoading(false);
-      }
-
-      // Fetch fresh data from API
-      const data = await servicesApi.getServices();
-
-      // Transform database services to match UI expectations
-      const transformedServices = data.map(service => {
-        const transformed = transformServiceData(service);
-        return {
-          ...transformed,
-          icon: iconMap[transformed.icon] || Heart // Use mapped icon or fallback to Heart
-        };
-      });
-
-      // Cache the services for offline use
-      cacheServices(transformedServices);
-      setServices(transformedServices);
-
-    } catch (err) {
-      setError(err.message);
-
-      // Try to use cached services if available
-      const cachedServices = getCachedServices();
-      if (cachedServices.length > 0) {
-        setServices(cachedServices);
-      } else {
-        // Use fallback services as last resort
-        setServices(fallbackServices);
-      }
-    } finally {
-      setLoading(false);
-=======
-  const { data, isLoading, isError, error, refetch, isFetching } =
-    useServices();
+  const { data, isLoading, isError, refetch, isFetching } = useServices();
 
   const services = useMemo(() => {
     if (isError && !data) {
       return fallbackServices;
->>>>>>> c00980c (add perssit query to aloo full offline mode)
     }
     if (!data) {
       return [];
@@ -172,16 +115,10 @@ const Services = () => {
     refetch();
   };
 
-<<<<<<< HEAD
-  const filteredServices = activeFilter === 'All'
-    ? services
-    : services.filter(s => s.category === activeFilter.toLowerCase());
-=======
   const filteredServices =
     activeFilter === "All"
       ? services
       : services.filter((s) => s.category === activeFilter.toLowerCase());
->>>>>>> c00980c (add perssit query to aloo full offline mode)
 
   const ServiceSkeleton = () => (
     <div className="bg-white border border-gray-200 p-5 sm:p-6 rounded-2xl flex flex-col items-center text-center space-y-4 shadow-sm animate-pulse min-h-[180px] sm:min-h-[200px]">
@@ -211,49 +148,6 @@ const Services = () => {
           </div>
         </header>
 
-<<<<<<< HEAD
-        {/* Error Banner */}
-        {error && !loading && (
-          <div className={`mb-4 p-3 border rounded-lg flex items-center space-x-2 ${error.includes('Database connection not configured')
-              ? 'bg-blue-50 border-blue-200'
-              : 'bg-red-50 border-red-200'
-            }`}>
-            <AlertCircle size={16} className={`flex-shrink-0 ${error.includes('Database connection not configured')
-                ? 'text-blue-600'
-                : 'text-red-600'
-              }`} />
-            <div className="flex-1">
-              <p className={`text-sm ${error.includes('Database connection not configured')
-                  ? 'text-blue-800'
-                  : 'text-red-800'
-                }`}>
-                {error.includes('Database connection not configured')
-                  ? 'Running in development mode'
-                  : 'Failed to load services from server'
-                }
-              </p>
-              <p className={`text-xs ${error.includes('Database connection not configured')
-                  ? 'text-blue-600'
-                  : 'text-red-600'
-                }`}>
-                {error.includes('Database connection not configured')
-                  ? 'Using demo data. Configure Supabase in .env to connect to database.'
-                  : 'Showing cached services. Some may be outdated.'
-                }
-              </p>
-            </div>
-            {!error.includes('Database connection not configured') && (
-              <Button
-                onClick={handleRetry}
-                size="sm"
-                variant="outline"
-                className="border-red-200 text-red-700 hover:bg-red-50"
-              >
-                <RefreshCw size={14} className="mr-1" />
-                Retry
-              </Button>
-            )}
-=======
         {isError && !isFetching && (
           <div className="mb-4 p-3 border rounded-lg flex items-center space-x-2 bg-red-50 border-red-200">
             <AlertCircle size={16} className="flex-shrink-0 text-red-600" />
@@ -273,7 +167,6 @@ const Services = () => {
               <RefreshCw size={14} className="mr-1" />
               Retry
             </Button>
->>>>>>> c00980c (add perssit query to aloo full offline mode)
           </div>
         )}
 
@@ -282,18 +175,11 @@ const Services = () => {
             <button
               key={filter}
               onClick={() => setActiveFilter(filter)}
-<<<<<<< HEAD
-              className={`px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-200 flex-shrink-0 ${activeFilter === filter
-                  ? 'bg-primary text-white shadow-md'
-                  : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 hover:border-gray-300'
-                }`}
-=======
               className={`px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-200 flex-shrink-0 ${
                 activeFilter === filter
                   ? "bg-primary text-white shadow-md"
                   : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 hover:border-gray-300"
               }`}
->>>>>>> c00980c (add perssit query to aloo full offline mode)
             >
               {filter}
             </button>
@@ -317,16 +203,9 @@ const Services = () => {
                 No Services Available
               </h3>
               <p className="text-gray-500 mb-6 max-w-sm mx-auto leading-relaxed">
-<<<<<<< HEAD
-                {activeFilter === 'All'
-                  ? 'No health services are currently available.'
-                  : `No ${activeFilter.toLowerCase()} services are currently available.`
-                }
-=======
                 {activeFilter === "All"
                   ? "No health services are currently available."
                   : `No ${activeFilter.toLowerCase()} services are currently available.`}
->>>>>>> c00980c (add perssit query to aloo full offline mode)
               </p>
               <Button
                 onClick={handleRetry}

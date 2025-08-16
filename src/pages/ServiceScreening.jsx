@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Check, X, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { calculateEligibility } from "@/services/servicesApi";
+import { calculateEligibility } from "@/services/servicesApi.utils";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   useServiceQuestions,

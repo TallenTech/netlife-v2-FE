@@ -22,19 +22,7 @@ const ServiceRequest = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { activeProfile, profile } = useAuth();
-
-  // Map database slugs to form configuration keys
-  const slugToFormKey = {
-    'sti-screening': 'sti',
-    'counselling-services': 'counselling',
-    'hts': 'hts',
-    'prep': 'prep',
-    'pep': 'pep',
-    'art': 'art'
-  };
-
-  const formKey = slugToFormKey[serviceId] || serviceId;
-  const formConfig = serviceRequestForms[formKey];
+  const formConfig = serviceRequestForms[serviceId];
 
   const [step, setStep] = useState(0);
   const [formData, setFormData] = useState({});
@@ -44,64 +32,18 @@ const ServiceRequest = () => {
   const [validationErrors, setValidationErrors] = useState([]);
 
   const { data: serviceData } = useServiceBySlug(serviceId);
-  const {
-    mutate: submitRequest,
-    isLoading: isSubmitting,
-    isSuccess,
-    isError,
-    error,
-  } = useSubmitServiceRequest();
-
-  useEffect(() => {
-    if (isSuccess) {
-      clearProgress();
-      setShowSuccess(true);
-      setTimeout(() => {
-        setShowSuccess(false);
-        navigate("/history");
-      }, 7000);
-    }
-
-    if (isError) {
-      if (!navigator.onLine) {
-        clearProgress();
-        toast({
-          title: "You appear to be offline",
-          description:
-            "Your request has been saved and will be submitted automatically when you're back online.",
-        });
-        navigate("/history");
-      } else {
-        toast({
-          title: "Submission Failed",
-          description:
-            error?.message || "An unexpected error occurred. Please try again.",
-          variant: "destructive",
-        });
-      }
-    }
-  }, [isSuccess, isError, error, navigate, toast]);
+  const { mutateAsync: submitRequestAsync, isLoading: isSubmitting } =
+    useSubmitServiceRequest();
 
   useEffect(() => {
     if (formConfig && activeProfile && !progressLoaded) {
-      const wasRestored = loadSavedProgress();
+      loadSavedProgress();
       setProgressLoaded(true);
-
-      if (wasRestored) {
-        // Show a brief notification that progress was restored
-        setTimeout(() => {
-          // You could add a toast notification here if desired
-        }, 100);
-      }
     }
   }, [formConfig, activeProfile, progressLoaded]);
 
-  if (!activeProfile) {
-    return <div>Loading profile...</div>;
-  }
-  if (!formConfig) {
-    return <div>Service request form not found.</div>;
-  }
+  if (!activeProfile) return <div>Loading profile...</div>;
+  if (!formConfig) return <div>Service request form not found.</div>;
 
   const totalSteps = formConfig.steps.length;
   const isPreviewStep = step === totalSteps;
@@ -109,8 +51,6 @@ const ServiceRequest = () => {
   const handleInputChange = (name, value) => {
     const newFormData = { ...formData, [name]: value };
     setFormData(newFormData);
-
-    // Save progress after each input change
     saveProgress(newFormData, step);
   };
 
@@ -119,15 +59,16 @@ const ServiceRequest = () => {
 
   const saveProgress = (currentFormData, currentStep) => {
     try {
-      const progressData = {
-        formData: currentFormData,
-        step: currentStep,
-        serviceId: serviceId,
-        timestamp: Date.now(),
-        totalSteps: formConfig?.steps?.length || 0,
-      };
-
-      localStorage.setItem(getProgressKey(), JSON.stringify(progressData));
+      localStorage.setItem(
+        getProgressKey(),
+        JSON.stringify({
+          formData: currentFormData,
+          step: currentStep,
+          serviceId: serviceId,
+          timestamp: Date.now(),
+          totalSteps: formConfig.steps.length,
+        })
+      );
     } catch (error) {
       console.warn("Failed to save service request progress:", error);
     }
@@ -135,29 +76,22 @@ const ServiceRequest = () => {
 
   const loadSavedProgress = () => {
     try {
-      const savedProgress = localStorage.getItem(getProgressKey());
-      if (savedProgress) {
-        const progressData = JSON.parse(savedProgress);
-
-        // Validate that the saved progress matches current service and form structure
-        if (progressData.serviceId === serviceId &&
-          progressData.totalSteps === formConfig?.steps?.length) {
-
-          // Check if progress is not too old (24 hours)
-          const isRecentProgress = Date.now() - progressData.timestamp < 24 * 60 * 60 * 1000;
-
-          if (isRecentProgress && Object.keys(progressData.formData || {}).length > 0) {
-            setFormData(progressData.formData || {});
-            setStep(progressData.step || 0);
-            return true;
-          }
+      const saved = localStorage.getItem(getProgressKey());
+      if (saved) {
+        const data = JSON.parse(saved);
+        if (
+          data.serviceId === serviceId &&
+          data.totalSteps === formConfig.steps.length &&
+          Date.now() - data.timestamp < 24 * 60 * 60 * 1000
+        ) {
+          setFormData(data.formData || {});
+          setStep(data.step || 0);
         }
       }
     } catch (error) {
       console.warn("Failed to load saved progress:", error);
+      clearProgress();
     }
-    clearProgress();
-    return false;
   };
 
   const clearProgress = () => {
@@ -172,7 +106,6 @@ const ServiceRequest = () => {
     if (!currentStepValid && step < totalSteps) {
       toast({
         title: "Please complete all required fields",
-        description: "Fill in all required information before proceeding.",
         variant: "destructive",
       });
       return;
@@ -182,160 +115,79 @@ const ServiceRequest = () => {
     saveProgress(formData, newStep);
   };
 
-  const handleValidationChange = (isValid, errors = []) => {
-    setCurrentStepValid(isValid);
-    setValidationErrors(errors);
-  };
-
-  const prevStep = () => {
-    if (step > 0) {
-      setStep(step - 1);
-    } else {
-      navigate(-1);
-    }
-  };
-
-  const goToStep = (s) => {
-    setStep(s);
-    saveProgress(formData, s);
-  };
+  const prevStep = () => (step > 0 ? setStep(step - 1) : navigate(-1));
+  const goToStep = (s) => setStep(s);
+  const handleValidationChange = (isValid) => setCurrentStepValid(isValid);
 
   const handleSubmit = async () => {
-    try {
-      setSubmitting(true);
-      setSubmitError(null);
+    if (isSubmitting) return;
 
-      // Get the actual service ID from the service slug
-      const serviceData = await servicesApi.getServiceBySlug(serviceId);
-      if (!serviceData) {
-        throw new Error('Service not found');
-      }
+    if (!serviceData || !profile || !activeProfile) {
+      toast({
+        title: "Error",
+        description: "User or service data is missing.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-      // Get current user
-      let currentUser;
-      try {
-        currentUser = await servicesApi.getCurrentUser();
-      } catch (authError) {
-        console.warn('Authentication not available, using fallback for development:', authError.message);
-        // Fallback for development when auth isn't ready
-        currentUser = { id: '32065473-276a-46f9-b519-678a20e84224' };
-      }
-
-      if (!currentUser) {
-        throw new Error('User not authenticated');
-      }
-
-      // Extract attachment from form data (check all possible field names)
-      const attachment = formData.attachment || formData.file || formData.document ||
-        formData.hivTestResult || formData.medicalRecord || formData.prescription ||
-        formData.labResult || formData.healthRecord || null;
-
-      // Prepare service request data with profile information
-      const enhancedFormData = {
+    const serviceRequestData = {
+      user_id: profile.id,
+      service_id: serviceData.id,
+      request_data: {
         ...formData,
-        // Add profile information to track which profile made the request
         _profileInfo: {
           profileId: activeProfile.id,
           profileName: activeProfile.full_name || activeProfile.username,
-          isMainUser: activeProfile.id === profile?.id,
-          requestedBy: profile?.full_name || profile?.username, // Main user who owns the account
-        }
-      };
+          isMainUser: activeProfile.id === profile.id,
+          requestedBy: profile.full_name || profile.username,
+        },
+      },
+      attachments:
+        formData.attachment || formData.file || formData.document || null,
+    };
 
-      const serviceRequestData = {
-        user_id: currentUser.id,
-        service_id: serviceData.id,
-        request_data: enhancedFormData,
-        attachments: attachment
-      };
+    try {
+      await submitRequestAsync(serviceRequestData);
 
-      // Service request data prepared for submission
-
-      // Submit to database
-      const requestId = await servicesApi.submitServiceRequest(serviceRequestData);
-
-      // Also save to localStorage for backward compatibility and offline access
-      const finalData = {
-        id: requestId,
-        profile: activeProfile,
-        request: enhancedFormData,
-        completedAt: new Date().toISOString(),
-        savedToDatabase: true
-      };
-      const recordId = `service_request_${serviceId}_${Date.now()}`;
-      localStorage.setItem(recordId, JSON.stringify(finalData));
-
-      // Clear progress after successful submission
       clearProgress();
-
-      // Show success and navigate
       setShowSuccess(true);
       setTimeout(() => {
         setShowSuccess(false);
-        navigate('/history');
+        navigate("/history");
       }, 7000);
-
     } catch (error) {
-      console.error('Failed to submit service request:', error);
-
-      // Provide user-friendly error messages for attachment issues
-      let userFriendlyError = error.message;
-      if (error.message.includes('attachment') || error.message.includes('file')) {
-        // Check if it's a known attachment error
-        const attachmentErrors = Object.values(ATTACHMENT_ERROR_MESSAGES);
-        const isKnownAttachmentError = attachmentErrors.some(msg => error.message.includes(msg));
-
-        if (isKnownAttachmentError) {
-          userFriendlyError = error.message; // Already user-friendly
-        } else {
-          userFriendlyError = 'There was an issue processing your attachment. Your request has been saved, but you may need to re-upload the file.';
-        }
-      }
-
-      setSubmitError(userFriendlyError);
-
-      // Fallback to localStorage only (graceful degradation)
-      try {
-        const finalData = {
-          profile: activeProfile,
-          request: formData,
-          completedAt: new Date().toISOString(),
-          savedToDatabase: false,
-          error: error.message
-        };
-        const recordId = `service_request_${serviceId}_${Date.now()}`;
-        localStorage.setItem(recordId, JSON.stringify(finalData));
-
-        // Still show success but with a note about offline storage
-        setShowSuccess(true);
-        setTimeout(() => {
-          setShowSuccess(false);
-          navigate("/history");
-        }, 7000);
-      },
-      onError: () => {
+      if (!navigator.onLine) {
         clearProgress();
         toast({
           title: "You appear to be offline",
           description:
-            "Your request has been saved and will be submitted automatically when you're back online.",
+            "Your request has been saved and will be submitted when you're back online.",
         });
         navigate("/history");
-      },
-    });
+      } else {
+        toast({
+          title: "Submission Failed",
+          description:
+            error.message || "An unexpected error occurred. Please try again.",
+          variant: "destructive",
+        });
+      }
+    }
   };
 
   const renderStepContent = () => {
     if (isPreviewStep) {
-      return <PreviewStep
-        formData={formData}
-        setFormData={setFormData}
-        formConfig={formConfig}
-        goToStep={goToStep}
-        onSubmit={handleSubmit}
-        submitting={submitting}
-        submitError={submitError}
-      />;
+      return (
+        <PreviewStep
+          formData={formData}
+          setFormData={setFormData}
+          formConfig={formConfig}
+          goToStep={goToStep}
+          onSubmit={handleSubmit}
+          submitting={isSubmitting}
+        />
+      );
     }
     return (
       <ServiceRequestStep
@@ -349,19 +201,19 @@ const ServiceRequest = () => {
   };
 
   if (showSuccess) {
-    return <SuccessConfirmation onClose={() => {
-      setShowSuccess(false);
-      navigate('/history');
-    }} userData={activeProfile} />;
+    return (
+      <SuccessConfirmation
+        onClose={() => {
+          setShowSuccess(false);
+          navigate("/history");
+        }}
+        userData={activeProfile}
+      />
+    );
   }
 
-  const handleBack = () => {
-    if (isPreviewStep) {
-      setStep(totalSteps - 1);
-    } else {
-      prevStep();
-    }
-  }
+  const handleBack = () =>
+    isPreviewStep ? setStep(totalSteps - 1) : prevStep();
 
   return (
     <>
@@ -390,8 +242,6 @@ const ServiceRequest = () => {
                     : `Step ${step + 1} of ${totalSteps}`}
                 </p>
               </div>
-
-              {/* Show restart button if there's form data */}
               {Object.keys(formData).length > 0 && (
                 <Button
                   variant="ghost"
@@ -412,7 +262,6 @@ const ServiceRequest = () => {
                 <Progress value={((step + 1) / totalSteps) * 100} />
               </div>
             )}
-
             <div className="flex-1 overflow-y-auto px-6 pb-32">
               <div className="min-h-full">
                 <AnimatePresence mode="wait">
@@ -427,13 +276,12 @@ const ServiceRequest = () => {
                     onClick={nextStep}
                     disabled={!currentStepValid}
                     className={cn(
-                      "w-full h-14 text-lg font-bold rounded-xl transition-all duration-200",
-                      !currentStepValid
-                        ? "bg-gray-300 text-gray-500 cursor-not-allowed hover:bg-gray-300"
-                        : "bg-primary hover:bg-primary/90"
+                      "w-full h-14 text-lg font-bold rounded-xl",
+                      !currentStepValid &&
+                        "bg-gray-300 text-gray-500 cursor-not-allowed"
                     )}
                   >
-                    {step === totalSteps - 1 ? 'Review Request' : 'Next Step'}
+                    {step === totalSteps - 1 ? "Review Request" : "Next Step"}
                   </Button>
                 </div>
               </div>
@@ -463,8 +311,6 @@ const ServiceRequest = () => {
                   </p>
                 </div>
               </div>
-
-              {/* Start Over button - Right side */}
               {Object.keys(formData).length > 0 && (
                 <Button
                   variant="outline"
@@ -488,8 +334,6 @@ const ServiceRequest = () => {
               <AnimatePresence mode="wait">
                 {renderStepContent()}
               </AnimatePresence>
-
-              {/* Navigation Button - Bottom right, aligned with header buttons */}
               {!isPreviewStep && (
                 <div className="mt-12 flex justify-end">
                   <div className="flex flex-col items-end">
@@ -497,13 +341,12 @@ const ServiceRequest = () => {
                       onClick={nextStep}
                       disabled={!currentStepValid}
                       className={cn(
-                        "h-14 px-8 text-lg font-bold rounded-xl shadow-lg transition-all duration-200",
-                        !currentStepValid
-                          ? "bg-gray-300 text-gray-500 cursor-not-allowed hover:bg-gray-300 shadow-none"
-                          : "bg-primary hover:bg-primary/90 hover:shadow-xl"
+                        "h-14 px-8 text-lg font-bold rounded-xl shadow-lg",
+                        !currentStepValid &&
+                          "bg-gray-300 text-gray-500 cursor-not-allowed hover:bg-gray-300 shadow-none"
                       )}
                     >
-                      {step === totalSteps - 1 ? 'Review Request' : 'Next Step'}
+                      {step === totalSteps - 1 ? "Review Request" : "Next Step"}
                       <ArrowLeft className="ml-2 h-5 w-5 rotate-180" />
                     </Button>
                     {!currentStepValid && validationErrors.length > 0 && (

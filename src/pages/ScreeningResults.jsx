@@ -6,7 +6,7 @@ import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useServiceBySlug } from "@/hooks/useServiceQueries";
-import { transformServiceData } from "@/services/servicesApi";
+import { transformServiceData } from "@/services/servicesApi.utils";
 
 const ScreeningResults = () => {
   const { serviceId } = useParams();
