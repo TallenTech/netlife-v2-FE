@@ -1,86 +1,51 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import { Helmet } from "react-helmet";
-import { useUserData } from "@/contexts/UserDataContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Play, Tag, Search, Video, BookOpen, AlertCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { servicesApi } from "@/services/servicesApi";
 import { useToast } from "@/components/ui/use-toast";
 import { formatSmartTime } from "@/utils/timeUtils";
-
-
-// Helper function to extract video categories from database videos
-const extractCategories = (videos) => {
-  const categories = [...new Set(videos.map(video => video.source).filter(Boolean))];
-  return ["All", ...categories];
-};
+import { useVideos } from "@/hooks/useServiceQueries";
 
 const Videos = () => {
   const [activeFilter, setActiveFilter] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
-  const [videos, setVideos] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  
-  // Safe destructuring with fallback
-  const userDataContext = useUserData();
-  const authContext = useAuth();
-  const { activeProfile, user } = authContext || {};
-  const userData = userDataContext?.userData || userDataContext?.activeProfile;
+
+  const { user } = useAuth() || {};
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Fetch videos from database
-  useEffect(() => {
-    const fetchVideos = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const fetchedVideos = await servicesApi.getVideos();
-        setVideos(fetchedVideos);
-      } catch (error) {
-        console.error('Failed to fetch videos:', error);
-        setError(error.message);
-        toast({
-          title: "Error loading videos",
-          description: "Failed to load videos. Please try again later.",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
+  const { data: videos = [], isLoading, error } = useVideos();
 
-    fetchVideos();
-  }, [toast]);
+  const filters = useMemo(() => {
+    const categories = [
+      ...new Set(videos.map((video) => video.source).filter(Boolean)),
+    ];
+    return ["All", ...categories];
+  }, [videos]);
 
-  // Get dynamic categories from videos
-  const filters = extractCategories(videos);
+  const filteredVideos = useMemo(() => {
+    return videos.filter((video) => {
+      const matchesFilter =
+        activeFilter === "All" || video.source === activeFilter;
+      const matchesSearch = video.title
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
+      return matchesFilter && matchesSearch;
+    });
+  }, [videos, activeFilter, searchTerm]);
 
-  const filteredVideos = videos.filter((video) => {
-    const matchesFilter =
-      activeFilter === "All" || video.source === activeFilter;
-    const matchesSearch = video.title
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
-    return matchesFilter && matchesSearch;
-  });
-
-  // Helper function to format video duration (if stored as seconds)
   const formatDuration = (duration) => {
     if (!duration) return "0:00";
-    if (typeof duration === 'string' && duration.includes(':')) {
-      return duration; // Already formatted
-    }
+    if (typeof duration === "string" && duration.includes(":")) return duration;
     const minutes = Math.floor(duration / 60);
     const seconds = duration % 60;
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
   };
 
-  // Loading state
-  if (loading) {
+  if (isLoading) {
     return (
       <>
         <Helmet>
@@ -95,7 +60,10 @@ const Videos = () => {
           </header>
           <div className="space-y-4">
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="flex items-center space-x-4 bg-gray-50 border p-3 rounded-2xl animate-pulse">
+              <div
+                key={i}
+                className="flex items-center space-x-4 bg-gray-50 border p-3 rounded-2xl animate-pulse"
+              >
                 <div className="w-28 h-20 bg-gray-200 rounded-lg flex-shrink-0"></div>
                 <div className="flex-1 space-y-2">
                   <div className="h-4 bg-gray-200 rounded w-3/4"></div>
@@ -110,7 +78,6 @@ const Videos = () => {
     );
   }
 
-  // Error state
   if (error) {
     return (
       <>
@@ -123,7 +90,7 @@ const Videos = () => {
               Health Library
             </h1>
             <p className="text-gray-500">
-              Hi {userData?.name || activeProfile?.name || user?.email || 'there'}, here's some content for you.
+              Hi {user?.email || "there"}, here's some content for you.
             </p>
           </header>
           <div className="text-center py-16">
@@ -131,7 +98,7 @@ const Videos = () => {
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
               Failed to load videos
             </h3>
-            <p className="text-gray-500 mb-4">{error}</p>
+            <p className="text-gray-500 mb-4">{error.message}</p>
             <button
               onClick={() => window.location.reload()}
               className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
@@ -155,7 +122,7 @@ const Videos = () => {
             Health Library
           </h1>
           <p className="text-gray-500">
-            Hi {userData?.name || activeProfile?.name || user?.email || 'there'}, here's some content for you.
+            Hi {user?.email || "there"}, here's some content for you.
           </p>
         </header>
 
@@ -188,7 +155,6 @@ const Videos = () => {
 
         <div className="space-y-4">
           {videos.length === 0 ? (
-            // Empty state when no videos in database
             <div className="text-center py-16">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -203,8 +169,9 @@ const Videos = () => {
                   No Videos Available Yet
                 </h3>
                 <p className="text-gray-500 mb-6">
-                  We're working on adding educational health videos to help you stay informed. 
-                  Check back soon for valuable content about HIV prevention, testing, and treatment.
+                  We're working on adding educational health videos to help you
+                  stay informed. Check back soon for valuable content about HIV
+                  prevention, testing, and treatment.
                 </p>
                 <div className="flex items-center justify-center space-x-4 text-sm text-gray-400">
                   <div className="flex items-center">
@@ -245,7 +212,10 @@ const Videos = () => {
                       src="https://images.unsplash.com/photo-1567443024551-f3e3cc2be870"
                     />
                   )}
-                  <Play size={28} className="text-white drop-shadow-lg relative z-10" />
+                  <Play
+                    size={28}
+                    className="text-white drop-shadow-lg relative z-10"
+                  />
                 </div>
                 <div className="flex-1">
                   {video.source && (
@@ -267,9 +237,7 @@ const Videos = () => {
                       <Play size={12} className="mr-1" />
                       Video
                     </span>
-                    <span>
-                      {formatSmartTime(video.created_at)}
-                    </span>
+                    <span>{formatSmartTime(video.created_at)}</span>
                   </div>
                 </div>
               </motion.div>
