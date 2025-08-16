@@ -1,54 +1,26 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Helmet } from 'react-helmet';
-import { motion } from 'framer-motion';
-import { ArrowLeft, FileText, AlertCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { servicesApi, transformServiceData } from '@/services/servicesApi';
-import { useAuth } from '@/contexts/AuthContext';
+import React from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { Helmet } from "react-helmet";
+import { motion } from "framer-motion";
+import { ArrowLeft, FileText, AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { transformServiceData } from "@/services/servicesApi.utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { useServiceBySlug } from "@/hooks/useServiceQueries";
 
 const ServiceScreeningIntro = () => {
   const { serviceId } = useParams();
   const navigate = useNavigate();
   const { activeProfile } = useAuth();
-  
-  const [service, setService] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
-  useEffect(() => {
-    loadService();
-  }, [serviceId]);
-
-  const loadService = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      // Try to get service by slug from API
-      const serviceData = await servicesApi.getServiceBySlug(serviceId);
-      
-      if (!serviceData) {
-        setError('Service not found');
-        return;
-      }
-
-      // Transform the service data for UI
-      const transformedService = transformServiceData(serviceData);
-      setService(transformedService);
-    } catch (err) {
-      console.error('Failed to load service:', err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: serviceData, isLoading, error } = useServiceBySlug(serviceId);
+  const service = serviceData ? transformServiceData(serviceData) : null;
 
   const handleStart = () => {
     navigate(`/services/${serviceId}/screening`);
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="bg-white min-h-screen">
         <div className="max-w-2xl mx-auto px-6 py-8 flex flex-col items-center justify-center min-h-screen">
@@ -64,17 +36,26 @@ const ServiceScreeningIntro = () => {
       <div className="bg-white min-h-screen">
         <div className="max-w-2xl mx-auto px-6 py-8">
           <header className="flex items-center mb-8">
-            <Button variant="ghost" size="icon" onClick={() => navigate('/services')} className="mr-2 text-gray-700 hover:bg-gray-100">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate("/services")}
+              className="mr-2 text-gray-700 hover:bg-gray-100"
+            >
               <ArrowLeft className="h-5 w-5" />
             </Button>
           </header>
-          
+
           <div className="flex flex-col items-center justify-center text-center min-h-[60vh]">
             <AlertCircle size={48} className="text-red-500 mb-4" />
-            <h2 className="text-xl font-bold text-gray-900 mb-2">Service Not Available</h2>
-            <p className="text-gray-600 mb-6">{error || 'The requested service could not be found.'}</p>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">
+              Service Not Available
+            </h2>
+            <p className="text-gray-600 mb-6">
+              {error?.message || "The requested service could not be found."}
+            </p>
             <Button
-              onClick={() => navigate('/services')}
+              onClick={() => navigate("/services")}
               className="bg-primary text-white hover:bg-primary/90"
             >
               Back to Services
@@ -93,7 +74,12 @@ const ServiceScreeningIntro = () => {
       <div className="bg-white min-h-screen">
         <div className="max-w-8xl mx-auto px-6 py-8">
           <header className="flex items-center mb-8">
-            <Button variant="ghost" size="icon" onClick={() => navigate('/services')} className="mr-2 text-gray-700 hover:bg-gray-100">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate("/services")}
+              className="mr-2 text-gray-700 hover:bg-gray-100"
+            >
               <ArrowLeft className="h-5 w-5" />
             </Button>
           </header>
@@ -108,15 +94,21 @@ const ServiceScreeningIntro = () => {
               <FileText className="w-14 h-14 text-primary" />
             </motion.div>
 
-            <motion.p 
+            <motion.p
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2, duration: 0.5 }}
               className="text-2xl font-semibold mb-2 text-gray-900"
             >
-              Hi, <span className="font-bold">{(activeProfile?.full_name || activeProfile?.username)?.split(' ')[0] || 'there'}</span>!
+              Hi,{" "}
+              <span className="font-bold">
+                {(activeProfile?.full_name || activeProfile?.username)?.split(
+                  " "
+                )[0] || "there"}
+              </span>
+              !
             </motion.p>
-            <motion.h1 
+            <motion.h1
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4, duration: 0.5 }}
@@ -124,7 +116,7 @@ const ServiceScreeningIntro = () => {
             >
               {service.title}
             </motion.h1>
-            <motion.p 
+            <motion.p
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5, duration: 0.5 }}
@@ -132,13 +124,14 @@ const ServiceScreeningIntro = () => {
             >
               {service.desc}
             </motion.p>
-            <motion.p 
+            <motion.p
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6, duration: 0.5 }}
               className="text-base text-gray-600 max-w-sm mb-8"
             >
-              Please answer a few confidential questions to check your eligibility for this service.
+              Please answer a few confidential questions to check your
+              eligibility for this service.
             </motion.p>
           </div>
 

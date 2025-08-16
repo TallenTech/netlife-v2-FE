@@ -1,159 +1,125 @@
-import React, { useState, useEffect } from 'react';
-import { Helmet } from 'react-helmet';
-import { Heart, Shield, Calendar, Star, HeartPulse, UserCheck, AlertCircle, RefreshCw } from 'lucide-react';
-import NetLifeLogo from '@/components/NetLifeLogo';
-import { Button } from '@/components/ui/button';
-import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
-import { servicesApi, transformServiceData } from '@/services/servicesApi';
-import { runConnectionTest } from '@/utils/testConnection';
-import { testServiceMapping } from '@/utils/testServiceMapping';
+import React, { useState, useMemo } from "react";
+import { Helmet } from "react-helmet";
+import {
+  Heart,
+  Shield,
+  Calendar,
+  Star,
+  HeartPulse,
+  UserCheck,
+  AlertCircle,
+  RefreshCw,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
+import { useServices } from "@/hooks/useServiceQueries";
+import { transformServiceData } from "@/services/servicesApi.utils";
 
-// Add test function for questions
-const testServiceQuestions = async (serviceId) => {
-  try {
-    const questions = await servicesApi.getServiceQuestions(serviceId);
-    return questions;
-  } catch (error) {
-    return [];
-  }
-};
-
-// Icon mapping for database services
 const iconMap = {
-  'Heart': Heart,
-  'Shield': Shield,
-  'Calendar': Calendar,
-  'Star': Star,
-  'HeartPulse': HeartPulse,
-  'UserCheck': UserCheck
+  Heart: Heart,
+  Shield: Shield,
+  Calendar: Calendar,
+  Star: Star,
+  HeartPulse: HeartPulse,
+  UserCheck: UserCheck,
 };
 
-// Fallback services for offline/error scenarios
 const fallbackServices = [
-  { id: 'hts', slug: 'hts', title: 'HIV Testing', desc: 'Quick and confidential', icon: Heart, category: 'routine', color: 'red' },
-  { id: 'sti', slug: 'sti', title: 'STI Screening', desc: 'Comprehensive screening', icon: Shield, category: 'routine', color: 'blue' },
-  { id: 'prep', slug: 'prep', title: 'PrEP Access', desc: 'Prevention medication', icon: Calendar, category: 'follow-up', color: 'green' },
-  { id: 'pep', slug: 'pep', title: 'PEP Access', desc: 'Post-exposure treatment', icon: Star, category: 'urgent', color: 'yellow' },
-  { id: 'art', slug: 'art', title: 'ART Support', desc: 'Treatment support', icon: HeartPulse, category: 'follow-up', color: 'purple' },
-  { id: 'counselling', slug: 'counselling', title: 'Counseling', desc: 'Professional guidance', icon: UserCheck, category: 'routine', color: 'indigo' },
+  {
+    id: "hts",
+    slug: "hts",
+    title: "HIV Testing",
+    desc: "Quick and confidential",
+    icon: Heart,
+    category: "routine",
+    color: "red",
+  },
+  {
+    id: "sti",
+    slug: "sti",
+    title: "STI Screening",
+    desc: "Comprehensive screening",
+    icon: Shield,
+    category: "routine",
+    color: "blue",
+  },
+  {
+    id: "prep",
+    slug: "prep",
+    title: "PrEP Access",
+    desc: "Prevention medication",
+    icon: Calendar,
+    category: "follow-up",
+    color: "green",
+  },
+  {
+    id: "pep",
+    slug: "pep",
+    title: "PEP Access",
+    desc: "Post-exposure treatment",
+    icon: Star,
+    category: "urgent",
+    color: "yellow",
+  },
+  {
+    id: "art",
+    slug: "art",
+    title: "ART Support",
+    desc: "Treatment support",
+    icon: HeartPulse,
+    category: "follow-up",
+    color: "purple",
+  },
+  {
+    id: "counselling",
+    slug: "counselling",
+    title: "Counseling",
+    desc: "Professional guidance",
+    icon: UserCheck,
+    category: "routine",
+    color: "indigo",
+  },
 ];
 
-const filters = ['All', 'Urgent', 'Routine', 'Follow-up'];
+const filters = ["All", "Urgent", "Routine", "Follow-up"];
 
 const Services = () => {
-  const [activeFilter, setActiveFilter] = useState('All');
-  const [services, setServices] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [activeFilter, setActiveFilter] = useState("All");
   const navigate = useNavigate();
 
-  useEffect(() => {
-    loadServices();
-    
-    // Run connection test in development
-    if (import.meta.env.DEV) {
-      setTimeout(() => {
-        runConnectionTest();
-        testServiceMapping();
-      }, 1000);
-    }
-  }, []);
+  const { data, isLoading, isError, refetch, isFetching } = useServices();
 
-  const loadServices = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      // Try to load from cache first for faster initial render
-      const cachedServices = getCachedServices();
-      if (cachedServices.length > 0) {
-        setServices(cachedServices);
-        setLoading(false);
-      }
-      
-      // Fetch fresh data from API
-      const data = await servicesApi.getServices();
-      
-      // Transform database services to match UI expectations
-      const transformedServices = data.map(service => {
-        const transformed = transformServiceData(service);
-        return {
-          ...transformed,
-          icon: iconMap[transformed.icon] || Heart // Use mapped icon or fallback to Heart
-        };
-      });
-      
-      // Cache the services for offline use
-      cacheServices(transformedServices);
-      setServices(transformedServices);
-      
-    } catch (err) {
-      setError(err.message);
-      
-      // Try to use cached services if available
-      const cachedServices = getCachedServices();
-      if (cachedServices.length > 0) {
-        setServices(cachedServices);
-      } else {
-        // Use fallback services as last resort
-        setServices(fallbackServices);
-      }
-    } finally {
-      setLoading(false);
+  const services = useMemo(() => {
+    if (isError && !data) {
+      return fallbackServices;
     }
-  };
-
-  // Cache management functions
-  const cacheServices = (servicesData) => {
-    try {
-      localStorage.setItem('netlife_services_cache', JSON.stringify({
-        data: servicesData,
-        timestamp: Date.now()
-      }));
-    } catch (error) {
-      // Cache failed, continue
+    if (!data) {
+      return [];
     }
-  };
-
-  const getCachedServices = () => {
-    try {
-      const cached = localStorage.getItem('netlife_services_cache');
-      if (cached) {
-        const { data, timestamp } = JSON.parse(cached);
-        // Use cache if it's less than 1 hour old
-        if (Date.now() - timestamp < 60 * 60 * 1000) {
-          return data.map(service => ({
-            ...service,
-            icon: iconMap[service.icon] || Heart
-          }));
-        }
-      }
-    } catch (error) {
-      // Cache load failed, continue
-    }
-    return [];
-  };
+    return data.map((service) => {
+      const transformed = transformServiceData(service);
+      return {
+        ...transformed,
+        icon: iconMap[transformed.icon] || Heart,
+      };
+    });
+  }, [data, isError]);
 
   const handleRequest = (service) => {
-    // Test questions for this service in development
-    if (import.meta.env.DEV) {
-      testServiceQuestions(service.id);
-    }
-    // Use slug for navigation, fallback to ID if slug is not available
     const serviceIdentifier = service.slug || service.id;
     navigate(`/services/${serviceIdentifier}/intro`);
   };
 
   const handleRetry = () => {
-    loadServices();
+    refetch();
   };
 
-  const filteredServices = activeFilter === 'All' 
-    ? services 
-    : services.filter(s => s.category === activeFilter.toLowerCase());
+  const filteredServices =
+    activeFilter === "All"
+      ? services
+      : services.filter((s) => s.category === activeFilter.toLowerCase());
 
-  // Loading skeleton component
   const ServiceSkeleton = () => (
     <div className="bg-white border border-gray-200 p-5 sm:p-6 rounded-2xl flex flex-col items-center text-center space-y-4 shadow-sm animate-pulse min-h-[180px] sm:min-h-[200px]">
       <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-full bg-gray-200"></div>
@@ -173,68 +139,46 @@ const Services = () => {
       <div className="p-4 sm:p-6 bg-gray-50 min-h-screen">
         <header className="mb-6">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Health Services</h1>
-            <p className="text-gray-600 text-base">Choose the service you need</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+              Health Services
+            </h1>
+            <p className="text-gray-600 text-base">
+              Choose the service you need
+            </p>
           </div>
         </header>
 
-        {/* Error Banner */}
-        {error && !loading && (
-          <div className={`mb-4 p-3 border rounded-lg flex items-center space-x-2 ${
-            error.includes('Database connection not configured') 
-              ? 'bg-blue-50 border-blue-200' 
-              : 'bg-red-50 border-red-200'
-          }`}>
-            <AlertCircle size={16} className={`flex-shrink-0 ${
-              error.includes('Database connection not configured') 
-                ? 'text-blue-600' 
-                : 'text-red-600'
-            }`} />
+        {isError && !isFetching && (
+          <div className="mb-4 p-3 border rounded-lg flex items-center space-x-2 bg-red-50 border-red-200">
+            <AlertCircle size={16} className="flex-shrink-0 text-red-600" />
             <div className="flex-1">
-              <p className={`text-sm ${
-                error.includes('Database connection not configured') 
-                  ? 'text-blue-800' 
-                  : 'text-red-800'
-              }`}>
-                {error.includes('Database connection not configured') 
-                  ? 'Running in development mode' 
-                  : 'Failed to load services from server'
-                }
-              </p>
-              <p className={`text-xs ${
-                error.includes('Database connection not configured') 
-                  ? 'text-blue-600' 
-                  : 'text-red-600'
-              }`}>
-                {error.includes('Database connection not configured') 
-                  ? 'Using demo data. Configure Supabase in .env to connect to database.' 
-                  : 'Showing cached services. Some may be outdated.'
-                }
+              <p className="text-sm text-red-800">Failed to load fresh data</p>
+              <p className="text-xs text-red-600">
+                Displaying cached or fallback services. Please check your
+                connection.
               </p>
             </div>
-            {!error.includes('Database connection not configured') && (
-              <Button 
-                onClick={handleRetry} 
-                size="sm" 
-                variant="outline"
-                className="border-red-200 text-red-700 hover:bg-red-50"
-              >
-                <RefreshCw size={14} className="mr-1" />
-                Retry
-              </Button>
-            )}
+            <Button
+              onClick={handleRetry}
+              size="sm"
+              variant="outline"
+              className="border-red-200 text-red-700 hover:bg-red-50"
+            >
+              <RefreshCw size={14} className="mr-1" />
+              Retry
+            </Button>
           </div>
         )}
-        
+
         <div className="flex space-x-3 overflow-x-auto no-scrollbar mb-8 pb-2">
-          {filters.map(filter => (
+          {filters.map((filter) => (
             <button
               key={filter}
               onClick={() => setActiveFilter(filter)}
               className={`px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-200 flex-shrink-0 ${
                 activeFilter === filter
-                  ? 'bg-primary text-white shadow-md'
-                  : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 hover:border-gray-300'
+                  ? "bg-primary text-white shadow-md"
+                  : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 hover:border-gray-300"
               }`}
             >
               {filter}
@@ -242,34 +186,37 @@ const Services = () => {
           ))}
         </div>
 
-        <motion.div 
+        <motion.div
           layout
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-          {loading ? (
-            // Loading skeletons
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6"
+        >
+          {isLoading ? (
             Array.from({ length: 6 }).map((_, index) => (
               <ServiceSkeleton key={`skeleton-${index}`} />
             ))
           ) : filteredServices.length === 0 ? (
-            // Empty state
             <div className="col-span-full text-center py-16">
               <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gray-100 flex items-center justify-center">
                 <Heart size={32} className="text-gray-400" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">No Services Available</h3>
+              <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                No Services Available
+              </h3>
               <p className="text-gray-500 mb-6 max-w-sm mx-auto leading-relaxed">
-                {activeFilter === 'All' 
-                  ? 'No health services are currently available.' 
-                  : `No ${activeFilter.toLowerCase()} services are currently available.`
-                }
+                {activeFilter === "All"
+                  ? "No health services are currently available."
+                  : `No ${activeFilter.toLowerCase()} services are currently available.`}
               </p>
-              <Button onClick={handleRetry} variant="outline" className="px-6 py-2.5">
+              <Button
+                onClick={handleRetry}
+                variant="outline"
+                className="px-6 py-2.5"
+              >
                 <RefreshCw size={16} className="mr-2" />
                 Refresh Services
               </Button>
             </div>
           ) : (
-            // Services grid
             filteredServices.map((service, index) => (
               <motion.div
                 key={service.id}
@@ -280,15 +227,24 @@ const Services = () => {
                 transition={{ duration: 0.3, delay: index * 0.05 }}
                 className="bg-white border border-gray-200 p-5 sm:p-6 rounded-2xl flex flex-col items-center text-center space-y-4 shadow-sm hover:shadow-md transition-shadow duration-200 min-h-[180px] sm:min-h-[200px]"
               >
-                <div className={`w-16 h-16 sm:w-18 sm:h-18 rounded-full flex items-center justify-center bg-${service.color}-100 shadow-sm`}>
-                  <service.icon size={32} className={`text-${service.color}-600`} />
+                <div
+                  className={`w-16 h-16 sm:w-18 sm:h-18 rounded-full flex items-center justify-center bg-${service.color}-100 shadow-sm`}
+                >
+                  <service.icon
+                    size={32}
+                    className={`text-${service.color}-600`}
+                  />
                 </div>
                 <div className="flex-1 flex flex-col justify-center space-y-1">
-                  <h3 className="font-bold text-gray-800 text-base sm:text-lg leading-tight">{service.title}</h3>
-                  <p className="text-sm text-gray-500 leading-relaxed">{service.desc}</p>
+                  <h3 className="font-bold text-gray-800 text-base sm:text-lg leading-tight">
+                    {service.title}
+                  </h3>
+                  <p className="text-sm text-gray-500 leading-relaxed">
+                    {service.desc}
+                  </p>
                 </div>
-                <Button 
-                  onClick={() => handleRequest(service)} 
+                <Button
+                  onClick={() => handleRequest(service)}
                   className="w-full bg-primary hover:bg-primary/90 text-white rounded-xl py-2.5 font-semibold transition-colors duration-200"
                 >
                   Request Now
