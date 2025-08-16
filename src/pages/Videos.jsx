@@ -209,7 +209,7 @@ const Videos = () => {
                     <img
                       alt={video.title}
                       className="absolute inset-0 w-full h-full object-cover opacity-30"
-                      src="https://images.unsplash.com/photo-1567443024551-f3e3cc2be870"
+                      // src="https://images.unsplash.com/photo-1567443024551-f3e3cc2be870"
                     />
                   )}
                   <Play
