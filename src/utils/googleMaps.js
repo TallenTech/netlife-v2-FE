@@ -76,8 +76,8 @@ export const searchGooglePlaces = async (query, limit = 8) => {
 
             service.getPlacePredictions({
                 input: query,
-                componentRestrictions: { country: 'ug' } // Uganda only
-                // Removed types to allow all place types (addresses, businesses, landmarks)
+                componentRestrictions: { country: 'ug' }, // Uganda only
+                types: ['geocode', 'establishment'] // Focus on addresses and businesses
             }, async (predictions, status) => {
                 if (status !== window.google.maps.places.PlacesServiceStatus.OK || !predictions) {
                     console.warn('Google Places search status:', status);
@@ -85,49 +85,17 @@ export const searchGooglePlaces = async (query, limit = 8) => {
                     return;
                 }
 
-                // Get place details for coordinates
-                const placesService = new window.google.maps.places.PlacesService(
-                    document.createElement('div')
-                );
-
-                const results = await Promise.all(
-                    predictions.slice(0, limit).map(prediction =>
-                        new Promise((resolvePlace) => {
-                            placesService.getDetails({
-                                placeId: prediction.place_id,
-                                fields: ['geometry', 'formatted_address', 'name']
-                            }, (place, detailStatus) => {
-                                if (detailStatus === window.google.maps.places.PlacesServiceStatus.OK && place.geometry) {
-                                    // For businesses, prioritize business name over formatted address
-                                    const displayAddress = place.name && place.name !== place.formatted_address
-                                        ? `${place.name}, ${place.formatted_address}`
-                                        : place.formatted_address || prediction.description;
-
-                                    resolvePlace({
-                                        address: displayAddress,
-                                        lat: place.geometry.location.lat(),
-                                        lng: place.geometry.location.lng(),
-                                        place_id: prediction.place_id,
-                                        types: prediction.types,
-                                        source: 'google',
-                                        name: place.name,
-                                        formatted_address: place.formatted_address
-                                    });
-                                } else {
-                                    // Return without coordinates if details fail
-                                    resolvePlace({
-                                        address: prediction.description,
-                                        lat: null,
-                                        lng: null,
-                                        place_id: prediction.place_id,
-                                        types: prediction.types,
-                                        source: 'google'
-                                    });
-                                }
-                            });
-                        })
-                    )
-                );
+                // Return predictions immediately without getting details for faster response
+                const results = predictions.slice(0, limit).map(prediction => ({
+                    address: prediction.description,
+                    lat: null, // Will be filled when user selects
+                    lng: null, // Will be filled when user selects
+                    place_id: prediction.place_id,
+                    types: prediction.types,
+                    source: 'google',
+                    name: prediction.structured_formatting?.main_text || null,
+                    formatted_address: prediction.structured_formatting?.secondary_text || null
+                }));
 
                 resolve(results);
             });

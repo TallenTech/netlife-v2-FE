@@ -71,12 +71,12 @@ export const Step2Avatar = ({
         ))}
       </div>
       {/* Photo Upload Section - Temporarily disabled, keeping code for future use */}
-      {/* <div className="relative flex items-center py-2">
+      <div className="relative flex items-center py-2">
         <div className="flex-grow border-t border-gray-300"></div>
         <span className="flex-shrink mx-4 text-gray-500 text-sm">OR</span>
         <div className="flex-grow border-t border-gray-300"></div>
       </div>
-      <FileUpload onFileSelect={onFileSelect} previewUrl={previewUrl} /> */}
+      <FileUpload onFileSelect={onFileSelect} previewUrl={previewUrl} />
     </motion.div>
   );
 };

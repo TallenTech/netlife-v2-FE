@@ -34,8 +34,6 @@ const ProfileSetup = ({
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [usernameChecking, setUsernameChecking] = useState(false);
-  const [districts, setDistricts] = useState([]);
-  const [loadingDistricts, setLoadingDistricts] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -54,26 +52,7 @@ const ProfileSetup = ({
     }
   }, [existingData]);
 
-  useEffect(() => {
-    let isMounted = true;
-    const loadDistricts = async () => {
-      setLoadingDistricts(true);
-      const result = await profileService.getDistricts();
-      if (isMounted) {
-        if (result.success) setDistricts(result.data);
-        else setDistricts([]);
-        setLoadingDistricts(false);
-      }
-    };
-    if (!isNewDependent) {
-      loadDistricts();
-    } else {
-      setLoadingDistricts(false);
-    }
-    return () => {
-      isMounted = false;
-    };
-  }, [isNewDependent]);
+
 
   const validateField = useCallback(
     (name, value) => {
@@ -138,9 +117,8 @@ const ProfileSetup = ({
               newErrors[field] =
                 "You must be at least 15 years old to register.";
             else
-              newErrors[field] = `${
-                field.charAt(0).toUpperCase() + field.slice(1)
-              } is required.`;
+              newErrors[field] = `${field.charAt(0).toUpperCase() + field.slice(1)
+                } is required.`;
           }
         }
       });
@@ -280,9 +258,8 @@ const ProfileSetup = ({
 
             <div className="w-full md:w-2/3 flex flex-col flex-1">
               <div
-                className={`flex-1 overflow-y-auto p-4 md:p-8 ${
-                  step === 2 ? "pb-8 md:pb-8" : ""
-                }`}
+                className={`flex-1 overflow-y-auto p-4 md:p-8 ${step === 2 ? "pb-8 md:pb-8" : ""
+                  }`}
               >
                 {step === 1 ? (
                   <Step1Details
@@ -292,8 +269,6 @@ const ProfileSetup = ({
                     validateField={validateField}
                     checkUsername={checkUsername}
                     usernameChecking={usernameChecking}
-                    districts={districts}
-                    loadingDistricts={loadingDistricts}
                     isNewDependent={isNewDependent}
                   />
                 ) : (
@@ -307,11 +282,10 @@ const ProfileSetup = ({
               </div>
 
               <div
-                className={`p-4 md:p-8 bg-white ${
-                  step === 2
-                    ? "pt-6 md:pt-4 border-t md:border-t-0"
-                    : "pt-0 md:pt-4 border-t md:border-t-0"
-                }`}
+                className={`p-4 md:p-8 bg-white ${step === 2
+                  ? "pt-6 md:pt-4 border-t md:border-t-0"
+                  : "pt-0 md:pt-4 border-t md:border-t-0"
+                  }`}
               >
                 <Button
                   onClick={handleNext}
