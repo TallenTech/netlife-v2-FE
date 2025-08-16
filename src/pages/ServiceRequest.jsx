@@ -1,18 +1,21 @@
-import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Helmet } from 'react-helmet';
-import { AnimatePresence } from 'framer-motion';
-import { ArrowLeft } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
-import { useToast } from '@/components/ui/use-toast';
-import { serviceRequestForms } from '@/data/serviceRequestForms';
-import { useAuth } from '@/contexts/AuthContext';
-import { servicesApi, ATTACHMENT_ERROR_MESSAGES } from '@/services/servicesApi';
-import { cn } from '@/lib/utils';
-import ServiceRequestStep from '@/components/service-request/ServiceRequestStep';
-import PreviewStep from '@/components/service-request/PreviewStep';
-import SuccessConfirmation from '@/components/service-request/SuccessConfirmation';
+import React, { useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { Helmet } from "react-helmet";
+import { AnimatePresence } from "framer-motion";
+import { ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { useToast } from "@/components/ui/use-toast";
+import { serviceRequestForms } from "@/data/serviceRequestForms";
+import { useAuth } from "@/contexts/AuthContext";
+import { cn } from "@/lib/utils";
+import ServiceRequestStep from "@/components/service-request/ServiceRequestStep";
+import PreviewStep from "@/components/service-request/PreviewStep";
+import SuccessConfirmation from "@/components/service-request/SuccessConfirmation";
+import {
+  useServiceBySlug,
+  useSubmitServiceRequest,
+} from "@/hooks/useServiceQueries";
 
 const ServiceRequest = () => {
   const { serviceId } = useParams();
@@ -36,17 +39,14 @@ const ServiceRequest = () => {
   const [step, setStep] = useState(0);
   const [formData, setFormData] = useState({});
   const [showSuccess, setShowSuccess] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState(null);
   const [progressLoaded, setProgressLoaded] = useState(false);
   const [currentStepValid, setCurrentStepValid] = useState(false);
   const [validationErrors, setValidationErrors] = useState([]);
 
-  if (!formConfig) {
-    return <div>Service request form not found.</div>;
-  }
+  const { data: serviceData } = useServiceBySlug(serviceId);
+  const { mutate: submitRequest, isLoading: isSubmitting } =
+    useSubmitServiceRequest();
 
-  // Load saved progress when component mounts
   React.useEffect(() => {
     if (formConfig && activeProfile && !progressLoaded) {
       const wasRestored = loadSavedProgress();
@@ -64,6 +64,9 @@ const ServiceRequest = () => {
   if (!activeProfile) {
     return <div>Loading profile...</div>;
   }
+  if (!formConfig) {
+    return <div>Service request form not found.</div>;
+  }
 
   const totalSteps = formConfig.steps.length;
   const isPreviewStep = step === totalSteps;
@@ -76,10 +79,8 @@ const ServiceRequest = () => {
     saveProgress(newFormData, step);
   };
 
-  // Progress persistence functions
-  const getProgressKey = () => {
-    return `service_request_progress_${serviceId}_${activeProfile?.id}`;
-  };
+  const getProgressKey = () =>
+    `service_request_progress_${serviceId}_${activeProfile?.id}`;
 
   const saveProgress = (currentFormData, currentStep) => {
     try {
@@ -88,12 +89,12 @@ const ServiceRequest = () => {
         step: currentStep,
         serviceId: serviceId,
         timestamp: Date.now(),
-        totalSteps: formConfig?.steps?.length || 0
+        totalSteps: formConfig?.steps?.length || 0,
       };
 
       localStorage.setItem(getProgressKey(), JSON.stringify(progressData));
     } catch (error) {
-      console.warn('Failed to save service request progress:', error);
+      console.warn("Failed to save service request progress:", error);
     }
   };
 
@@ -114,19 +115,13 @@ const ServiceRequest = () => {
             setFormData(progressData.formData || {});
             setStep(progressData.step || 0);
             return true;
-          } else {
-            // Clear old progress
-            clearProgress();
           }
-        } else {
-          // Clear invalid progress
-          clearProgress();
         }
       }
     } catch (error) {
-      console.warn('Failed to load saved progress:', error);
-      clearProgress();
+      console.warn("Failed to load saved progress:", error);
     }
+    clearProgress();
     return false;
   };
 
@@ -134,22 +129,19 @@ const ServiceRequest = () => {
     try {
       localStorage.removeItem(getProgressKey());
     } catch (error) {
-      console.warn('Failed to clear progress:', error);
+      console.warn("Failed to clear progress:", error);
     }
   };
 
   const nextStep = () => {
-    // Validate current step before proceeding
-    if (!currentStepValid && step < totalSteps - 1) {
-      // Show validation errors
+    if (!currentStepValid && step < totalSteps) {
       toast({
         title: "Please complete all required fields",
-        description: "Fill in all required information before proceeding to the next step.",
+        description: "Fill in all required information before proceeding.",
         variant: "destructive",
       });
       return;
     }
-
     const newStep = Math.min(step + 1, totalSteps);
     setStep(newStep);
     saveProgress(formData, newStep);
@@ -162,9 +154,7 @@ const ServiceRequest = () => {
 
   const prevStep = () => {
     if (step > 0) {
-      const newStep = step - 1;
-      setStep(newStep);
-      saveProgress(formData, newStep);
+      setStep(step - 1);
     } else {
       navigate(-1);
     }
@@ -285,18 +275,20 @@ const ServiceRequest = () => {
         setShowSuccess(true);
         setTimeout(() => {
           setShowSuccess(false);
-          navigate('/history');
+          navigate("/history");
         }, 7000);
-      } catch (fallbackError) {
-        console.error('Failed to save to localStorage as fallback:', fallbackError);
-        // Show error to user
-      }
-    } finally {
-      setSubmitting(false);
-    }
+      },
+      onError: () => {
+        clearProgress();
+        toast({
+          title: "You appear to be offline",
+          description:
+            "Your request has been saved and will be submitted automatically when you're back online.",
+        });
+        navigate("/history");
+      },
+    });
   };
-
-
 
   const renderStepContent = () => {
     if (isPreviewStep) {
@@ -342,16 +334,26 @@ const ServiceRequest = () => {
         <title>{formConfig.title} - NetLife</title>
       </Helmet>
       <div className="bg-white min-h-screen">
-        {/* Mobile Layout */}
         <div className="block md:hidden">
           <div className="flex flex-col h-screen">
             <header className="flex items-center p-6">
-              <Button variant="ghost" size="icon" onClick={handleBack} className="mr-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleBack}
+                className="mr-2"
+              >
                 <ArrowLeft className="h-5 w-5" />
               </Button>
               <div className="flex-1">
-                <h1 className="text-xl font-bold text-gray-900">{formConfig.title}</h1>
-                <p className="text-sm text-gray-500">{isPreviewStep ? 'Review Your Request' : `Step ${step + 1} of ${totalSteps}`}</p>
+                <h1 className="text-xl font-bold text-gray-900">
+                  {formConfig.title}
+                </h1>
+                <p className="text-sm text-gray-500">
+                  {isPreviewStep
+                    ? "Review Your Request"
+                    : `Step ${step + 1} of ${totalSteps}`}
+                </p>
               </div>
 
               {/* Show restart button if there's form data */}
@@ -370,7 +372,6 @@ const ServiceRequest = () => {
                 </Button>
               )}
             </header>
-
             {!isPreviewStep && (
               <div className="px-6 mb-6">
                 <Progress value={((step + 1) / totalSteps) * 100} />
@@ -384,7 +385,6 @@ const ServiceRequest = () => {
                 </AnimatePresence>
               </div>
             </div>
-
             {!isPreviewStep && (
               <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-50">
                 <div className="p-4 max-w-[428px] mx-auto">
@@ -400,29 +400,32 @@ const ServiceRequest = () => {
                   >
                     {step === totalSteps - 1 ? 'Review Request' : 'Next Step'}
                   </Button>
-                  {!currentStepValid && validationErrors.length > 0 && (
-                    <p className="text-sm text-red-600 text-center mt-2">
-                      Please complete all required fields above
-                    </p>
-                  )}
                 </div>
               </div>
             )}
           </div>
         </div>
-
-        {/* Desktop Layout */}
         <div className="hidden md:block">
           <div className="max-w-10xl mx-auto px-8 py-8 min-h-screen">
-            {/* Header Section */}
             <header className="flex items-start justify-between mb-8">
               <div className="flex items-center">
-                <Button variant="ghost" size="icon" onClick={handleBack} className="mr-4">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleBack}
+                  className="mr-4"
+                >
                   <ArrowLeft className="h-5 w-5" />
                 </Button>
                 <div>
-                  <h1 className="text-2xl font-bold text-gray-900">{formConfig.title}</h1>
-                  <p className="text-gray-500 mt-1">{isPreviewStep ? 'Review Your Request' : `Step ${step + 1} of ${totalSteps}`}</p>
+                  <h1 className="text-2xl font-bold text-gray-900">
+                    {formConfig.title}
+                  </h1>
+                  <p className="text-gray-500 mt-1">
+                    {isPreviewStep
+                      ? "Review Your Request"
+                      : `Step ${step + 1} of ${totalSteps}`}
+                  </p>
                 </div>
               </div>
 
@@ -441,15 +444,11 @@ const ServiceRequest = () => {
                 </Button>
               )}
             </header>
-
-            {/* Progress bar - Full width */}
             {!isPreviewStep && (
               <div className="mb-8">
                 <Progress value={((step + 1) / totalSteps) * 100} />
               </div>
             )}
-
-            {/* Main Content - Full width with proper spacing */}
             <div className="max-w-10xl mx-auto">
               <AnimatePresence mode="wait">
                 {renderStepContent()}
