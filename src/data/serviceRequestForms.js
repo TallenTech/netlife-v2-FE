@@ -64,7 +64,7 @@ export const serviceRequestForms = {
           { name: 'requestType', label: 'Request Type', type: 'radio', options: ['Start PEP (exposure within 72 hours)', 'Continue/refill PEP', 'Follow-up test or medical review'], required: true },
           { name: 'accessPoint', label: 'Preferred Access Point for Medication', type: 'radio', options: ['Home Delivery', 'Facility pickup', 'Community Group Delivery'], required: true },
           { name: 'quantity', label: 'Quantity (e.g., packs)', type: 'number', placeholder: 'e.g., 1', required: true },
-          { name: 'hivTestResult', label: 'Attach Latest HIV Test Result', type: 'file', accept: '.pdf,.jpg,.png' },
+          { name: 'hivTestResult', label: 'Attach Latest HIV Test Result', type: 'file', accept: '.pdf,.jpg,.png', condition: (data) => ['Continue/refill PEP', 'Follow-up test or medical review'].includes(data.requestType), required: true },
         ],
       },
       {
@@ -92,7 +92,7 @@ export const serviceRequestForms = {
         fields: [
           { name: 'requestType', label: 'Request Type', type: 'radio', options: ['Start ART for the first time', 'Resume ART after default', 'Refill or switch regimen'], required: true },
           { name: 'quantity', label: 'Quantity (e.g., bottles)', type: 'number', placeholder: 'e.g., 1', required: true },
-          { name: 'prescription', label: 'Attach Referral Slip or Prescription', type: 'file', accept: '.pdf,.jpg,.png' },
+          { name: 'prescription', label: 'Attach Referral Slip or Prescription', type: 'file', accept: '.pdf,.jpg,.png', condition: (data) => ['Resume ART after default', 'Refill or switch regimen'].includes(data.requestType), required: true },
         ],
       },
       {
@@ -121,7 +121,7 @@ export const serviceRequestForms = {
         title: 'Service Details',
         fields: [
           { name: 'serviceRequested', label: 'Service Requested', type: 'radio', options: ['Book in-person STI screening', 'Request home sample collection', 'Request online consultation', 'Request medication refill'], required: true },
-          { name: 'labResults', label: 'Attach Previous Lab Results or Treatment Notes (optional)', type: 'file', accept: '.pdf,.jpg,.png' },
+          { name: 'labResults', label: 'Attach Previous Lab Results or Treatment Notes', type: 'file', accept: '.pdf,.jpg,.png', condition: (data) => ['Request online consultation', 'Request medication refill'].includes(data.serviceRequested), required: true },
         ],
       },
       {

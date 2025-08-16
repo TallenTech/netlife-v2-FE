@@ -48,7 +48,7 @@ const LocationSearch = ({ field, value, onLocationSelect }) => {
 
       searchTimeoutRef.current = setTimeout(async () => {
         try {
-          const results = await searchGooglePlaces(searchTerm, 10); // Increased from 6 to 10 results
+          const results = await searchGooglePlaces(searchTerm, 6); // Reduced from 8 to 6 results
           setSuggestions(results);
           setShowSuggestions(results.length > 0 || searchTerm.length >= 3);
         } catch (error) {
@@ -309,7 +309,7 @@ const LocationSearch = ({ field, value, onLocationSelect }) => {
       {/* Desktop dropdown */}
       {!isMobile && showSuggestions && (searchLoading || suggestions.length > 0 || (searchTerm.length >= 3 && suggestions.length === 0 && !searchLoading)) ? (
         <div className="absolute z-50 w-full">
-          <div className="w-full bg-white border-2 border-gray-200 rounded-xl mt-1 shadow-xl max-h-80 overflow-y-auto">
+          <div className="w-full bg-white border-2 border-gray-200 rounded-xl mt-1 shadow-xl max-h-60 overflow-y-auto">
             <ul>
               {searchLoading ? (
                 <li className="p-4 flex items-center space-x-3 text-gray-500">
@@ -395,8 +395,8 @@ const LocationSearch = ({ field, value, onLocationSelect }) => {
       {/* Mobile dropdown - attached to input */}
       {isMobile && showSuggestions && (searchLoading || suggestions.length > 0 || (searchTerm.length >= 3 && suggestions.length === 0 && !searchLoading)) ? (
         <div className="absolute z-50 w-full top-full mt-1">
-          <div className="w-full bg-white border-2 border-gray-200 rounded-xl shadow-2xl max-h-80 overflow-hidden">
-            <ul className="max-h-80 overflow-y-auto">
+          <div className="w-full bg-white border-2 border-gray-200 rounded-xl shadow-2xl max-h-60 overflow-hidden">
+            <ul className="max-h-60 overflow-y-auto">
               {searchLoading ? (
                 <>
                   <li className="p-4 flex items-center space-x-3 text-gray-500">
