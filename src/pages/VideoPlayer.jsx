@@ -262,7 +262,7 @@ const VideoPlayer = () => {
                 ref={videoRef}
                 className="w-full h-full object-cover"
                 src={video.video_url}
-                poster="https://images.unsplash.com/photo-1673648955093-5f22a6010474"
+                // poster="https://images.unsplash.com/photo-1673648955093-5f22a6010474"
                 preload="metadata"
                 onPlay={() => setIsPlaying(true)}
                 onPause={() => setIsPlaying(false)}
