@@ -6,6 +6,33 @@ import { Edit, Save, FileText, Image, Download, Eye } from 'lucide-react';
 import DateTimePicker from '@/components/ui/DateTimePicker';
 import AttachmentViewer from '@/components/AttachmentViewer';
 
+// Utility function to get user-friendly location display
+const getLocationDisplayName = (locationData) => {
+    if (!locationData) return '';
+    
+    // If it's just a string, return it
+    if (typeof locationData === 'string') {
+        return locationData;
+    }
+    
+    // If it's an object with address, prioritize that
+    if (locationData.address) {
+        return locationData.address;
+    }
+    
+    // If no address but has coordinates, show user-friendly format
+    if (locationData.coordinates && locationData.coordinates.lat && locationData.coordinates.lng) {
+        return `Selected Location (${locationData.coordinates.lat.toFixed(4)}, ${locationData.coordinates.lng.toFixed(4)})`;
+    }
+    
+    // Handle legacy format where coordinates might be directly in the object
+    if (locationData.lat && locationData.lng) {
+        return `Selected Location (${locationData.lat.toFixed(4)}, ${locationData.lng.toFixed(4)})`;
+    }
+    
+    return 'Location selected';
+};
+
 const EditableField = ({ field, value, onSave }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [currentValue, setCurrentValue] = useState(value);
@@ -14,13 +41,16 @@ const EditableField = ({ field, value, onSave }) => {
     // Handle object values (like location data and file attachments)
     const getDisplayValue = (val) => {
         if (typeof val === 'object' && val !== null) {
-            if (val.address) {
-                return val.address;
-            }
-            // Handle file attachments
+            // Handle file attachments first
             if (val.path || val.relativePath) {
                 return null; // Will be handled by file preview component
             }
+            
+            // Check if this looks like location data (has address, coordinates, or lat/lng)
+            if (val.address || val.coordinates || (val.lat && val.lng)) {
+                return getLocationDisplayName(val);
+            }
+            
             return JSON.stringify(val);
         }
         
