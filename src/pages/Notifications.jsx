@@ -1,26 +1,25 @@
-import React, { useState, useEffect } from 'react';
-import { Helmet } from 'react-helmet';
-import { 
-  Bell, 
-  ChevronLeft, 
-  Settings, 
-  Trash2, 
-  CheckCircle, 
-  FileText, 
-  HeartPulse, 
+import React, { useState, useEffect } from "react";
+import { Helmet } from "react-helmet";
+import {
+  Bell,
+  ChevronLeft,
+  Trash2,
+  CheckCircle,
+  FileText,
+  HeartPulse,
   Video,
   RefreshCw,
   MoreVertical,
   Eye,
-  EyeOff
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
+  EyeOff,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,174 +29,113 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { useNavigate } from 'react-router-dom';
-import { useToast } from '@/components/ui/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
-import { notificationService } from '@/services/notificationService';
-import { formatSmartTime } from '@/utils/timeUtils';
-import { motion } from 'framer-motion';
+} from "@/components/ui/alert-dialog";
+import { useNavigate } from "react-router-dom";
+import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { notificationService } from "@/services/notificationService";
+import { formatSmartTime } from "@/utils/timeUtils";
+import { motion } from "framer-motion";
+import {
+  useUserNotifications,
+  useUnreadNotificationCount,
+  useMarkNotificationAsRead,
+  useMarkAllNotificationsAsRead,
+  useDeleteNotification,
+} from "@/hooks/useNotificationQueries";
 
 const Notifications = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { activeProfile, profile } = useAuth();
-  
-  const [notifications, setNotifications] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('all'); // 'all', 'unread', 'read'
+  const { profile } = useAuth();
+  const [filter, setFilter] = useState("all");
   const [deleteAllDialogOpen, setDeleteAllDialogOpen] = useState(false);
-  const [subscription, setSubscription] = useState(null);
+
+  const {
+    data: notifications = [],
+    isLoading,
+    refetch,
+  } = useUserNotifications(profile?.id);
+  const { data: unreadCount = 0 } = useUnreadNotificationCount(profile?.id);
+  const { mutate: markAsRead } = useMarkNotificationAsRead();
+  const { mutate: markAllAsRead } = useMarkAllNotificationsAsRead();
+  const { mutate: deleteNotification } = useDeleteNotification();
 
   useEffect(() => {
-    if (profile) {
-      loadNotifications();
-      setupRealtimeSubscription();
-    }
-
+    if (!profile?.id) return;
+    const subscription = notificationService.subscribeToNotifications(
+      profile.id,
+      () => refetch()
+    );
     return () => {
       if (subscription) {
         notificationService.unsubscribeFromNotifications(subscription);
       }
     };
-  }, [profile]);
+  }, [profile?.id, refetch]);
 
-  const loadNotifications = async () => {
-    try {
-      setLoading(true);
-      const { success, data } = await notificationService.getUserNotifications(profile.id);
-      
-      if (success) {
-        setNotifications(data);
-      } else {
+  const handleMarkAllAsRead = () => {
+    markAllAsRead(profile.id, {
+      onSuccess: () => {
         toast({
-          title: 'Error',
-          description: 'Failed to load notifications.',
-          variant: 'destructive',
+          title: "All Marked as Read",
+          description: "All notifications have been marked as read.",
         });
-      }
-    } catch (error) {
-      console.error('Error loading notifications:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load notifications.',
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const setupRealtimeSubscription = () => {
-    const sub = notificationService.subscribeToNotifications(
-      profile.id,
-      (payload) => {
-        console.log('Notification update:', payload);
-        // Reload notifications when there's a change
-        loadNotifications();
-      }
-    );
-    setSubscription(sub);
-  };
-
-  const handleMarkAsRead = async (notificationId) => {
-    try {
-      const { success } = await notificationService.markAsRead(notificationId);
-      
-      if (success) {
-        setNotifications(prev => 
-          prev.map(notif => 
-            notif.id === notificationId 
-              ? { ...notif, read: true }
-              : notif
-          )
-        );
-      }
-    } catch (error) {
-      console.error('Error marking notification as read:', error);
-    }
-  };
-
-  const handleMarkAllAsRead = async () => {
-    try {
-      const { success } = await notificationService.markAllAsRead(profile.id);
-      
-      if (success) {
-        setNotifications(prev => 
-          prev.map(notif => ({ ...notif, read: true }))
-        );
+      },
+      onError: () => {
         toast({
-          title: 'All Marked as Read',
-          description: 'All notifications have been marked as read.',
+          title: "Error",
+          description: "Failed to mark all as read.",
+          variant: "destructive",
         });
-      }
-    } catch (error) {
-      console.error('Error marking all as read:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to mark all notifications as read.',
-        variant: 'destructive',
-      });
-    }
+      },
+    });
   };
 
-  const handleDeleteNotification = async (notificationId) => {
-    try {
-      const { success } = await notificationService.deleteNotification(notificationId);
-      
-      if (success) {
-        setNotifications(prev => prev.filter(notif => notif.id !== notificationId));
+  const handleDeleteNotification = (notificationId) => {
+    deleteNotification(notificationId, {
+      onSuccess: () => {
         toast({
-          title: 'Notification Deleted',
-          description: 'Notification has been removed.',
+          title: "Notification Deleted",
         });
-      }
-    } catch (error) {
-      console.error('Error deleting notification:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to delete notification.',
-        variant: 'destructive',
-      });
-    }
+      },
+      onError: () => {
+        toast({
+          title: "Error",
+          description: "Failed to delete notification.",
+          variant: "destructive",
+        });
+      },
+    });
   };
 
   const handleClearAll = async () => {
     try {
-      // Delete all notifications for the user
-      const deletePromises = notifications.map(notif => 
+      const deletePromises = notifications.map((notif) =>
         notificationService.deleteNotification(notif.id)
       );
-      
       await Promise.all(deletePromises);
-      
-      setNotifications([]);
+      refetch();
       setDeleteAllDialogOpen(false);
-      
-      toast({
-        title: 'All Notifications Cleared',
-        description: 'All notifications have been removed.',
-      });
+      toast({ title: "All Notifications Cleared" });
     } catch (error) {
-      console.error('Error clearing all notifications:', error);
       toast({
-        title: 'Error',
-        description: 'Failed to clear all notifications.',
-        variant: 'destructive',
+        title: "Error",
+        description: "Failed to clear all notifications.",
+        variant: "destructive",
       });
     }
   };
 
   const getNotificationIcon = (notification) => {
     const type = notification.type;
-
     switch (type) {
-      case 'service_request':
-      case 'service_request_status':
+      case "service_request":
+      case "service_request_status":
         return <HeartPulse size={20} />;
-      case 'screening_result':
+      case "screening_result":
         return <FileText size={20} />;
-      case 'video':
+      case "video":
         return <Video size={20} />;
       default:
         return <Bell size={20} />;
@@ -206,28 +144,25 @@ const Notifications = () => {
 
   const getNotificationColor = (notification) => {
     const type = notification.type;
-
     switch (type) {
-      case 'service_request':
-        return 'bg-blue-100 text-blue-600';
-      case 'service_request_status':
-        return 'bg-green-100 text-green-600';
-      case 'screening_result':
-        return 'bg-purple-100 text-purple-600';
-      case 'video':
-        return 'bg-red-100 text-red-600';
+      case "service_request":
+        return "bg-blue-100 text-blue-600";
+      case "service_request_status":
+        return "bg-green-100 text-green-600";
+      case "screening_result":
+        return "bg-purple-100 text-purple-600";
+      case "video":
+        return "bg-red-100 text-red-600";
       default:
-        return 'bg-gray-100 text-gray-600';
+        return "bg-gray-100 text-gray-600";
     }
   };
 
-  const filteredNotifications = notifications.filter(notif => {
-    if (filter === 'unread') return !notif.read;
-    if (filter === 'read') return notif.read;
+  const filteredNotifications = notifications.filter((notif) => {
+    if (filter === "unread") return !notif.read;
+    if (filter === "read") return notif.read;
     return true;
   });
-
-  const unreadCount = notifications.filter(notif => !notif.read).length;
 
   return (
     <>
@@ -235,7 +170,6 @@ const Notifications = () => {
         <title>Notifications - NetLife</title>
       </Helmet>
       <div className="p-4 sm:p-6 bg-gray-50 min-h-screen">
-        {/* Header */}
         <header className="flex justify-between items-center mb-6">
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <ChevronLeft size={24} />
@@ -246,30 +180,33 @@ const Notifications = () => {
               <p className="text-xs text-gray-500">{unreadCount} unread</p>
             )}
           </div>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={loadNotifications}
-            disabled={loading}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => refetch()}
+            disabled={isLoading}
           >
-            <RefreshCw size={22} className={loading ? 'animate-spin' : ''} />
+            <RefreshCw size={22} className={isLoading ? "animate-spin" : ""} />
           </Button>
         </header>
 
-        {/* Filter Tabs */}
         <div className="flex space-x-2 mb-6 overflow-x-auto no-scrollbar">
           {[
-            { key: 'all', label: 'All', count: notifications.length },
-            { key: 'unread', label: 'Unread', count: unreadCount },
-            { key: 'read', label: 'Read', count: notifications.length - unreadCount }
-          ].map(tab => (
+            { key: "all", label: "All", count: notifications.length },
+            { key: "unread", label: "Unread", count: unreadCount },
+            {
+              key: "read",
+              label: "Read",
+              count: notifications.length - unreadCount,
+            },
+          ].map((tab) => (
             <button
               key={tab.key}
               onClick={() => setFilter(tab.key)}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex-shrink-0 ${
                 filter === tab.key
-                  ? 'bg-primary text-white'
-                  : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
+                  ? "bg-primary text-white"
+                  : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
               }`}
             >
               {tab.label} {tab.count > 0 && `(${tab.count})`}
@@ -277,11 +214,10 @@ const Notifications = () => {
           ))}
         </div>
 
-        {/* Actions */}
         {notifications.length > 0 && (
           <div className="flex justify-between items-center mb-4">
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               size="sm"
               onClick={handleMarkAllAsRead}
               disabled={unreadCount === 0}
@@ -290,8 +226,8 @@ const Notifications = () => {
               <CheckCircle size={14} className="mr-1" />
               Mark All Read
             </Button>
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               size="sm"
               onClick={() => setDeleteAllDialogOpen(true)}
               className="text-red-600 hover:text-red-700"
@@ -302,11 +238,13 @@ const Notifications = () => {
           </div>
         )}
 
-        {/* Notifications List */}
-        {loading ? (
+        {isLoading ? (
           <div className="space-y-3">
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="bg-white p-4 rounded-2xl border animate-pulse">
+              <div
+                key={i}
+                className="bg-white p-4 rounded-2xl border animate-pulse"
+              >
                 <div className="flex items-start space-x-4">
                   <div className="w-10 h-10 rounded-full bg-gray-200"></div>
                   <div className="flex-1 space-y-2">
@@ -327,28 +265,31 @@ const Notifications = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: index * 0.05 }}
                 className={`bg-white p-4 rounded-2xl border flex items-start space-x-4 ${
-                  !notification.read ? 'border-primary/50 bg-primary/5' : ''
+                  !notification.read ? "border-primary/50 bg-primary/5" : ""
                 }`}
               >
-                <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center ${
-                  getNotificationColor(notification)
-                }`}>
+                <div
+                  className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center ${getNotificationColor(
+                    notification
+                  )}`}
+                >
                   {getNotificationIcon(notification)}
                 </div>
-                
                 <div className="flex-1 min-w-0">
-                  <p className="font-bold text-gray-800 truncate">{notification.title}</p>
-                  <p className="text-sm text-gray-600 mt-1 line-clamp-2">{notification.message}</p>
+                  <p className="font-bold text-gray-800 truncate">
+                    {notification.title}
+                  </p>
+                  <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                    {notification.message}
+                  </p>
                   <p className="text-xs text-gray-400 mt-2">
                     {formatSmartTime(notification.created_at)}
                   </p>
                 </div>
-
                 <div className="flex items-center space-x-2 flex-shrink-0">
                   {!notification.read && (
                     <div className="w-2.5 h-2.5 rounded-full bg-primary"></div>
                   )}
-                  
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="sm">
@@ -356,8 +297,8 @@ const Notifications = () => {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem 
-                        onClick={() => handleMarkAsRead(notification.id)}
+                      <DropdownMenuItem
+                        onClick={() => markAsRead(notification.id)}
                         disabled={notification.read}
                       >
                         {notification.read ? (
@@ -372,8 +313,10 @@ const Notifications = () => {
                           </>
                         )}
                       </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onClick={() => handleDeleteNotification(notification.id)}
+                      <DropdownMenuItem
+                        onClick={() =>
+                          handleDeleteNotification(notification.id)
+                        }
                         className="text-red-600"
                       >
                         <Trash2 size={14} className="mr-2" />
@@ -389,26 +332,30 @@ const Notifications = () => {
           <div className="text-center py-20">
             <Bell size={48} className="mx-auto text-gray-300 mb-4" />
             <h2 className="text-xl font-bold text-gray-800">
-              {filter === 'unread' ? 'No Unread Notifications' : 
-               filter === 'read' ? 'No Read Notifications' : 
-               'No Notifications Yet'}
+              {filter === "unread"
+                ? "No Unread Notifications"
+                : filter === "read"
+                ? "No Read Notifications"
+                : "No Notifications Yet"}
             </h2>
             <p className="text-gray-500">
-              {filter === 'all' 
+              {filter === "all"
                 ? "We'll let you know when there's something new."
-                : `No ${filter} notifications to show.`
-              }
+                : `No ${filter} notifications to show.`}
             </p>
           </div>
         )}
 
-        {/* Delete All Confirmation Dialog */}
-        <AlertDialog open={deleteAllDialogOpen} onOpenChange={setDeleteAllDialogOpen}>
+        <AlertDialog
+          open={deleteAllDialogOpen}
+          onOpenChange={setDeleteAllDialogOpen}
+        >
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Clear All Notifications</AlertDialogTitle>
               <AlertDialogDescription>
-                Are you sure you want to delete all notifications? This action cannot be undone.
+                Are you sure you want to delete all notifications? This action
+                cannot be undone.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

@@ -3,17 +3,36 @@ import { logError } from "@/utils/errorHandling";
 
 const SYNC_QUEUE_KEY = "netlife_sync_queue";
 
-export function addToSyncQueue(request) {
+const fileToBase64 = (file) =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = (error) => reject(error);
+  });
+
+export async function addToSyncQueue(request) {
   console.log("OFFLINE: Adding request to sync queue.", request);
+
+  const serializableRequest = { ...request };
+
+  if (request.attachments && request.attachments instanceof File) {
+    serializableRequest.attachments = {
+      dataUrl: await fileToBase64(request.attachments),
+      name: request.attachments.name,
+      type: request.attachments.type,
+    };
+  }
+
   const queue = getSyncQueue();
-  const item = { ...request, queueId: `offline_${Date.now()}` };
+  const item = { ...serializableRequest, queueId: `offline_${Date.now()}` };
   queue.push(item);
-  localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(queue));
+  localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(item));
 }
 
 export function getSyncQueue() {
   try {
-    const queue = localStorage.getItem(SYNC_QUEUE_KEY); 
+    const queue = localStorage.getItem(SYNC_QUEUE_KEY);
     return queue ? JSON.parse(queue) : [];
   } catch (error) {
     logError(error, "getSyncQueue");

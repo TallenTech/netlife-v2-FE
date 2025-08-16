@@ -26,18 +26,44 @@ import {
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/lib/supabase";
 import { getAvatarEmoji } from "@/lib/utils";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { profileService } from "@/services/profileService";
 
 const ManageProfiles = () => {
   const {
+    user,
     profile,
     managedProfiles,
     activeProfile,
     switchActiveProfile,
-    fetchManagedProfiles,
+    refreshAuthAndProfiles,
   } = useAuth();
 
   const { toast } = useToast();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const { mutate: deleteProfileMutation } = useMutation({
+    mutationFn: (profileToDelete) =>
+      profileService.deleteManagedProfile(profileToDelete.id),
+    onSuccess: (data, variables) => {
+      toast({
+        title: "Profile Deleted",
+        description: `${variables.username}'s profile has been removed.`,
+      });
+      if (activeProfile?.id === variables.id) {
+        switchActiveProfile(profile.id);
+      }
+      refreshAuthAndProfiles();
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Could not delete profile. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
 
   const allProfiles = useMemo(() => {
     if (!profile) return [];
@@ -57,33 +83,9 @@ const ManageProfiles = () => {
     navigate("/dashboard");
   };
 
-  // Delete a managed profile from the database.
-  const handleDeleteProfile = async (profileToDelete) => {
+  const handleDeleteProfile = (profileToDelete) => {
     if (profileToDelete.isMain) return;
-
-    const { error } = await supabase
-      .from("managed_profiles")
-      .delete()
-      .eq("id", profileToDelete.id);
-
-    if (error) {
-      toast({
-        title: "Error",
-        description: "Could not delete profile. Please try again.",
-        variant: "destructive",
-      });
-    } else {
-      toast({
-        title: "Profile Deleted",
-        description: `${profileToDelete.username}'s profile has been removed.`,
-      });
-
-      if (activeProfile?.id === profileToDelete.id) {
-        switchActiveProfile(profile.id);
-      }
-
-      await fetchManagedProfiles();
-    }
+    deleteProfileMutation(profileToDelete);
   };
 
   const renderAvatar = (p) => {
@@ -203,11 +205,6 @@ const ManageProfiles = () => {
               </div>
             </div>
           ))}
-          {allProfiles.length <= 1 && (
-            <p className="text-center text-gray-500 py-8">
-              You haven't added any other profiles yet.
-            </p>
-          )}
         </div>
 
         <Button

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet";
 import { motion } from "framer-motion";
@@ -17,19 +17,31 @@ const ScreeningResults = () => {
     useServiceBySlug(serviceId);
   const service = serviceData ? transformServiceData(serviceData) : null;
 
-  const [results, setResults] = React.useState(null);
+  const [results, setResults] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  React.useEffect(() => {
-    if (!activeProfile || !service) return;
+  useEffect(() => {
+    if (!activeProfile || !service) {
+      return;
+    }
 
     const storedResults = localStorage.getItem(
       `screening_results_${service.id}_${activeProfile.id}`
     );
+
     if (storedResults) {
-      setResults(JSON.parse(storedResults));
+      try {
+        setResults(JSON.parse(storedResults));
+      } catch (e) {
+        console.error("Failed to parse screening results, redirecting.", e);
+        navigate(`/services/${serviceId}/screening`);
+      }
     } else {
+      console.warn("No screening results found in localStorage, redirecting.");
       navigate(`/services/${serviceId}/screening`);
     }
+
+    setLoading(false);
   }, [serviceId, activeProfile, service, navigate]);
 
   const getAdvisoryMessage = (serviceName) => {
@@ -71,7 +83,6 @@ const ScreeningResults = () => {
         cta: "Review Safe Practices",
       },
     };
-
     return (
       advisoryMessages[serviceName] || {
         title: "Stay Healthy",
@@ -83,14 +94,14 @@ const ScreeningResults = () => {
   };
 
   const handleCTA = () => {
-    if (results.eligible) {
+    if (results?.eligible) {
       navigate(`/services/${serviceId}/request`);
     } else {
       navigate("/videos");
     }
   };
 
-  if (isLoadingService || !results || !service || !activeProfile) {
+  if (isLoadingService || loading || !activeProfile) {
     return (
       <div className="bg-white min-h-screen">
         <div className="flex items-center justify-center min-h-screen">
@@ -98,6 +109,10 @@ const ScreeningResults = () => {
         </div>
       </div>
     );
+  }
+
+  if (!results) {
+    return null;
   }
 
   const { eligible, score } = results;
@@ -128,7 +143,6 @@ const ScreeningResults = () => {
               <p className="text-gray-600 text-base sm:text-lg mb-6 sm:mb-8 px-4">
                 For {service.title}.
               </p>
-
               <div
                 className={`w-32 h-32 sm:w-36 sm:h-36 md:w-40 md:h-40 rounded-full flex flex-col items-center justify-center mb-6 sm:mb-8 bg-gradient-to-br ${gradientClass} shadow-lg`}
               >
@@ -139,7 +153,6 @@ const ScreeningResults = () => {
                   Urgency Score
                 </p>
               </div>
-
               {eligible ? (
                 <div className="bg-gray-50 border border-green-200 p-4 sm:p-6 rounded-2xl shadow-sm max-w-md mx-4 mb-8">
                   <p className="text-green-800 font-semibold text-sm sm:text-base">
@@ -160,7 +173,6 @@ const ScreeningResults = () => {
               )}
             </motion.div>
           </div>
-
           <div className="space-y-3 max-w-md mx-auto px-4">
             <Button
               onClick={handleCTA}

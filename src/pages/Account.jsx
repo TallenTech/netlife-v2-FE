@@ -30,9 +30,14 @@ import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getAvatarEmoji } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
-import { profileService } from "@/services/profileService";
 import { settingsService } from "@/services/settingsService";
 import { DateOfBirthPicker } from "@/components/ui/DateOfBirthPicker";
+import {
+  useUserSettings,
+  useDistricts,
+  useSaveSettings,
+  useDeleteAccount,
+} from "@/hooks/useSettingsQueries";
 
 const Account = () => {
   const { toast } = useToast();
@@ -42,60 +47,27 @@ const Account = () => {
     user,
     logout,
     updateProfile,
-    refreshSession,
-    isLoading,
+    isLoading: isAuthLoading,
   } = useAuth();
 
-  const [profileData, setProfileData] = useState({
-    username: "",
-    date_of_birth: "",
-    gender: "",
-    profile_picture: null,
-  });
-
+  const [profileData, setProfileData] = useState({});
   const [district, setDistrict] = useState("");
   const [subCounty, setSubCounty] = useState("");
-  const [districts, setDistricts] = useState([]);
-  const [loadingDistricts, setLoadingDistricts] = useState(true);
-
-  const [phoneUpdateStep, setPhoneUpdateStep] = useState("idle");
-  const [newPhoneNumber, setNewPhoneNumber] = useState("");
-  const [phoneOtp, setPhoneOtp] = useState("");
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [settings, setSettings] = useState({
-    autoDelete: "never",
-    fakeAccountMode: false,
-    silentAlerts: false,
-    crisisOverride: true,
-  });
   const [showPurgeDialog, setShowPurgeDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [avatarLoading, setAvatarLoading] = useState(true);
 
   const isMainProfile = activeProfile?.id === user?.id;
 
-  useEffect(() => {
-    const loadDistricts = async () => {
-      setLoadingDistricts(true);
-      const result = await profileService.getDistricts();
-      if (result.success) {
-        setDistricts(result.data);
-      } else {
-        toast({
-          title: "Error",
-          description: "Could not load districts.",
-          variant: "destructive",
-        });
-      }
-      setLoadingDistricts(false);
-    };
-    if (isMainProfile) {
-      loadDistricts();
-    } else {
-      setLoadingDistricts(false);
-    }
-  }, [toast, isMainProfile]);
+  const { data: districts, isLoading: loadingDistricts } = useDistricts();
+  const {
+    data: settings,
+    isLoading: loadingSettings,
+    isError,
+  } = useUserSettings(activeProfile?.id);
+  const { mutate: saveSettings, isLoading: isSavingSettings } =
+    useSaveSettings();
+  const { mutate: deleteAccount, isLoading: isDeletingAccount } =
+    useDeleteAccount();
 
   useEffect(() => {
     if (activeProfile) {
@@ -105,38 +77,21 @@ const Account = () => {
         gender: activeProfile.gender || "",
         profile_picture: activeProfile.profile_picture || null,
       });
-
       if (isMainProfile) {
         setDistrict(activeProfile.district || "");
         setSubCounty(activeProfile.sub_county || "");
       }
-
-      loadUserSettings();
-      setAvatarLoading(false);
     }
   }, [activeProfile, isMainProfile]);
-
-  const loadUserSettings = async () => {
-    if (!activeProfile?.id) return;
-    try {
-      const userSettings = await settingsService.loadSettings(activeProfile.id);
-      setSettings(userSettings);
-    } catch (error) {
-      console.error("Error loading settings:", error);
-    }
-  };
 
   const handleProfileSave = async () => {
     try {
       const dataToUpdate = { ...profileData };
-
       if (isMainProfile) {
         dataToUpdate.district = district;
         dataToUpdate.sub_county = subCounty;
       }
-
       await updateProfile(dataToUpdate);
-
       toast({
         title: "Profile Updated",
         description: "Your changes have been saved successfully.",
@@ -150,36 +105,28 @@ const Account = () => {
     }
   };
 
-  const handleSettingsSave = async () => {
-    if (!activeProfile?.id) return;
-    try {
-      const result = await settingsService.saveSettings(
-        activeProfile.id,
-        settings
-      );
-      if (result.success) {
-        toast({
-          title: "Settings Updated",
-          description: result.warning || "Your preferences have been saved.",
-        });
+  const handleSettingsSave = (newSettings) => {
+    saveSettings(
+      { userId: activeProfile.id, settings: newSettings },
+      {
+        onSuccess: () => {
+          toast({
+            title: "Settings Updated",
+            description: "Your preferences have been saved.",
+          });
+        },
+        onError: (error) => {
+          toast({
+            title: "Settings Save Failed",
+            description: error.message,
+            variant: "destructive",
+          });
+        },
       }
-    } catch (error) {
-      toast({
-        title: "Settings Save Failed",
-        description: "Could not save your preferences. Please try again.",
-        variant: "destructive",
-      });
-    }
+    );
   };
 
   const renderAvatar = () => {
-    if (avatarLoading) {
-      return (
-        <AvatarFallback className="animate-pulse bg-gray-200">
-          <div className="w-6 h-6 bg-gray-300 rounded-full"></div>
-        </AvatarFallback>
-      );
-    }
     const picture = profileData.profile_picture;
     if (
       picture &&
@@ -204,39 +151,29 @@ const Account = () => {
     );
   };
 
-  const handleDataPurge = async () => {
-    setIsProcessing(true);
-    try {
-      const result = settingsService.purgeLocalData();
-      if (result.success) {
-        toast({
-          title: "All Data Purged",
-          description:
-            "Your local data has been cleared. You will be logged out.",
-          variant: "destructive",
-        });
-        setShowPurgeDialog(false);
-        setTimeout(logout, 2000);
-      } else {
-        throw new Error(result.error);
-      }
-    } catch (error) {
+  const handleDataPurge = () => {
+    const result = settingsService.purgeLocalData();
+    if (result.success) {
       toast({
-        title: "Purge Failed",
-        description: "Could not purge all data. Please try again.",
+        title: "All Data Purged",
+        description:
+          "Your local data has been cleared. You will be logged out.",
         variant: "destructive",
       });
-    } finally {
-      setIsProcessing(false);
+      setShowPurgeDialog(false);
+      setTimeout(logout, 2000);
+    } else {
+      toast({
+        title: "Purge Failed",
+        description: "Could not purge all data.",
+        variant: "destructive",
+      });
     }
   };
 
-  const handleDeleteAccount = async () => {
-    if (!activeProfile?.id) return;
-    setIsProcessing(true);
-    try {
-      const result = await settingsService.deleteAccount(activeProfile.id);
-      if (result.success) {
+  const handleDeleteAccount = () => {
+    deleteAccount(activeProfile.id, {
+      onSuccess: () => {
         toast({
           title: "Account Deleted",
           description: "Your account has been permanently deleted.",
@@ -244,35 +181,27 @@ const Account = () => {
         });
         setShowDeleteDialog(false);
         setTimeout(() => {
-          window.location.href = "/login";
+          window.location.href = "/welcome";
         }, 2000);
-      } else {
-        throw new Error(result.error);
-      }
-    } catch (error) {
-      toast({
-        title: "Delete Failed",
-        description: error.message || "Could not delete account.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsProcessing(false);
-    }
+      },
+      onError: (error) => {
+        toast({
+          title: "Delete Failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      },
+    });
   };
 
   const handleDataDownload = async () => {
-    if (!activeProfile?.id) return;
-    try {
-      const result = await settingsService.downloadAllData(activeProfile.id);
-      if (result.success) {
-        toast({
-          title: "Data Downloaded",
-          description: "Your data has been successfully downloaded.",
-        });
-      } else {
-        throw new Error(result.error);
-      }
-    } catch (error) {
+    const result = await settingsService.downloadAllData(activeProfile.id);
+    if (result.success) {
+      toast({
+        title: "Data Downloaded",
+        description: "Your data has been successfully downloaded.",
+      });
+    } else {
       toast({
         title: "Download Failed",
         description: "Could not prepare your data for download.",
@@ -281,72 +210,9 @@ const Account = () => {
     }
   };
 
-  const handleInitiatePhoneUpdate = async () => {
-    if (!newPhoneNumber || !/^\+[1-9]\d{1,14}$/.test(newPhoneNumber)) {
-      toast({
-        title: "Invalid Phone Number",
-        description:
-          "Please enter a valid number in international format (e.g., +2567...).",
-        variant: "destructive",
-      });
-      return;
-    }
-    setIsUpdating(true);
-    const { success, error } = await profileService.updatePhoneNumber(
-      newPhoneNumber
-    );
-    setIsUpdating(false);
-    if (success) {
-      setPhoneUpdateStep("verifying");
-      toast({
-        title: "Verification Code Sent",
-        description: "Check your new WhatsApp for an OTP.",
-      });
-    } else {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleVerifyPhoneUpdate = async () => {
-    if (!phoneOtp || phoneOtp.length < 6) {
-      toast({
-        title: "Invalid Code",
-        description: "Please enter the 6-digit OTP.",
-        variant: "destructive",
-      });
-      return;
-    }
-    setIsUpdating(true);
-    const { success, error } = await profileService.verifyPhoneUpdate(
-      newPhoneNumber,
-      phoneOtp
-    );
-    setIsUpdating(false);
-    if (success) {
-      await refreshSession();
-      setPhoneUpdateStep("idle");
-      setNewPhoneNumber("");
-      setPhoneOtp("");
-      toast({
-        title: "Success!",
-        description: "Your phone number has been updated.",
-      });
-    } else {
-      toast({
-        title: "Verification Failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  };
-
   const firstName = activeProfile?.username?.split(" ")[0] || "";
 
-  if (isLoading || !activeProfile) {
+  if (isAuthLoading || !activeProfile || loadingSettings) {
     return (
       <>
         <Helmet>
@@ -354,18 +220,13 @@ const Account = () => {
         </Helmet>
         <div className="p-4 md:p-6 bg-gray-50 min-h-screen">
           <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded mb-2 w-48"></div>
+            <div className="h-8 bg-gray-200 rounded w-48 mb-2"></div>
             <div className="h-4 bg-gray-200 rounded mb-6 w-32"></div>
             <div className="bg-white p-6 rounded-2xl border">
               <div className="flex flex-col items-center space-y-4 mb-6">
                 <div className="w-24 h-24 bg-gray-200 rounded-full"></div>
                 <div className="h-6 bg-gray-200 rounded w-40"></div>
                 <div className="h-4 bg-gray-200 rounded w-32"></div>
-              </div>
-              <div className="space-y-4">
-                {[...Array(5)].map((_, i) => (
-                  <div key={i} className="h-10 bg-gray-200 rounded"></div>
-                ))}
               </div>
             </div>
           </div>
@@ -409,7 +270,6 @@ const Account = () => {
               Account Settings
             </TabsTrigger>
           </TabsList>
-
           <TabsContent value="profile" className="mt-6">
             <div className="bg-white p-4 md:p-6 rounded-2xl border mb-6">
               <div className="flex flex-col items-center text-center space-y-4 mb-6">
@@ -458,16 +318,8 @@ const Account = () => {
                         value={user?.phone || "No number on account"}
                         disabled
                       />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() =>
-                          setPhoneUpdateStep(
-                            phoneUpdateStep === "idle" ? "editing" : "idle"
-                          )
-                        }
-                      >
-                        {phoneUpdateStep === "idle" ? "Change" : "Cancel"}
+                      <Button variant="outline" size="sm" disabled>
+                        Change
                       </Button>
                     </div>
                   </div>
@@ -475,47 +327,6 @@ const Account = () => {
                   <div className="p-3 border rounded-lg text-center text-sm text-gray-600 bg-gray-50">
                     Phone number can only be changed for the main account
                     holder.
-                  </div>
-                )}
-                {phoneUpdateStep === "editing" && (
-                  <div className="p-3 border rounded-lg space-y-2">
-                    <label className="text-sm font-medium">
-                      Enter New Number
-                    </label>
-                    <Input
-                      placeholder="+256712345678"
-                      value={newPhoneNumber}
-                      onChange={(e) => setNewPhoneNumber(e.target.value)}
-                    />
-                    <Button
-                      onClick={handleInitiatePhoneUpdate}
-                      disabled={isUpdating}
-                      className="w-full"
-                    >
-                      {isUpdating ? "Sending..." : "Send Verification Code"}
-                    </Button>
-                  </div>
-                )}
-                {phoneUpdateStep === "verifying" && (
-                  <div className="p-3 border rounded-lg space-y-2 bg-primary/5">
-                    <label className="text-sm font-medium">
-                      Enter 6-Digit Code
-                    </label>
-                    <p className="text-xs text-gray-500">
-                      Sent to {newPhoneNumber}
-                    </p>
-                    <Input
-                      placeholder="123456"
-                      value={phoneOtp}
-                      onChange={(e) => setPhoneOtp(e.target.value)}
-                    />
-                    <Button
-                      onClick={handleVerifyPhoneUpdate}
-                      disabled={isUpdating}
-                      className="w-full"
-                    >
-                      {isUpdating ? "Verifying..." : "Verify and Update Number"}
-                    </Button>
                   </div>
                 )}
                 <div>
@@ -552,7 +363,6 @@ const Account = () => {
                     </SelectContent>
                   </Select>
                 </div>
-
                 {isMainProfile ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
@@ -574,7 +384,7 @@ const Account = () => {
                           />
                         </SelectTrigger>
                         <SelectContent>
-                          {districts.map((d) => (
+                          {(districts || []).map((d) => (
                             <SelectItem key={d.id} value={d.name}>
                               {d.name}
                             </SelectItem>
@@ -598,7 +408,6 @@ const Account = () => {
                     Location is managed by the main account holder.
                   </div>
                 )}
-
                 <Button
                   onClick={handleProfileSave}
                   className="w-full bg-primary text-white pt-4"
@@ -607,7 +416,6 @@ const Account = () => {
                 </Button>
               </div>
             </div>
-
             <div className="bg-white p-4 rounded-2xl border mb-6 space-y-2">
               <button
                 onClick={() => navigate("/account/manage-profiles")}
@@ -656,7 +464,6 @@ const Account = () => {
                 <ChevronsRight className="text-gray-400" size={16} />
               </button>
             </div>
-
             <Button
               onClick={logout}
               variant="ghost"
@@ -666,7 +473,6 @@ const Account = () => {
               <span>Logout</span>
             </Button>
           </TabsContent>
-
           <TabsContent value="settings" className="mt-6">
             <div className="space-y-6">
               <div className="bg-white p-4 md:p-6 rounded-2xl border">
@@ -680,9 +486,9 @@ const Account = () => {
                       Auto-delete survey responses
                     </label>
                     <Select
-                      value={settings.autoDelete}
+                      value={settings?.autoDelete || "never"}
                       onValueChange={(val) =>
-                        setSettings({ ...settings, autoDelete: val })
+                        handleSettingsSave({ ...settings, autoDelete: val })
                       }
                     >
                       <SelectTrigger>
@@ -712,9 +518,9 @@ const Account = () => {
                       </p>
                     </div>
                     <Switch
-                      checked={settings.silentAlerts}
+                      checked={settings?.silentAlerts || false}
                       onCheckedChange={(val) =>
-                        setSettings({ ...settings, silentAlerts: val })
+                        handleSettingsSave({ ...settings, silentAlerts: val })
                       }
                     />
                   </div>
@@ -753,10 +559,11 @@ const Account = () => {
                 </div>
               </div>
               <Button
-                onClick={handleSettingsSave}
+                onClick={() => handleSettingsSave(settings)}
                 className="w-full bg-primary text-white"
+                disabled={isSavingSettings}
               >
-                Save Settings
+                {isSavingSettings ? "Saving..." : "Save Settings"}
               </Button>
             </div>
           </TabsContent>
@@ -769,12 +576,7 @@ const Account = () => {
           title="Purge Local Data?"
           description="This will permanently delete all data stored on this device. Your account on the server will not be affected."
           confirmText="Yes, purge data"
-          cancelText="Cancel"
-          variant="destructive"
-          icon={Trash2}
-          isLoading={isProcessing}
         />
-
         <MobileConfirmDialog
           isOpen={showDeleteDialog}
           onClose={() => setShowDeleteDialog(false)}
@@ -782,10 +584,7 @@ const Account = () => {
           title="Delete Account?"
           description="This action cannot be undone. This will permanently delete your account and remove all your data from our servers."
           confirmText="Yes, delete my account"
-          cancelText="Cancel"
-          variant="destructive"
-          icon={Trash2}
-          isLoading={isProcessing}
+          isLoading={isDeletingAccount}
         />
       </div>
     </>

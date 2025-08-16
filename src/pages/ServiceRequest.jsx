@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet";
 import { AnimatePresence } from "framer-motion";
@@ -44,10 +44,45 @@ const ServiceRequest = () => {
   const [validationErrors, setValidationErrors] = useState([]);
 
   const { data: serviceData } = useServiceBySlug(serviceId);
-  const { mutate: submitRequest, isLoading: isSubmitting } =
-    useSubmitServiceRequest();
+  const {
+    mutate: submitRequest,
+    isLoading: isSubmitting,
+    isSuccess,
+    isError,
+    error,
+  } = useSubmitServiceRequest();
 
-  React.useEffect(() => {
+  useEffect(() => {
+    if (isSuccess) {
+      clearProgress();
+      setShowSuccess(true);
+      setTimeout(() => {
+        setShowSuccess(false);
+        navigate("/history");
+      }, 7000);
+    }
+
+    if (isError) {
+      if (!navigator.onLine) {
+        clearProgress();
+        toast({
+          title: "You appear to be offline",
+          description:
+            "Your request has been saved and will be submitted automatically when you're back online.",
+        });
+        navigate("/history");
+      } else {
+        toast({
+          title: "Submission Failed",
+          description:
+            error?.message || "An unexpected error occurred. Please try again.",
+          variant: "destructive",
+        });
+      }
+    }
+  }, [isSuccess, isError, error, navigate, toast]);
+
+  useEffect(() => {
     if (formConfig && activeProfile && !progressLoaded) {
       const wasRestored = loadSavedProgress();
       setProgressLoaded(true);

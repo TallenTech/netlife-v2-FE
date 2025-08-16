@@ -3,10 +3,6 @@ import { servicesApi } from "@/services/servicesApi";
 import { addToSyncQueue } from "@/services/offlineSync";
 import { logError } from "@/utils/errorHandling";
 
-// ============================================================================
-// --- QUERY HOOKS (for Caching Data and Offline Reading) ---
-// ============================================================================
-
 export const useServices = () =>
   useQuery({
     queryKey: ["services"],
@@ -20,12 +16,16 @@ export const useServiceBySlug = (slug) =>
     enabled: !!slug,
   });
 
-export const useServiceQuestions = (serviceId) =>
-  useQuery({
+export const useServiceQuestions = (serviceSlug) => {
+  const { data: service } = useServiceBySlug(serviceSlug);
+  const serviceId = service?.id;
+
+  return useQuery({
     queryKey: ["serviceQuestions", serviceId],
     queryFn: () => servicesApi.getServiceQuestions(serviceId),
     enabled: !!serviceId,
   });
+};
 
 export const useQuestionOptions = (questionId) =>
   useQuery({
@@ -61,13 +61,9 @@ export const useVideoById = (videoId) =>
     enabled: !!videoId,
   });
 
-// ============================================================================
-// --- MUTATION HOOKS (for Offline Submissions and Actions) ---
-// ============================================================================
-
 export const useSubmitServiceRequest = () => {
   const queryClient = useQueryClient();
-  return useMutation({
+  const mutation = useMutation({
     mutationFn: servicesApi.submitServiceRequest,
     onMutate: async (newRequest) => {
       await queryClient.cancelQueries({
@@ -91,12 +87,16 @@ export const useSubmitServiceRequest = () => {
       );
       return { previousRequests };
     },
-    onError: (error, newRequest) => {
-      console.warn(
-        "Online submission failed, queuing for offline sync.",
-        error
-      );
-      addToSyncQueue({ type: "SUBMIT_SERVICE_REQUEST", payload: newRequest });
+    onError: (error, newRequest, context) => {
+      if (!navigator.onLine) {
+        console.warn("User is offline. Queuing request for sync.", error);
+        addToSyncQueue({ type: "SUBMIT_SERVICE_REQUEST", payload: newRequest });
+      } else {
+        queryClient.setQueryData(
+          ["serviceRequests", newRequest.user_id],
+          context.previousRequests
+        );
+      }
     },
     onSettled: (data, error, newRequest) => {
       queryClient.invalidateQueries({
@@ -104,6 +104,8 @@ export const useSubmitServiceRequest = () => {
       });
     },
   });
+
+  return mutation;
 };
 
 export const useSaveScreeningAnswers = () => {
