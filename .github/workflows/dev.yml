@@ -23,9 +23,10 @@ jobs:
 
       - name: Building project
         working-directory: ./
-        run: npm run build 
+        run: npm run build
         env:
          CI: false
+         VITE_API_URL: ${{ secrets.VITE_GOOGLE_MAPS_API_KEY }}
       - name: Deploying
         uses: SamKirkland/FTP-Deploy-Action@4.2.0
         with:
