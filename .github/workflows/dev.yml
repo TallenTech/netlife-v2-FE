@@ -27,6 +27,8 @@ jobs:
         env:
          CI: false
          VITE_API_URL: ${{ secrets.VITE_GOOGLE_MAPS_API_KEY }}
+         VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+         VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
       - name: Deploying
         uses: SamKirkland/FTP-Deploy-Action@4.2.0
         with:
