@@ -34,6 +34,8 @@ const ProfileSetup = ({
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [usernameChecking, setUsernameChecking] = useState(false);
+  const [districts, setDistricts] = useState([]);
+  const [loadingDistricts, setLoadingDistricts] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -52,7 +54,26 @@ const ProfileSetup = ({
     }
   }, [existingData]);
 
-
+  useEffect(() => {
+    let isMounted = true;
+    const loadDistricts = async () => {
+      setLoadingDistricts(true);
+      const result = await profileService.getDistricts();
+      if (isMounted) {
+        if (result.success) setDistricts(result.data);
+        else setDistricts([]);
+        setLoadingDistricts(false);
+      }
+    };
+    if (!isNewDependent) {
+      loadDistricts();
+    } else {
+      setLoadingDistricts(false);
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [isNewDependent]);
 
   const validateField = useCallback(
     (name, value) => {
@@ -269,6 +290,8 @@ const ProfileSetup = ({
                     validateField={validateField}
                     checkUsername={checkUsername}
                     usernameChecking={usernameChecking}
+                    districts={districts}
+                    loadingDistricts={loadingDistricts}
                     isNewDependent={isNewDependent}
                   />
                 ) : (
@@ -283,8 +306,8 @@ const ProfileSetup = ({
 
               <div
                 className={`p-4 md:p-8 bg-white ${step === 2
-                  ? "pt-6 md:pt-4 border-t md:border-t-0"
-                  : "pt-0 md:pt-4 border-t md:border-t-0"
+                    ? "pt-6 md:pt-4 border-t md:border-t-0"
+                    : "pt-0 md:pt-4 border-t md:border-t-0"
                   }`}
               >
                 <Button

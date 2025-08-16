@@ -19,7 +19,19 @@ const ServiceRequest = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { activeProfile, profile } = useAuth();
-  const formConfig = serviceRequestForms[serviceId];
+
+  // Map database slugs to form configuration keys
+  const slugToFormKey = {
+    'sti-screening': 'sti',
+    'counselling-services': 'counselling',
+    'hts': 'hts',
+    'prep': 'prep',
+    'pep': 'pep',
+    'art': 'art'
+  };
+
+  const formKey = slugToFormKey[serviceId] || serviceId;
+  const formConfig = serviceRequestForms[formKey];
 
   const [step, setStep] = useState(0);
   const [formData, setFormData] = useState({});
@@ -39,7 +51,7 @@ const ServiceRequest = () => {
     if (formConfig && activeProfile && !progressLoaded) {
       const wasRestored = loadSavedProgress();
       setProgressLoaded(true);
-      
+
       if (wasRestored) {
         // Show a brief notification that progress was restored
         setTimeout(() => {
@@ -59,7 +71,7 @@ const ServiceRequest = () => {
   const handleInputChange = (name, value) => {
     const newFormData = { ...formData, [name]: value };
     setFormData(newFormData);
-    
+
     // Save progress after each input change
     saveProgress(newFormData, step);
   };
@@ -78,7 +90,7 @@ const ServiceRequest = () => {
         timestamp: Date.now(),
         totalSteps: formConfig?.steps?.length || 0
       };
-      
+
       localStorage.setItem(getProgressKey(), JSON.stringify(progressData));
     } catch (error) {
       console.warn('Failed to save service request progress:', error);
@@ -90,18 +102,17 @@ const ServiceRequest = () => {
       const savedProgress = localStorage.getItem(getProgressKey());
       if (savedProgress) {
         const progressData = JSON.parse(savedProgress);
-        
+
         // Validate that the saved progress matches current service and form structure
-        if (progressData.serviceId === serviceId && 
-            progressData.totalSteps === formConfig?.steps?.length) {
-          
+        if (progressData.serviceId === serviceId &&
+          progressData.totalSteps === formConfig?.steps?.length) {
+
           // Check if progress is not too old (24 hours)
           const isRecentProgress = Date.now() - progressData.timestamp < 24 * 60 * 60 * 1000;
-          
+
           if (isRecentProgress && Object.keys(progressData.formData || {}).length > 0) {
             setFormData(progressData.formData || {});
             setStep(progressData.step || 0);
-            console.log('Restored service request progress');
             return true;
           } else {
             // Clear old progress
@@ -148,7 +159,7 @@ const ServiceRequest = () => {
     setCurrentStepValid(isValid);
     setValidationErrors(errors);
   };
-  
+
   const prevStep = () => {
     if (step > 0) {
       const newStep = step - 1;
@@ -158,7 +169,7 @@ const ServiceRequest = () => {
       navigate(-1);
     }
   };
-  
+
   const goToStep = (s) => {
     setStep(s);
     saveProgress(formData, s);
@@ -184,16 +195,16 @@ const ServiceRequest = () => {
         // Fallback for development when auth isn't ready
         currentUser = { id: '32065473-276a-46f9-b519-678a20e84224' };
       }
-      
+
       if (!currentUser) {
         throw new Error('User not authenticated');
       }
 
       // Extract attachment from form data (check all possible field names)
-      const attachment = formData.attachment || formData.file || formData.document || 
-                        formData.hivTestResult || formData.medicalRecord || formData.prescription || 
-                        formData.labResult || formData.healthRecord || null;
-      
+      const attachment = formData.attachment || formData.file || formData.document ||
+        formData.hivTestResult || formData.medicalRecord || formData.prescription ||
+        formData.labResult || formData.healthRecord || null;
+
       // Prepare service request data with profile information
       const enhancedFormData = {
         ...formData,
@@ -205,7 +216,7 @@ const ServiceRequest = () => {
           requestedBy: profile?.full_name || profile?.username, // Main user who owns the account
         }
       };
-      
+
       const serviceRequestData = {
         user_id: currentUser.id,
         service_id: serviceData.id,
@@ -231,7 +242,7 @@ const ServiceRequest = () => {
 
       // Clear progress after successful submission
       clearProgress();
-      
+
       // Show success and navigate
       setShowSuccess(true);
       setTimeout(() => {
@@ -241,23 +252,23 @@ const ServiceRequest = () => {
 
     } catch (error) {
       console.error('Failed to submit service request:', error);
-      
+
       // Provide user-friendly error messages for attachment issues
       let userFriendlyError = error.message;
       if (error.message.includes('attachment') || error.message.includes('file')) {
         // Check if it's a known attachment error
         const attachmentErrors = Object.values(ATTACHMENT_ERROR_MESSAGES);
         const isKnownAttachmentError = attachmentErrors.some(msg => error.message.includes(msg));
-        
+
         if (isKnownAttachmentError) {
           userFriendlyError = error.message; // Already user-friendly
         } else {
           userFriendlyError = 'There was an issue processing your attachment. Your request has been saved, but you may need to re-upload the file.';
         }
       }
-      
+
       setSubmitError(userFriendlyError);
-      
+
       // Fallback to localStorage only (graceful degradation)
       try {
         const finalData = {
@@ -269,7 +280,7 @@ const ServiceRequest = () => {
         };
         const recordId = `service_request_${serviceId}_${Date.now()}`;
         localStorage.setItem(recordId, JSON.stringify(finalData));
-        
+
         // Still show success but with a note about offline storage
         setShowSuccess(true);
         setTimeout(() => {
@@ -289,11 +300,11 @@ const ServiceRequest = () => {
 
   const renderStepContent = () => {
     if (isPreviewStep) {
-      return <PreviewStep 
-        formData={formData} 
-        setFormData={setFormData} 
-        formConfig={formConfig} 
-        goToStep={goToStep} 
+      return <PreviewStep
+        formData={formData}
+        setFormData={setFormData}
+        formConfig={formConfig}
+        goToStep={goToStep}
         onSubmit={handleSubmit}
         submitting={submitting}
         submitError={submitError}
@@ -312,17 +323,17 @@ const ServiceRequest = () => {
 
   if (showSuccess) {
     return <SuccessConfirmation onClose={() => {
-        setShowSuccess(false);
-        navigate('/history');
+      setShowSuccess(false);
+      navigate('/history');
     }} userData={activeProfile} />;
   }
 
   const handleBack = () => {
-      if (isPreviewStep) {
-          setStep(totalSteps - 1);
-      } else {
-          prevStep();
-      }
+    if (isPreviewStep) {
+      setStep(totalSteps - 1);
+    } else {
+      prevStep();
+    }
   }
 
   return (
@@ -342,12 +353,12 @@ const ServiceRequest = () => {
                 <h1 className="text-xl font-bold text-gray-900">{formConfig.title}</h1>
                 <p className="text-sm text-gray-500">{isPreviewStep ? 'Review Your Request' : `Step ${step + 1} of ${totalSteps}`}</p>
               </div>
-              
+
               {/* Show restart button if there's form data */}
               {Object.keys(formData).length > 0 && (
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => {
                     clearProgress();
                     setFormData({});
@@ -365,7 +376,7 @@ const ServiceRequest = () => {
                 <Progress value={((step + 1) / totalSteps) * 100} />
               </div>
             )}
-            
+
             <div className="flex-1 overflow-y-auto px-6 pb-32">
               <div className="min-h-full">
                 <AnimatePresence mode="wait">
@@ -377,17 +388,17 @@ const ServiceRequest = () => {
             {!isPreviewStep && (
               <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-50">
                 <div className="p-4 max-w-[428px] mx-auto">
-                  <Button 
-                    onClick={nextStep} 
+                  <Button
+                    onClick={nextStep}
                     disabled={!currentStepValid}
                     className={cn(
                       "w-full h-14 text-lg font-bold rounded-xl transition-all duration-200",
-                      !currentStepValid 
-                        ? "bg-gray-300 text-gray-500 cursor-not-allowed hover:bg-gray-300" 
+                      !currentStepValid
+                        ? "bg-gray-300 text-gray-500 cursor-not-allowed hover:bg-gray-300"
                         : "bg-primary hover:bg-primary/90"
                     )}
                   >
-                     {step === totalSteps - 1 ? 'Review Request' : 'Next Step'}
+                    {step === totalSteps - 1 ? 'Review Request' : 'Next Step'}
                   </Button>
                   {!currentStepValid && validationErrors.length > 0 && (
                     <p className="text-sm text-red-600 text-center mt-2">
@@ -414,11 +425,11 @@ const ServiceRequest = () => {
                   <p className="text-gray-500 mt-1">{isPreviewStep ? 'Review Your Request' : `Step ${step + 1} of ${totalSteps}`}</p>
                 </div>
               </div>
-              
+
               {/* Start Over button - Right side */}
               {Object.keys(formData).length > 0 && (
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={() => {
                     clearProgress();
                     setFormData({});
@@ -443,18 +454,18 @@ const ServiceRequest = () => {
               <AnimatePresence mode="wait">
                 {renderStepContent()}
               </AnimatePresence>
-              
+
               {/* Navigation Button - Bottom right, aligned with header buttons */}
               {!isPreviewStep && (
                 <div className="mt-12 flex justify-end">
                   <div className="flex flex-col items-end">
-                    <Button 
-                      onClick={nextStep} 
+                    <Button
+                      onClick={nextStep}
                       disabled={!currentStepValid}
                       className={cn(
                         "h-14 px-8 text-lg font-bold rounded-xl shadow-lg transition-all duration-200",
-                        !currentStepValid 
-                          ? "bg-gray-300 text-gray-500 cursor-not-allowed hover:bg-gray-300 shadow-none" 
+                        !currentStepValid
+                          ? "bg-gray-300 text-gray-500 cursor-not-allowed hover:bg-gray-300 shadow-none"
                           : "bg-primary hover:bg-primary/90 hover:shadow-xl"
                       )}
                     >

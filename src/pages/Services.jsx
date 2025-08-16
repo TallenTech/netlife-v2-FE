@@ -50,7 +50,7 @@ const Services = () => {
 
   useEffect(() => {
     loadServices();
-    
+
     // Run connection test in development
     if (import.meta.env.DEV) {
       setTimeout(() => {
@@ -64,17 +64,17 @@ const Services = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       // Try to load from cache first for faster initial render
       const cachedServices = getCachedServices();
       if (cachedServices.length > 0) {
         setServices(cachedServices);
         setLoading(false);
       }
-      
+
       // Fetch fresh data from API
       const data = await servicesApi.getServices();
-      
+
       // Transform database services to match UI expectations
       const transformedServices = data.map(service => {
         const transformed = transformServiceData(service);
@@ -83,14 +83,14 @@ const Services = () => {
           icon: iconMap[transformed.icon] || Heart // Use mapped icon or fallback to Heart
         };
       });
-      
+
       // Cache the services for offline use
       cacheServices(transformedServices);
       setServices(transformedServices);
-      
+
     } catch (err) {
       setError(err.message);
-      
+
       // Try to use cached services if available
       const cachedServices = getCachedServices();
       if (cachedServices.length > 0) {
@@ -149,8 +149,8 @@ const Services = () => {
     loadServices();
   };
 
-  const filteredServices = activeFilter === 'All' 
-    ? services 
+  const filteredServices = activeFilter === 'All'
+    ? services
     : services.filter(s => s.category === activeFilter.toLowerCase());
 
   // Loading skeleton component
@@ -180,42 +180,38 @@ const Services = () => {
 
         {/* Error Banner */}
         {error && !loading && (
-          <div className={`mb-4 p-3 border rounded-lg flex items-center space-x-2 ${
-            error.includes('Database connection not configured') 
-              ? 'bg-blue-50 border-blue-200' 
+          <div className={`mb-4 p-3 border rounded-lg flex items-center space-x-2 ${error.includes('Database connection not configured')
+              ? 'bg-blue-50 border-blue-200'
               : 'bg-red-50 border-red-200'
-          }`}>
-            <AlertCircle size={16} className={`flex-shrink-0 ${
-              error.includes('Database connection not configured') 
-                ? 'text-blue-600' 
+            }`}>
+            <AlertCircle size={16} className={`flex-shrink-0 ${error.includes('Database connection not configured')
+                ? 'text-blue-600'
                 : 'text-red-600'
-            }`} />
+              }`} />
             <div className="flex-1">
-              <p className={`text-sm ${
-                error.includes('Database connection not configured') 
-                  ? 'text-blue-800' 
+              <p className={`text-sm ${error.includes('Database connection not configured')
+                  ? 'text-blue-800'
                   : 'text-red-800'
-              }`}>
-                {error.includes('Database connection not configured') 
-                  ? 'Running in development mode' 
+                }`}>
+                {error.includes('Database connection not configured')
+                  ? 'Running in development mode'
                   : 'Failed to load services from server'
                 }
               </p>
-              <p className={`text-xs ${
-                error.includes('Database connection not configured') 
-                  ? 'text-blue-600' 
+              <p className={`text-xs ${error.includes('Database connection not configured')
+                  ? 'text-blue-600'
                   : 'text-red-600'
-              }`}>
-                {error.includes('Database connection not configured') 
-                  ? 'Using demo data. Configure Supabase in .env to connect to database.' 
+                }`}>
+                {error.includes('Database connection not configured')
+                  ? 'Using demo data. Configure Supabase in .env to connect to database.'
                   : 'Showing cached services. Some may be outdated.'
                 }
               </p>
             </div>
             {!error.includes('Database connection not configured') && (
-              <Button 
-                onClick={handleRetry} 
-                size="sm" 
+              <Button
+                onClick={handleRetry}
+                size="sm"
                 variant="outline"
                 className="border-red-200 text-red-700 hover:bg-red-50"
               >
@@ -225,24 +221,23 @@ const Services = () => {
             )}
           </div>
         )}
-        
+
         <div className="flex space-x-3 overflow-x-auto no-scrollbar mb-8 pb-2">
           {filters.map(filter => (
             <button
               key={filter}
               onClick={() => setActiveFilter(filter)}
-              className={`px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-200 flex-shrink-0 ${
-                activeFilter === filter
+              className={`px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-200 flex-shrink-0 ${activeFilter === filter
                   ? 'bg-primary text-white shadow-md'
                   : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 hover:border-gray-300'
-              }`}
+                }`}
             >
               {filter}
             </button>
           ))}
         </div>
 
-        <motion.div 
+        <motion.div
           layout
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {loading ? (
@@ -258,8 +253,8 @@ const Services = () => {
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-3">No Services Available</h3>
               <p className="text-gray-500 mb-6 max-w-sm mx-auto leading-relaxed">
-                {activeFilter === 'All' 
-                  ? 'No health services are currently available.' 
+                {activeFilter === 'All'
+                  ? 'No health services are currently available.'
                   : `No ${activeFilter.toLowerCase()} services are currently available.`
                 }
               </p>
@@ -287,8 +282,8 @@ const Services = () => {
                   <h3 className="font-bold text-gray-800 text-base sm:text-lg leading-tight">{service.title}</h3>
                   <p className="text-sm text-gray-500 leading-relaxed">{service.desc}</p>
                 </div>
-                <Button 
-                  onClick={() => handleRequest(service)} 
+                <Button
+                  onClick={() => handleRequest(service)}
                   className="w-full bg-primary hover:bg-primary/90 text-white rounded-xl py-2.5 font-semibold transition-colors duration-200"
                 >
                   Request Now
