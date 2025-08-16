@@ -6,7 +6,6 @@ const SYNC_QUEUE_KEY = "netlife_sync_queue";
 export function addToSyncQueue(request) {
   console.log("OFFLINE: Adding request to sync queue.", request);
   const queue = getSyncQueue();
-  // Add a unique ID for tracking, which can be useful for UI updates
   const item = { ...request, queueId: `offline_${Date.now()}` };
   queue.push(item);
   localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(queue));
@@ -14,7 +13,7 @@ export function addToSyncQueue(request) {
 
 export function getSyncQueue() {
   try {
-    const queue = localStorage.getItem(SYNC_QUEUE_KEY);
+    const queue = localStorage.getItem(SYNC_QUEUE_KEY); 
     return queue ? JSON.parse(queue) : [];
   } catch (error) {
     logError(error, "getSyncQueue");
