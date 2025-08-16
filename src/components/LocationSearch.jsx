@@ -146,7 +146,8 @@ const LocationSearch = ({ field, value, onLocationSelect }) => {
         {field.required && <span className="text-red-500 ml-1">*</span>}
       </Label>
       
-      <div className="flex gap-2">
+      {/* Desktop Layout - Side by side */}
+      <div className="hidden sm:flex gap-2">
         <div className="relative flex-1">
           <Input
             id={field.name}
@@ -182,6 +183,47 @@ const LocationSearch = ({ field, value, onLocationSelect }) => {
               <MapPin className="h-4 w-4" />
             )}
             {loading ? 'Getting...' : 'Use My Location'}
+          </Button>
+        )}
+      </div>
+
+      {/* Mobile Layout - Stacked */}
+      <div className="sm:hidden space-y-3">
+        <div className="relative">
+          <Input
+            id={`${field.name}-mobile`}
+            type="text"
+            placeholder={field.placeholder}
+            value={searchTerm}
+            onChange={handleAddressChange}
+            onFocus={() => {
+              if (searchTerm.length >= 3) {
+                setShowSuggestions(true);
+              }
+            }}
+            onBlur={() => {
+              // Delay hiding to allow click on suggestions
+              setTimeout(() => setShowSuggestions(false), 150);
+            }}
+            className="pl-12 h-14 text-base bg-gray-50 border-2 border-gray-200 hover:border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 w-full"
+          />
+          <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+        </div>
+        
+        {isGeolocationSupported() && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleGetCurrentLocation}
+            disabled={loading}
+            className="flex items-center justify-center gap-2 h-12 w-full"
+          >
+            {loading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <MapPin className="h-4 w-4" />
+            )}
+            {loading ? 'Getting Location...' : 'Use My Location'}
           </Button>
         )}
       </div>
@@ -229,10 +271,26 @@ const LocationSearch = ({ field, value, onLocationSelect }) => {
                 >
                   <MapPin className={`h-4 w-4 flex-shrink-0 ${hasCoordinates ? 'text-green-500' : 'text-gray-400'}`} />
                   <div className="flex-1">
-                    <span className="text-base">{address}</span>
-                    {hasCoordinates && (
-                      <div className="text-xs text-gray-500 mt-1">
-                        📍 {formatCoordinates(suggestion.lat, suggestion.lng, 4)}
+                    {suggestion.name && suggestion.formatted_address ? (
+                      // Show business name prominently with address below
+                      <div>
+                        <span className="text-base font-medium text-gray-900">{suggestion.name}</span>
+                        <div className="text-sm text-gray-600 mt-1">{suggestion.formatted_address}</div>
+                        {hasCoordinates && (
+                          <div className="text-xs text-gray-500 mt-1">
+                            📍 {formatCoordinates(suggestion.lat, suggestion.lng, 4)}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      // Regular address display
+                      <div>
+                        <span className="text-base">{address}</span>
+                        {hasCoordinates && (
+                          <div className="text-xs text-gray-500 mt-1">
+                            📍 {formatCoordinates(suggestion.lat, suggestion.lng, 4)}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
