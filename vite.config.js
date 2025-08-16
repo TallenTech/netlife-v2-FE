@@ -83,6 +83,7 @@ export default defineConfig({
       injectRegister: "auto",
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,json,woff,woff2}"],
+        navigateFallbackAllowlist: [/^[^.]+$/],
       },
       devOptions: {
         enabled: true,
