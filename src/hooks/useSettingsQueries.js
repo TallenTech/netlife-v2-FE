@@ -53,3 +53,17 @@ export const useDeleteAccount = () => {
     },
   });
 };
+
+export const useUpdatePhoneNumber = () => {
+  return useMutation({
+    mutationFn: (newPhoneNumber) =>
+      profileService.updatePhoneNumber(newPhoneNumber),
+  });
+};
+
+export const useVerifyPhoneUpdate = () => {
+  return useMutation({
+    mutationFn: ({ phone, token }) =>
+      profileService.verifyPhoneUpdate(phone, token),
+  });
+};
