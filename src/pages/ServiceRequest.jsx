@@ -16,6 +16,7 @@ import {
   useServiceBySlug,
   useSubmitServiceRequest,
 } from "@/hooks/useServiceQueries";
+import { fileToBase64 } from "@/utils/attachmentHelpers";
 
 const ServiceRequest = () => {
   const { serviceId } = useParams();
@@ -44,18 +45,18 @@ const ServiceRequest = () => {
 
     // Map service names to form keys
     const nameToFormMap = {
-      'sti screening': 'sti-screening',
-      'counseling': 'counselling-services',
-      'counselling': 'counselling-services',
-      'counselling services': 'counselling-services',
-      'hiv testing': 'hts',
-      'hiv testing services (hts)': 'hts',
-      'prep access': 'prep',
-      'pre-exposure prophylaxis (prep)': 'prep',
-      'pep access': 'pep',
-      'post-exposure prophylaxis (pep)': 'pep',
-      'art support': 'art',
-      'antiretroviral therapy (art)': 'art'
+      "sti screening": "sti-screening",
+      counseling: "counselling-services",
+      counselling: "counselling-services",
+      "counselling services": "counselling-services",
+      "hiv testing": "hts",
+      "hiv testing services (hts)": "hts",
+      "prep access": "prep",
+      "pre-exposure prophylaxis (prep)": "prep",
+      "pep access": "pep",
+      "post-exposure prophylaxis (pep)": "pep",
+      "art support": "art",
+      "antiretroviral therapy (art)": "art",
     };
 
     const mappedFormKey = nameToFormMap[serviceName];
@@ -63,8 +64,6 @@ const ServiceRequest = () => {
       formConfig = serviceRequestForms[mappedFormKey];
     }
   }
-
-
 
   useEffect(() => {
     if (formConfig && activeProfile && !progressLoaded) {
@@ -78,10 +77,17 @@ const ServiceRequest = () => {
     return (
       <div className="bg-white min-h-screen flex items-center justify-center">
         <div className="text-center p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Service Not Available</h2>
-          <p className="text-gray-600 mb-4">The request form for this service is not currently available.</p>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">
+            Service Not Available
+          </h2>
+          <p className="text-gray-600 mb-4">
+            The request form for this service is not currently available.
+          </p>
           <p className="text-sm text-gray-500 mb-4">Service ID: {serviceId}</p>
-          <Button onClick={() => navigate('/services')} className="bg-primary text-white">
+          <Button
+            onClick={() => navigate("/services")}
+            className="bg-primary text-white"
+          >
             Back to Services
           </Button>
         </div>
@@ -113,9 +119,7 @@ const ServiceRequest = () => {
           totalSteps: formConfig.steps.length,
         })
       );
-    } catch (error) {
-      // Failed to save service request progress
-    }
+    } catch (error) {}
   };
 
   const loadSavedProgress = () => {
@@ -140,9 +144,7 @@ const ServiceRequest = () => {
   const clearProgress = () => {
     try {
       localStorage.removeItem(getProgressKey());
-    } catch (error) {
-      // Failed to clear progress
-    }
+    } catch (error) {}
   };
 
   const nextStep = () => {
@@ -164,7 +166,6 @@ const ServiceRequest = () => {
 
   const handleSubmit = async () => {
     if (isSubmitting) return;
-
     if (!serviceData || !profile || !activeProfile) {
       toast({
         title: "Error",
@@ -174,11 +175,42 @@ const ServiceRequest = () => {
       return;
     }
 
+    const finalFormData = { ...formData };
+
+    const attachmentFile =
+      finalFormData.attachment || finalFormData.file || finalFormData.document;
+
+    if (attachmentFile && attachmentFile instanceof File) {
+      try {
+        console.log("Converting attachment to Base64...");
+        const base64String = await fileToBase64(attachmentFile);
+        finalFormData.attachment = {
+          name: attachmentFile.name,
+          data: base64String,
+        };
+        delete finalFormData.file;
+        delete finalFormData.document;
+        console.log("Attachment converted successfully.");
+      } catch (error) {
+        console.error("Failed to process attachment:", error);
+        toast({
+          title: "Attachment Error",
+          description: "Could not process the attached file.",
+          variant: "destructive",
+        });
+        return;
+      }
+    } else {
+      delete finalFormData.attachment;
+      delete finalFormData.file;
+      delete finalFormData.document;
+    }
+
     const serviceRequestData = {
       user_id: profile.id,
       service_id: serviceData.id,
       request_data: {
-        ...formData,
+        ...finalFormData,
         _profileInfo: {
           profileId: activeProfile.id,
           profileName: activeProfile.full_name || activeProfile.username,
@@ -186,8 +218,6 @@ const ServiceRequest = () => {
           requestedBy: profile.full_name || profile.username,
         },
       },
-      attachments:
-        formData.attachment || formData.file || formData.document || null,
     };
 
     try {
@@ -321,7 +351,7 @@ const ServiceRequest = () => {
                     className={cn(
                       "w-full h-14 text-lg font-bold rounded-xl",
                       !currentStepValid &&
-                      "bg-gray-300 text-gray-500 cursor-not-allowed"
+                        "bg-gray-300 text-gray-500 cursor-not-allowed"
                     )}
                   >
                     {step === totalSteps - 1 ? "Review Request" : "Next Step"}
@@ -386,7 +416,7 @@ const ServiceRequest = () => {
                       className={cn(
                         "h-14 px-8 text-lg font-bold rounded-xl shadow-lg",
                         !currentStepValid &&
-                        "bg-gray-300 text-gray-500 cursor-not-allowed hover:bg-gray-300 shadow-none"
+                          "bg-gray-300 text-gray-500 cursor-not-allowed hover:bg-gray-300 shadow-none"
                       )}
                     >
                       {step === totalSteps - 1 ? "Review Request" : "Next Step"}

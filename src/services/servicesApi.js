@@ -104,39 +104,15 @@ export const servicesApi = {
         "service_id",
         "request_data",
       ]);
-      let attachmentPath = null;
-      if (request.attachments) {
-        const { data: serviceData } = await supabase
-          .from("services")
-          .select("service_number")
-          .eq("id", request.service_id)
-          .single();
-        const { data: profileData } = await supabase
-          .from("profiles")
-          .select("username")
-          .eq("id", request.user_id)
-          .single();
-
-        attachmentPath = await processAndUploadAttachment(
-          request.attachments,
-          profileData?.username || "user",
-          serviceData?.service_number || 0
-        );
-      }
-
-      const validation = validateDeliveryPreferences(request.request_data);
-      if (!validation.isValid)
-        throw new Error(
-          `Invalid delivery preferences: ${validation.errors.join(", ")}`
-        );
 
       const extractedFields = extractCommonFields(request.request_data);
-      const requestData = {
+
+      const requestPayload = {
         user_id: request.user_id,
         service_id: request.service_id,
         status: request.status || "pending",
         request_data: request.request_data,
-        attachments: attachmentPath ? [attachmentPath] : [],
+        attachments: [],
         delivery_method: extractedFields.delivery_method,
         delivery_location: extractedFields.delivery_location,
         preferred_date: extractedFields.preferred_date,
@@ -149,11 +125,13 @@ export const servicesApi = {
 
       const { data, error } = await supabase
         .from("service_requests")
-        .insert([requestData])
+        .insert([requestPayload])
         .select("id")
         .single();
-      if (error)
+
+      if (error) {
         throw new Error(`Failed to submit service request: ${error.message}`);
+      }
       return data.id;
     } catch (error) {
       logError(error, "servicesApi.submitServiceRequest", { request });
