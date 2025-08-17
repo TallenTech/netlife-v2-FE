@@ -36,6 +36,10 @@ serve(async (req) => {
         .eq("id", record.service_id)
         .single();
 
+      if (!service) {
+        throw new Error(`Service with ID ${record.service_id} not found.`);
+      }
+
       const requestData = record.request_data || {};
       const profileInfo = requestData._profileInfo || {};
       const patientId = profileInfo.profileId;
@@ -110,63 +114,77 @@ serve(async (req) => {
       };
 
       const pdfBytes = await createRequestPdf(pdfPayload);
-
       const now = new Date();
-      const year = now.getFullYear();
-      const month = String(now.getMonth() + 1).padStart(2, "0");
-      const day = String(now.getDate()).padStart(2, "0");
-      const dateString = `${year}${month}${day}`;
-      const serviceSlug = service?.slug.toUpperCase() || "Service";
-      const serviceNumberRaw = service?.service_number || 0;
-      const serviceNumberFormatted = String(serviceNumberRaw).padStart(3, "0");
+      const dateString = `${now.getFullYear()}${String(
+        now.getMonth() + 1
+      ).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
+      const serviceSlug = service.slug.toUpperCase() || "Service";
+      const serviceNumberFormatted = String(
+        service.service_number || 0
+      ).padStart(3, "0");
       const pdfFilename = `${patientName}_${serviceSlug}_Request_${dateString}_${serviceNumberFormatted}.pdf`;
       const pdfBase64 = encodeBase64(pdfBytes);
       const emailAttachments = [
         { name: pdfFilename, content: pdfBase64, mime_type: "application/pdf" },
       ];
 
-      for (const admin of ADMIN_LIST) {
-        const subject = `New Service Request for ${patientName} - #${record.id}`;
-        const mergeInfo = {
-          admin_name: admin.name,
-          requester_name: requesterName,
-          patient_name: patientName,
-          service_request_id: record.id,
-          attachment_section_html: "",
-        };
-        const emailApiPayload = {
-          template_key: Deno.env.get("ZEPTOMAIL_SERVICE_REQUEST_TEMPLATE")!,
-          from: { address: FROM_ADDRESS, name: "NetLife Platform" },
-          to: [{ email_address: { address: admin.email, name: admin.name } }],
-          subject: subject,
-          merge_info: mergeInfo,
-          attachments: emailAttachments,
-        };
-        await fetch(ZEPTOMAIL_API_URL_TEMPLATE, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: zeptoToken,
-          },
-          body: JSON.stringify(emailApiPayload),
-        });
+      // --- DYNAMIC TEMPLATE SELECTION LOGIC ---
+      const serviceSlugKey = service.slug.toUpperCase().replace(/-/g, "_");
+      const zeptoTemplateKey = Deno.env.get(
+        `ZEPTOMAIL_TEMPLATE_${serviceSlugKey}`
+      );
+      const twilioUserTemplateSid = Deno.env.get(
+        `TWILIO_TEMPLATE_USER_${serviceSlugKey}`
+      );
+
+      // Send Admin Email with the dynamic template
+      if (zeptoTemplateKey) {
+        for (const admin of ADMIN_LIST) {
+          const subject = `New ${service.name} Request from ${patientName} - #${record.id}`;
+          const mergeInfo = {
+            admin_name: admin.name,
+            requester_name: requesterName,
+            patient_name: patientName,
+            service_request_id: record.id,
+          };
+          const emailApiPayload = {
+            template_key: zeptoTemplateKey,
+            from: { address: FROM_ADDRESS, name: "NetLife Platform" },
+            to: [{ email_address: { address: admin.email, name: admin.name } }],
+            subject: subject,
+            merge_info: mergeInfo,
+            attachments: emailAttachments,
+          };
+          await fetch(ZEPTOMAIL_API_URL_TEMPLATE, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: zeptoToken,
+            },
+            body: JSON.stringify(emailApiPayload),
+          });
+        }
+      } else {
+        console.warn(
+          `No ZeptoMail template key found for service: ${service.slug}`
+        );
       }
 
+      // Send User WhatsApp with the dynamic template
       const recipientPhoneNumber = formatPhoneNumberE164(
         requesterProfile.whatsapp_number
       );
-      const serviceTemplateSid = Deno.env.get("TWILIO_TEMPLATE_SERVICE_SID")!;
-
-      if (recipientPhoneNumber && serviceTemplateSid) {
-        console.log(`Sending user notification to: ${recipientPhoneNumber}`);
-        await sendWhatsappTemplate(recipientPhoneNumber, serviceTemplateSid, {
-          "1": requesterName,
-          "2": service?.name || "a service",
-          "3": record.id,
-        });
+      if (recipientPhoneNumber && twilioUserTemplateSid) {
+        await sendWhatsappTemplate(
+          recipientPhoneNumber,
+          twilioUserTemplateSid,
+          {
+            "1": requesterName,
+          }
+        );
       } else {
         console.warn(
-          `Could not send WhatsApp to user ${requesterId}. No whatsapp_number found in their profile.`
+          `No Twilio template SID or phone number for user. Service: ${service.slug}`
         );
       }
 

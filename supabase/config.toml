@@ -366,16 +366,16 @@ entrypoint = "./functions/send-profile-reminders/index.ts"
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/send-profile-reminders/*.html" ]
 
-[functions.send-welcome-massage]
+[functions.send-welcome-message]
 enabled = true
 verify_jwt = true
-import_map = "./functions/send-welcome-massage/deno.json"
+import_map = "./functions/send-welcome-message/deno.json"
 # Uncomment to specify a custom file path to the entrypoint.
 # Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
-entrypoint = "./functions/send-welcome-massage/index.ts"
+entrypoint = "./functions/send-welcome-message/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
-# static_files = [ "./functions/send-welcome-massage/*.html" ]
+# static_files = [ "./functions/send-welcome-message/*.html" ]
 
 [functions.send-managed-profile-alert]
 enabled = true
@@ -387,3 +387,25 @@ entrypoint = "./functions/send-managed-profile-alert/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/send-managed-profile-alert/*.html" ]
+
+[functions.receive-whatsapp-reply]
+enabled = true
+verify_jwt = true
+import_map = "./functions/receive-whatsapp-reply/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/receive-whatsapp-reply/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/receive-whatsapp-reply/*.html" ]
+
+[functions.send-rating-request]
+enabled = true
+verify_jwt = true
+import_map = "./functions/send-rating-request/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/send-rating-request/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/send-rating-request/*.html" ]
