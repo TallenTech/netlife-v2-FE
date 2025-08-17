@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
 import { MessageCircle, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import LoadingButton from "./LoadingButton";
@@ -22,7 +23,7 @@ const VerificationStep = ({
       const timer = setTimeout(() => {
         onVerify();
       }, 300);
-      
+
       return () => clearTimeout(timer);
     }
   }, [verificationCode, onVerify, isLoading.verify]);
@@ -62,13 +63,12 @@ const VerificationStep = ({
             const value = e.target.value.replace(/[^0-9]/g, "");
             setVerificationCode(value);
           }}
-          className={`h-12 sm:h-14 lg:h-16 text-center text-xl sm:text-2xl lg:text-3xl font-bold tracking-[0.5em] sm:tracking-[1em] lg:tracking-[1.5em] transition-colors duration-200 ${
-            verificationCode.length === 6 
-              ? 'border-green-500 bg-green-50' 
-              : verificationCode.length > 0 
-                ? 'border-primary bg-primary/5' 
-                : ''
-          }`}
+          className={`h-12 sm:h-14 lg:h-16 text-center text-xl sm:text-2xl lg:text-3xl font-bold tracking-[0.5em] sm:tracking-[1em] lg:tracking-[1.5em] transition-colors duration-200 ${verificationCode.length === 6
+            ? 'border-green-500 bg-green-50'
+            : verificationCode.length > 0
+              ? 'border-primary bg-primary/5'
+              : ''
+            }`}
           autoFocus
         />
       </div>
@@ -78,11 +78,10 @@ const VerificationStep = ({
         isLoading={isLoading.verify}
         loadingText="Verifying..."
         disabled={verificationCode.length !== 6 || isLoading.verify}
-        className={`w-full h-12 sm:h-14 lg:h-16 font-semibold text-base sm:text-lg lg:text-xl rounded-xl mb-4 sm:mb-6 transition-all duration-200 ${
-          verificationCode.length === 6
-            ? 'bg-green-600 hover:bg-green-700 text-white'
-            : 'bg-primary text-white hover:bg-primary/90'
-        }`}
+        className={`w-full h-12 sm:h-14 lg:h-16 font-semibold text-base sm:text-lg lg:text-xl rounded-xl mb-4 sm:mb-6 transition-all duration-200 ${verificationCode.length === 6
+          ? 'bg-green-600 hover:bg-green-700 text-white'
+          : 'bg-primary text-white hover:bg-primary/90'
+          }`}
       >
         {verificationCode.length === 6 ? 'Auto-verifying...' : 'Verify Code'}
       </LoadingButton>
@@ -101,10 +100,21 @@ const VerificationStep = ({
             {isResendTimerActive
               ? `Resend in ${formatCountdown(resendTimer)}`
               : isLoading.resend
-              ? "Sending..."
-              : "Resend Code"}
+                ? "Sending..."
+                : "Resend Code"}
           </span>
         </button>
+      </div>
+
+      {/* Contact Us Button */}
+      <div className="mt-4 sm:mt-6 text-center">
+        <Link
+          to="/contact-us"
+          className="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors duration-200"
+        >
+          <span className="mr-2">📞</span>
+          Contact Us
+        </Link>
       </div>
     </motion.div>
   );

@@ -13,6 +13,7 @@ import WhatsAppAuth from "@/components/auth/WhatsAppAuth";
 import ProfileSetup from "@/components/ProfileSetup";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import TermsOfService from "@/pages/TermsOfService";
+import ContactUs from "@/pages/ContactUs";
 import NotFound from "@/pages/NotFound";
 import { processSyncQueue } from "@/services/offlineSync.js";
 
@@ -82,40 +83,107 @@ function AppRoutes() {
 
   if (isLoading) {
     return (
-      <div className="mobile-container bg-white">
-        <div className="h-screen flex items-center justify-center">
-          <div className="text-center">
-            <NetLifeLogo className="w-16 h-16 animate-pulse mx-auto mb-4" />
-            <p className="text-gray-600 font-medium">
-              Connecting to NetLife...
-            </p>
+      <>
+        {/* Mobile Layout */}
+        <div className="lg:hidden mobile-container bg-white">
+          <div className="h-screen flex items-center justify-center">
+            <div className="text-center px-6">
+              <div className="mb-6">
+                <NetLifeLogo className="w-20 h-20 animate-pulse mx-auto" />
+              </div>
+              <h2 className="text-xl font-bold text-gray-800 mb-2">
+                Welcome to NetLife
+              </h2>
+              <p className="text-gray-600 font-medium mb-4">
+                Connecting to NetLife...
+              </p>
+              <div className="flex justify-center">
+                <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+
+        {/* Desktop Layout */}
+        <div className="hidden lg:block min-h-screen bg-white">
+          <div className="h-screen flex items-center justify-center">
+            <div className="text-center max-w-md mx-auto px-8">
+              <div className="mb-8">
+                <NetLifeLogo className="w-32 h-32 animate-pulse mx-auto" />
+              </div>
+              <h1 className="text-3xl font-bold text-gray-800 mb-3">
+                Welcome to NetLife
+              </h1>
+              <p className="text-lg text-gray-600 font-medium mb-6">
+                Connecting to NetLife...
+              </p>
+              <div className="flex justify-center mb-8">
+                <div className="w-10 h-10 border-3 border-primary border-t-transparent rounded-full animate-spin"></div>
+              </div>
+              <div className="space-y-2 text-sm text-gray-500">
+                <p>Your Health. Your Privacy. Your Power.</p>
+                <p>Secure, stigma-free digital health services</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </>
     );
   }
 
   if (error) {
     return (
-      <div className="mobile-container bg-white">
-        <div className="h-screen flex items-center justify-center">
-          <div className="text-center p-4">
-            <NetLifeLogo className="w-16 h-16 mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-gray-800 mb-2">
-              Connection Issue
-            </h2>
-            <p className="text-gray-600 mb-4">
-              We're having trouble connecting to our services right now.
-            </p>
-            <button
-              onClick={() => window.location.reload()}
-              className="bg-primary text-white px-6 py-2 rounded-lg font-semibold hover:bg-primary/90 transition"
-            >
-              Try Again
-            </button>
+      <>
+        {/* Mobile Layout */}
+        <div className="lg:hidden mobile-container bg-white">
+          <div className="h-screen flex items-center justify-center">
+            <div className="text-center px-6">
+              <div className="mb-6">
+                <NetLifeLogo className="w-20 h-20 mx-auto" />
+              </div>
+              <h2 className="text-xl font-bold text-gray-800 mb-2">
+                Connection Issue
+              </h2>
+              <p className="text-gray-600 mb-6">
+                We're having trouble connecting to our services right now.
+              </p>
+              <button
+                onClick={() => window.location.reload()}
+                className="bg-primary text-white px-8 py-3 rounded-xl font-semibold hover:bg-primary/90 transition-colors duration-200 shadow-lg"
+              >
+                Try Again
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+
+        {/* Desktop Layout */}
+        <div className="hidden lg:block min-h-screen bg-white">
+          <div className="h-screen flex items-center justify-center">
+            <div className="text-center max-w-md mx-auto px-8">
+              <div className="mb-8">
+                <NetLifeLogo className="w-32 h-32 mx-auto" />
+              </div>
+              <h1 className="text-3xl font-bold text-gray-800 mb-3">
+                Connection Issue
+              </h1>
+              <p className="text-lg text-gray-600 mb-8">
+                We're having trouble connecting to our services right now.
+              </p>
+              <button
+                onClick={() => window.location.reload()}
+                className="bg-primary text-white px-10 py-4 rounded-xl font-semibold hover:bg-primary/90 transition-colors duration-200 shadow-lg text-lg"
+              >
+                Try Again
+              </button>
+              <div className="mt-8 space-y-2 text-sm text-gray-500">
+                <p>Your Health. Your Privacy. Your Power.</p>
+                <p>Secure, stigma-free digital health services</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </>
     );
   }
 
@@ -143,8 +211,9 @@ function AppRoutes() {
           )
         }
       />
-      <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-      <Route path="/terms-of-service" element={<TermsOfService />} />
+      <Route path="/privacy" element={<PrivacyPolicy />} />
+      <Route path="/use-of-terms" element={<TermsOfService />} />
+      <Route path="/contact-us" element={<ContactUs />} />
     </Routes>
   );
 }
