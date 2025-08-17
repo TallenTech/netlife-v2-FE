@@ -318,8 +318,16 @@ const Account = () => {
                         value={user?.phone || "No number on account"}
                         disabled
                       />
-                      <Button variant="outline" size="sm" disabled>
-                        Change
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          setPhoneUpdateStep(
+                            phoneUpdateStep === "idle" ? "editing" : "idle"
+                          )
+                        }
+                      >
+                        {phoneUpdateStep === "idle" ? "Change" : "Cancel"}
                       </Button>
                     </div>
                   </div>
@@ -327,6 +335,47 @@ const Account = () => {
                   <div className="p-3 border rounded-lg text-center text-sm text-gray-600 bg-gray-50">
                     Phone number can only be changed for the main account
                     holder.
+                  </div>
+                )}
+                {phoneUpdateStep === "editing" && (
+                  <div className="p-3 border rounded-lg space-y-2">
+                    <label className="text-sm font-medium">
+                      Enter New Number
+                    </label>
+                    <Input
+                      placeholder="+256712345678"
+                      value={newPhoneNumber}
+                      onChange={(e) => setNewPhoneNumber(e.target.value)}
+                    />
+                    <Button
+                      onClick={handleInitiatePhoneUpdate}
+                      disabled={isUpdating}
+                      className="w-full"
+                    >
+                      {isUpdating ? "Sending..." : "Send Verification Code"}
+                    </Button>
+                  </div>
+                )}
+                {phoneUpdateStep === "verifying" && (
+                  <div className="p-3 border rounded-lg space-y-2 bg-primary/5">
+                    <label className="text-sm font-medium">
+                      Enter 6-Digit Code
+                    </label>
+                    <p className="text-xs text-gray-500">
+                      Sent to {newPhoneNumber}
+                    </p>
+                    <Input
+                      placeholder="123456"
+                      value={phoneOtp}
+                      onChange={(e) => setPhoneOtp(e.target.value)}
+                    />
+                    <Button
+                      onClick={handleVerifyPhoneUpdate}
+                      disabled={isUpdating}
+                      className="w-full"
+                    >
+                      {isUpdating ? "Verifying..." : "Verify and Update Number"}
+                    </Button>
                   </div>
                 )}
                 <div>
