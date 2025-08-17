@@ -37,6 +37,8 @@ import {
   useDistricts,
   useSaveSettings,
   useDeleteAccount,
+  useUpdatePhoneNumber,
+  useVerifyPhoneUpdate,
 } from "@/hooks/useSettingsQueries";
 
 const Account = () => {
@@ -47,6 +49,7 @@ const Account = () => {
     user,
     logout,
     updateProfile,
+    refreshAuthAndProfiles,
     isLoading: isAuthLoading,
   } = useAuth();
 
@@ -56,18 +59,24 @@ const Account = () => {
   const [showPurgeDialog, setShowPurgeDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
+  const [phoneUpdateStep, setPhoneUpdateStep] = useState("idle");
+  const [newPhoneNumber, setNewPhoneNumber] = useState("");
+  const [phoneOtp, setPhoneOtp] = useState("");
+
   const isMainProfile = activeProfile?.id === user?.id;
 
   const { data: districts, isLoading: loadingDistricts } = useDistricts();
-  const {
-    data: settings,
-    isLoading: loadingSettings,
-    isError,
-  } = useUserSettings(activeProfile?.id);
+  const { data: settings, isLoading: loadingSettings } = useUserSettings(
+    activeProfile?.id
+  );
   const { mutate: saveSettings, isLoading: isSavingSettings } =
     useSaveSettings();
   const { mutate: deleteAccount, isLoading: isDeletingAccount } =
     useDeleteAccount();
+  const { mutateAsync: initiatePhoneUpdate, isLoading: isSendingOtp } =
+    useUpdatePhoneNumber();
+  const { mutateAsync: verifyPhoneUpdate, isLoading: isVerifyingOtp } =
+    useVerifyPhoneUpdate();
 
   useEffect(() => {
     if (activeProfile) {
@@ -109,21 +118,82 @@ const Account = () => {
     saveSettings(
       { userId: activeProfile.id, settings: newSettings },
       {
-        onSuccess: () => {
+        onSuccess: () =>
           toast({
             title: "Settings Updated",
             description: "Your preferences have been saved.",
-          });
-        },
-        onError: (error) => {
+          }),
+        onError: (error) =>
           toast({
             title: "Settings Save Failed",
             description: error.message,
             variant: "destructive",
-          });
-        },
+          }),
       }
     );
+  };
+
+  const handleInitiatePhoneUpdate = async () => {
+    if (
+      !newPhoneNumber ||
+      !newPhoneNumber.startsWith("+") ||
+      newPhoneNumber.length < 10
+    ) {
+      toast({
+        title: "Invalid Phone Number",
+        description:
+          "Please enter a valid number in international format (e.g., +2567...).",
+        variant: "destructive",
+      });
+      return;
+    }
+    try {
+      const { success, error } = await initiatePhoneUpdate(newPhoneNumber);
+      if (!success) throw error;
+      setPhoneUpdateStep("verifying");
+      toast({
+        title: "Verification Code Sent",
+        description: "Check your new WhatsApp for an OTP.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleVerifyPhoneUpdate = async () => {
+    if (!phoneOtp || phoneOtp.length !== 6) {
+      toast({
+        title: "Invalid Code",
+        description: "Please enter the 6-digit OTP.",
+        variant: "destructive",
+      });
+      return;
+    }
+    try {
+      const { success, error } = await verifyPhoneUpdate({
+        phone: newPhoneNumber,
+        token: phoneOtp,
+      });
+      if (!success) throw error;
+      await refreshAuthAndProfiles();
+      setPhoneUpdateStep("idle");
+      setNewPhoneNumber("");
+      setPhoneOtp("");
+      toast({
+        title: "Success!",
+        description: "Your phone number has been updated.",
+      });
+    } catch (error) {
+      toast({
+        title: "Verification Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
   };
 
   const renderAvatar = () => {
@@ -165,7 +235,7 @@ const Account = () => {
     } else {
       toast({
         title: "Purge Failed",
-        description: "Could not purge all data.",
+        description: "Could not purge data.",
         variant: "destructive",
       });
     }
@@ -214,24 +284,19 @@ const Account = () => {
 
   if (isAuthLoading || !activeProfile || loadingSettings) {
     return (
-      <>
-        <Helmet>
-          <title>Account - Loading...</title>
-        </Helmet>
-        <div className="p-4 md:p-6 bg-gray-50 min-h-screen">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded w-48 mb-2"></div>
-            <div className="h-4 bg-gray-200 rounded mb-6 w-32"></div>
-            <div className="bg-white p-6 rounded-2xl border">
-              <div className="flex flex-col items-center space-y-4 mb-6">
-                <div className="w-24 h-24 bg-gray-200 rounded-full"></div>
-                <div className="h-6 bg-gray-200 rounded w-40"></div>
-                <div className="h-4 bg-gray-200 rounded w-32"></div>
-              </div>
+      <div className="p-4 md:p-6 bg-gray-50 min-h-screen">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-48 mb-2"></div>
+          <div className="h-4 bg-gray-200 rounded mb-6 w-32"></div>
+          <div className="bg-white p-6 rounded-2xl border">
+            <div className="flex flex-col items-center space-y-4 mb-6">
+              <div className="w-24 h-24 bg-gray-200 rounded-full"></div>
+              <div className="h-6 bg-gray-200 rounded w-40"></div>
+              <div className="h-4 bg-gray-200 rounded w-32"></div>
             </div>
           </div>
         </div>
-      </>
+      </div>
     );
   }
 
@@ -258,7 +323,6 @@ const Account = () => {
             <span className="text-sm font-medium">Switch</span>
           </button>
         </header>
-
         <Tabs defaultValue="profile" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="profile">
@@ -298,7 +362,7 @@ const Account = () => {
                     }
                   />
                 </div>
-                <div>
+                {/* <div>
                   <label className="text-sm font-medium text-gray-700">
                     Email Address
                   </label>
@@ -307,7 +371,7 @@ const Account = () => {
                     value={user?.email || "No email provided"}
                     disabled
                   />
-                </div>
+                </div> */}
                 {isMainProfile ? (
                   <div>
                     <label className="text-sm font-medium text-gray-700">
@@ -318,8 +382,16 @@ const Account = () => {
                         value={user?.phone || "No number on account"}
                         disabled
                       />
-                      <Button variant="outline" size="sm" disabled>
-                        Change
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          setPhoneUpdateStep(
+                            phoneUpdateStep === "idle" ? "editing" : "idle"
+                          )
+                        }
+                      >
+                        {phoneUpdateStep === "idle" ? "Change" : "Cancel"}
                       </Button>
                     </div>
                   </div>
@@ -329,6 +401,51 @@ const Account = () => {
                     holder.
                   </div>
                 )}
+
+                {phoneUpdateStep === "editing" && (
+                  <div className="p-3 border rounded-lg space-y-2">
+                    <label className="text-sm font-medium">
+                      Enter New Number
+                    </label>
+                    <Input
+                      placeholder="+256712345678"
+                      value={newPhoneNumber}
+                      onChange={(e) => setNewPhoneNumber(e.target.value)}
+                    />
+                    <Button
+                      onClick={handleInitiatePhoneUpdate}
+                      disabled={isSendingOtp}
+                      className="w-full"
+                    >
+                      {isSendingOtp ? "Sending..." : "Send Verification Code"}
+                    </Button>
+                  </div>
+                )}
+                {phoneUpdateStep === "verifying" && (
+                  <div className="p-3 border rounded-lg space-y-2 bg-primary/5">
+                    <label className="text-sm font-medium">
+                      Enter 6-Digit Code
+                    </label>
+                    <p className="text-xs text-gray-500">
+                      Sent to {newPhoneNumber}
+                    </p>
+                    <Input
+                      placeholder="123456"
+                      value={phoneOtp}
+                      onChange={(e) => setPhoneOtp(e.target.value)}
+                    />
+                    <Button
+                      onClick={handleVerifyPhoneUpdate}
+                      disabled={isVerifyingOtp}
+                      className="w-full"
+                    >
+                      {isVerifyingOtp
+                        ? "Verifying..."
+                        : "Verify and Update Number"}
+                    </Button>
+                  </div>
+                )}
+
                 <div>
                   <label className="text-sm font-medium text-gray-700">
                     Date of Birth
@@ -363,7 +480,7 @@ const Account = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                {isMainProfile ? (
+                {isMainProfile && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="text-sm font-medium text-gray-700">
@@ -402,10 +519,6 @@ const Account = () => {
                         onChange={(e) => setSubCounty(e.target.value)}
                       />
                     </div>
-                  </div>
-                ) : (
-                  <div className="p-3 border rounded-lg text-center text-sm text-gray-600 bg-gray-50">
-                    Location is managed by the main account holder.
                   </div>
                 )}
                 <Button
@@ -480,28 +593,26 @@ const Account = () => {
                   <Shield className="w-5 h-5 mr-2 text-primary" />
                   Privacy
                 </h3>
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">
-                      Auto-delete survey responses
-                    </label>
-                    <Select
-                      value={settings?.autoDelete || "never"}
-                      onValueChange={(val) =>
-                        handleSettingsSave({ ...settings, autoDelete: val })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="7">After 7 days</SelectItem>
-                        <SelectItem value="30">After 30 days</SelectItem>
-                        <SelectItem value="90">After 90 days</SelectItem>
-                        <SelectItem value="never">Never</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700">
+                    Auto-delete survey responses
+                  </label>
+                  <Select
+                    value={settings?.autoDelete || "never"}
+                    onValueChange={(val) =>
+                      handleSettingsSave({ ...settings, autoDelete: val })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="7">After 7 days</SelectItem>
+                      <SelectItem value="30">After 30 days</SelectItem>
+                      <SelectItem value="90">After 90 days</SelectItem>
+                      <SelectItem value="never">Never</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <div className="bg-white p-4 md:p-6 rounded-2xl border">
@@ -509,21 +620,19 @@ const Account = () => {
                   <Bell className="w-5 h-5 mr-2 text-primary" />
                   Notifications
                 </h3>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between rounded-lg border p-3">
-                    <div>
-                      <h4 className="font-medium">Silent Alerts</h4>
-                      <p className="text-xs text-gray-500">
-                        Disguise notifications
-                      </p>
-                    </div>
-                    <Switch
-                      checked={settings?.silentAlerts || false}
-                      onCheckedChange={(val) =>
-                        handleSettingsSave({ ...settings, silentAlerts: val })
-                      }
-                    />
+                <div className="flex items-center justify-between rounded-lg border p-3">
+                  <div>
+                    <h4 className="font-medium">Silent Alerts</h4>
+                    <p className="text-xs text-gray-500">
+                      Disguise notifications
+                    </p>
                   </div>
+                  <Switch
+                    checked={settings?.silentAlerts || false}
+                    onCheckedChange={(val) =>
+                      handleSettingsSave({ ...settings, silentAlerts: val })
+                    }
+                  />
                 </div>
               </div>
               <div className="bg-white p-4 md:p-6 rounded-2xl border">
@@ -568,13 +677,12 @@ const Account = () => {
             </div>
           </TabsContent>
         </Tabs>
-
         <MobileConfirmDialog
           isOpen={showPurgeDialog}
           onClose={() => setShowPurgeDialog(false)}
           onConfirm={handleDataPurge}
           title="Purge Local Data?"
-          description="This will permanently delete all data stored on this device. Your account on the server will not be affected."
+          description="This will permanently delete all data on this device. Your server account will not be affected."
           confirmText="Yes, purge data"
         />
         <MobileConfirmDialog
@@ -582,7 +690,7 @@ const Account = () => {
           onClose={() => setShowDeleteDialog(false)}
           onConfirm={handleDeleteAccount}
           title="Delete Account?"
-          description="This action cannot be undone. This will permanently delete your account and remove all your data from our servers."
+          description="This action is permanent and cannot be undone."
           confirmText="Yes, delete my account"
           isLoading={isDeletingAccount}
         />

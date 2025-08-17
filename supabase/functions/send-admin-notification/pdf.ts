@@ -92,10 +92,10 @@ export async function createRequestPdf(details: any): Promise<Uint8Array> {
   drawField("Date Submitted", details.service_created_at);
   drawField("Status", details.status);
   drawField("Quantity", details.quantity);
-  drawField("Preferred Delivery Method", details.delivery_method);
-  drawField("Preferred Delivery Location", details.delivery_location);
-  drawField("Preferred Delivery Date", details.delivery_date);
-  drawField("Preferred Delivery Time", details.delivery_time);
+  drawField("Delivery Method", details.delivery_method);
+  drawField("Delivery Location", details.delivery_location);
+  drawField("Delivery Date", details.delivery_date);
+  drawField("Delivery Time", details.delivery_time);
   drawField("Counselling Support", details.counselling_support);
   drawField("Counselling Channel", details.counselling_channel);
   drawField("Additional comments", details.additional_comments);
