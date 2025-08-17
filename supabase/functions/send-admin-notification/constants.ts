@@ -10,7 +10,7 @@ export const ADMIN_LIST = [
 export const ADMIN_WHATSAPP_LIST = [
   "+256754560414",
   "+256758361967",
-  "+256780777600",
+  //   "+256780777600",
 ];
 
 export const ZEPTOMAIL_API_URL_TEMPLATE =
