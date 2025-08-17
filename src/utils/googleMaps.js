@@ -71,6 +71,8 @@ export const searchGooglePlaces = async (query, limit = 8) => {
     try {
         await loadGoogleMaps();
 
+        // Note: Using AutocompleteService for now as AutocompleteSuggestion API is not fully available
+        // TODO: Migrate to AutocompleteSuggestion when it becomes stable
         return new Promise((resolve) => {
             const service = new window.google.maps.places.AutocompleteService();
 
@@ -80,7 +82,6 @@ export const searchGooglePlaces = async (query, limit = 8) => {
                 types: ['geocode', 'establishment'] // Focus on addresses and businesses
             }, async (predictions, status) => {
                 if (status !== window.google.maps.places.PlacesServiceStatus.OK || !predictions) {
-                    console.warn('Google Places search status:', status);
                     resolve([]);
                     return;
                 }

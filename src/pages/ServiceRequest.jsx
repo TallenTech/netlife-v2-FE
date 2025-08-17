@@ -119,7 +119,7 @@ const ServiceRequest = () => {
           totalSteps: formConfig.steps.length,
         })
       );
-    } catch (error) {}
+    } catch (error) { }
   };
 
   const loadSavedProgress = () => {
@@ -144,7 +144,7 @@ const ServiceRequest = () => {
   const clearProgress = () => {
     try {
       localStorage.removeItem(getProgressKey());
-    } catch (error) {}
+    } catch (error) { }
   };
 
   const nextStep = () => {
@@ -182,7 +182,6 @@ const ServiceRequest = () => {
 
     if (attachmentFile && attachmentFile instanceof File) {
       try {
-        console.log("Converting attachment to Base64...");
         const base64String = await fileToBase64(attachmentFile);
         finalFormData.attachment = {
           name: attachmentFile.name,
@@ -190,9 +189,7 @@ const ServiceRequest = () => {
         };
         delete finalFormData.file;
         delete finalFormData.document;
-        console.log("Attachment converted successfully.");
       } catch (error) {
-        console.error("Failed to process attachment:", error);
         toast({
           title: "Attachment Error",
           description: "Could not process the attached file.",
@@ -351,7 +348,7 @@ const ServiceRequest = () => {
                     className={cn(
                       "w-full h-14 text-lg font-bold rounded-xl",
                       !currentStepValid &&
-                        "bg-gray-300 text-gray-500 cursor-not-allowed"
+                      "bg-gray-300 text-gray-500 cursor-not-allowed"
                     )}
                   >
                     {step === totalSteps - 1 ? "Review Request" : "Next Step"}
@@ -416,7 +413,7 @@ const ServiceRequest = () => {
                       className={cn(
                         "h-14 px-8 text-lg font-bold rounded-xl shadow-lg",
                         !currentStepValid &&
-                          "bg-gray-300 text-gray-500 cursor-not-allowed hover:bg-gray-300 shadow-none"
+                        "bg-gray-300 text-gray-500 cursor-not-allowed hover:bg-gray-300 shadow-none"
                       )}
                     >
                       {step === totalSteps - 1 ? "Review Request" : "Next Step"}
