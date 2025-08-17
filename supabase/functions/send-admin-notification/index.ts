@@ -3,7 +3,6 @@ import { serve } from "std/http/server.ts";
 import { encodeBase64 } from "std/encoding/base64.ts";
 import {
   ADMIN_LIST,
-  ADMIN_WHATSAPP_LIST,
   FROM_ADDRESS,
   ZEPTOMAIL_API_URL_TEMPLATE,
 } from "./constants.ts";
@@ -16,6 +15,7 @@ import {
 } from "./utils.ts";
 import { createRequestPdf } from "./pdf.ts";
 import { sendWhatsappTemplate } from "./whatsapp.ts";
+import { getMimeType } from "std/media_types/get_mime_type.ts";
 
 serve(async (req) => {
   try {
@@ -30,6 +30,7 @@ serve(async (req) => {
     if (!zeptoToken) throw new Error("ZEPTOMAIL_TOKEN not set");
 
     if (table === "service_requests") {
+      // --- Fetch Service, Patient, and Requester Data ---
       const { data: service } = await supabaseAdmin
         .from("services")
         .select("name, slug, service_number")
@@ -76,6 +77,7 @@ serve(async (req) => {
           `Could not find requester profile for ID: ${requesterId}`
         );
 
+      // --- Prepare Data for PDF and Email ---
       const patientName = patientProfile.username || "N/A";
       const requesterName = requesterProfile.username || "N/A";
       const deliveryDate = record.preferred_date
@@ -113,31 +115,122 @@ serve(async (req) => {
         additional_comments: requestData.comments,
       };
 
+      // --- 1. Generate PDF ---
       const pdfBytes = await createRequestPdf(pdfPayload);
       const now = new Date();
       const dateString = `${now.getFullYear()}${String(
         now.getMonth() + 1
       ).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
-      const serviceSlug = service.slug.toUpperCase() || "Service";
+
+      // MODIFICATION: Changed toLowerCase()
+      const serviceSlug = service.slug.toLowerCase() || "service";
+
       const serviceNumberFormatted = String(
         service.service_number || 0
       ).padStart(3, "0");
-      const pdfFilename = `${patientName}_${serviceSlug}_Request_${dateString}_${serviceNumberFormatted}.pdf`;
+      const pdfFilename = `${patientName}_${serviceSlug}_request_${dateString}_${serviceNumberFormatted}.pdf`;
+
+      // --- 2. Upload Generated PDF to Storage ---
+      console.log(`Uploading PDF: ${pdfFilename} to storage...`);
+      const { data: uploadData, error: uploadError } =
+        await supabaseAdmin.storage
+          .from("generated-service-pdfs")
+          .upload(pdfFilename, pdfBytes, {
+            contentType: "application/pdf",
+            upsert: true,
+          });
+
+      if (uploadError) {
+        console.error("Error uploading PDF to storage:", uploadError);
+        throw new Error("Failed to upload generated PDF to storage.");
+      }
+      console.log("PDF uploaded successfully. Path:", uploadData.path);
+
+      // --- 3. Save PDF reference in the database ---
+      const { error: dbError } = await supabaseAdmin
+        .from("generated_pdfs")
+        .insert({
+          service_request_id: record.id,
+          file_path: uploadData.path,
+          file_name: pdfFilename,
+        });
+
+      if (dbError) {
+        console.error("Error saving PDF metadata to database:", dbError);
+      } else {
+        console.log("PDF metadata saved to database successfully.");
+      }
+
+      // --- 4. Prepare Email Attachments (starting with the generated PDF) ---
       const pdfBase64 = encodeBase64(pdfBytes);
       const emailAttachments = [
         { name: pdfFilename, content: pdfBase64, mime_type: "application/pdf" },
       ];
 
-      // --- DYNAMIC TEMPLATE SELECTION LOGIC ---
+      // --- 5. Fetch and Add User Attachments to Email ---
+      const userAttachments = record.attachments;
+      let attachmentPaths: string[] = [];
+      if (userAttachments) {
+        if (Array.isArray(userAttachments)) {
+          attachmentPaths = userAttachments;
+        } else if (typeof userAttachments === "string") {
+          attachmentPaths = [userAttachments];
+        }
+      }
+
+      if (attachmentPaths.length > 0) {
+        console.log(
+          `Found ${attachmentPaths.length} user attachments to process.`
+        );
+        for (const attachmentPath of attachmentPaths) {
+          if (!attachmentPath) continue;
+
+          try {
+            console.log(`Downloading attachment: ${attachmentPath}`);
+            const { data: fileBlob, error: downloadError } =
+              await supabaseAdmin.storage
+                .from("attachments")
+                .download(attachmentPath);
+
+            if (downloadError) {
+              console.error(
+                `Failed to download attachment ${attachmentPath}:`,
+                downloadError
+              );
+              continue;
+            }
+
+            if (fileBlob) {
+              const fileBytes = new Uint8Array(await fileBlob.arrayBuffer());
+              const fileBase64 = encodeBase64(fileBytes);
+              const fileName = attachmentPath.split("/").pop() || "attachment";
+              const mimeType =
+                getMimeType(fileName) || "application/octet-stream";
+
+              emailAttachments.push({
+                name: fileName,
+                content: fileBase64,
+                mime_type: mimeType,
+              });
+              console.log(
+                `Successfully added ${fileName} to email attachments.`
+              );
+            }
+          } catch (e) {
+            console.error(
+              `An error occurred while processing attachment ${attachmentPath}:`,
+              e
+            );
+          }
+        }
+      }
+
+      // --- 6. Dynamic Template Selection & Email Sending ---
       const serviceSlugKey = service.slug.toUpperCase().replace(/-/g, "_");
       const zeptoTemplateKey = Deno.env.get(
         `ZEPTOMAIL_TEMPLATE_${serviceSlugKey}`
       );
-      const twilioUserTemplateSid = Deno.env.get(
-        `TWILIO_TEMPLATE_USER_${serviceSlugKey}`
-      );
 
-      // Send Admin Email with the dynamic template
       if (zeptoTemplateKey) {
         for (const admin of ADMIN_LIST) {
           const subject = `New ${service.name} Request from ${patientName} - #${record.id}`;
@@ -155,7 +248,11 @@ serve(async (req) => {
             merge_info: mergeInfo,
             attachments: emailAttachments,
           };
-          await fetch(ZEPTOMAIL_API_URL_TEMPLATE, {
+
+          console.log(
+            `Sending email to admin: ${admin.email} with ${emailAttachments.length} attachment(s).`
+          );
+          const response = await fetch(ZEPTOMAIL_API_URL_TEMPLATE, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -163,6 +260,15 @@ serve(async (req) => {
             },
             body: JSON.stringify(emailApiPayload),
           });
+
+          if (!response.ok) {
+            const errorBody = await response.text();
+            console.error(
+              `Failed to send email to ${admin.email}:`,
+              response.status,
+              errorBody
+            );
+          }
         }
       } else {
         console.warn(
@@ -170,17 +276,19 @@ serve(async (req) => {
         );
       }
 
-      // Send User WhatsApp with the dynamic template
+      // --- 7. Send User WhatsApp Notification ---
+      const twilioUserTemplateSid = Deno.env.get(
+        `TWILIO_TEMPLATE_USER_${serviceSlugKey}`
+      );
       const recipientPhoneNumber = formatPhoneNumberE164(
         requesterProfile.whatsapp_number
       );
+
       if (recipientPhoneNumber && twilioUserTemplateSid) {
         await sendWhatsappTemplate(
           recipientPhoneNumber,
           twilioUserTemplateSid,
-          {
-            "1": requesterName,
-          }
+          { "1": requesterName }
         );
       } else {
         console.warn(
@@ -188,19 +296,9 @@ serve(async (req) => {
         );
       }
 
-      // const adminTemplateSid = Deno.env.get("TWILIO_TEMPLATE_ADMIN_ALERT_SID")!;
-      // const adminMessage = `${requesterName} has requested "${
-      //   service?.name || "a service"
-      // }" for ${patientName}. Check email for PDF.`;
-      // if (adminTemplateSid) {
-      //   await Promise.all(
-      //     ADMIN_WHATSAPP_LIST.map((p) =>
-      //       sendWhatsappTemplate(p, adminTemplateSid, { "1": adminMessage })
-      //     )
-      //   );
-      // }
-
-      return new Response("OK - PDF Email and WhatsApp sent", { status: 200 });
+      return new Response("OK - Processed request successfully", {
+        status: 200,
+      });
     }
 
     return new Response("OK - Unhandled event", { status: 200 });
@@ -208,6 +306,7 @@ serve(async (req) => {
     console.error("Error in Edge Function:", error.message, error.stack);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
+      headers: { "Content-Type": "application/json" },
     });
   }
 });
