@@ -21,10 +21,11 @@ const ScreeningResults = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!activeProfile || !service) {
+    if (!activeProfile || !serviceData) {
       return;
     }
 
+    const service = transformServiceData(serviceData);
     const storedResults = localStorage.getItem(
       `screening_results_${service.id}_${activeProfile.id}`
     );
@@ -33,16 +34,14 @@ const ScreeningResults = () => {
       try {
         setResults(JSON.parse(storedResults));
       } catch (e) {
-        console.error("Failed to parse screening results, redirecting.", e);
         navigate(`/services/${serviceId}/screening`);
       }
     } else {
-      console.warn("No screening results found in localStorage, redirecting.");
       navigate(`/services/${serviceId}/screening`);
     }
 
     setLoading(false);
-  }, [serviceId, activeProfile, service, navigate]);
+  }, [serviceId, activeProfile, serviceData, navigate]);
 
   const getAdvisoryMessage = (serviceName) => {
     const advisoryMessages = {
@@ -176,11 +175,10 @@ const ScreeningResults = () => {
           <div className="space-y-3 max-w-md mx-auto px-4">
             <Button
               onClick={handleCTA}
-              className={`w-full h-16 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-shadow ${
-                eligible
-                  ? "bg-gradient-to-r from-primary to-purple-500 text-white"
-                  : "bg-gradient-to-r from-secondary-teal to-teal-500 text-white"
-              }`}
+              className={`w-full h-16 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-shadow ${eligible
+                ? "bg-gradient-to-r from-primary to-purple-500 text-white"
+                : "bg-gradient-to-r from-secondary-teal to-teal-500 text-white"
+                }`}
             >
               {eligible ? `Proceed to Order` : advisory.cta}
               <ArrowRight className="ml-2 h-5 w-5" />

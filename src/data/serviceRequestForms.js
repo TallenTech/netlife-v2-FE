@@ -114,7 +114,7 @@ export const serviceRequestForms = {
       },
     ],
   },
-  'sti': {
+  'sti-screening': {
     title: 'STI Screening & Treatment',
     steps: [
       {
@@ -142,7 +142,7 @@ export const serviceRequestForms = {
       },
     ],
   },
-  'counselling': {
+  'counselling-services': {
     title: 'Counselling Booking Form',
     steps: [
       {

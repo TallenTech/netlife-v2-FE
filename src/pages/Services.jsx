@@ -36,8 +36,8 @@ const fallbackServices = [
     color: "red",
   },
   {
-    id: "sti",
-    slug: "sti",
+    id: "sti-screening",
+    slug: "sti-screening",
     title: "STI Screening",
     desc: "Comprehensive screening",
     icon: Shield,
@@ -72,8 +72,8 @@ const fallbackServices = [
     color: "purple",
   },
   {
-    id: "counselling",
-    slug: "counselling",
+    id: "counselling-services",
+    slug: "counselling-services",
     title: "Counseling",
     desc: "Professional guidance",
     icon: UserCheck,
@@ -175,11 +175,10 @@ const Services = () => {
             <button
               key={filter}
               onClick={() => setActiveFilter(filter)}
-              className={`px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-200 flex-shrink-0 ${
-                activeFilter === filter
-                  ? "bg-primary text-white shadow-md"
-                  : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 hover:border-gray-300"
-              }`}
+              className={`px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-200 flex-shrink-0 ${activeFilter === filter
+                ? "bg-primary text-white shadow-md"
+                : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 hover:border-gray-300"
+                }`}
             >
               {filter}
             </button>
