@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ChevronLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -306,8 +306,8 @@ const ProfileSetup = ({
 
               <div
                 className={`p-4 md:p-8 bg-white ${step === 2
-                    ? "pt-6 md:pt-4 border-t md:border-t-0"
-                    : "pt-0 md:pt-4 border-t md:border-t-0"
+                  ? "pt-6 md:pt-4 border-t md:border-t-0"
+                  : "pt-0 md:pt-4 border-t md:border-t-0"
                   }`}
               >
                 <Button
@@ -323,6 +323,17 @@ const ProfileSetup = ({
                     "Complete Profile"
                   )}
                 </Button>
+
+                {/* Contact Us Button */}
+                <div className="mt-4 text-center">
+                  <Link
+                    to="/contact-us"
+                    className="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors duration-200"
+                  >
+                    <span className="mr-2">📞</span>
+                    Contact Us
+                  </Link>
+                </div>
               </div>
             </div>
           </div>

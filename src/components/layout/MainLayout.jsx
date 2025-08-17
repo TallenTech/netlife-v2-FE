@@ -9,7 +9,7 @@ import History from "@/pages/History";
 import Account from "@/pages/Account";
 import Privacy from "@/pages/Privacy";
 import Notifications from "@/pages/Notifications";
-import ContactUs from "@/pages/ContactUs";
+
 import FAQs from "@/pages/FAQs";
 import ServiceScreening from "@/pages/ServiceScreening";
 import ScreeningResults from "@/pages/ScreeningResults";
@@ -41,18 +41,18 @@ const MainLayout = ({ handleLogout }) => {
   useEffect(() => {
     const checkSurveyReturn = () => {
       const surveyStarted = localStorage.getItem('survey_started');
-      
+
       if (surveyStarted && activeProfile?.id) {
         try {
           const surveyData = JSON.parse(surveyStarted);
-          
+
           // Check if this is the same user who started the survey
           if (surveyData.userId === activeProfile.id) {
             // Check if survey was started recently (within last 24 hours)
             const startedAt = new Date(surveyData.startedAt);
             const now = new Date();
             const hoursSinceStart = (now - startedAt) / (1000 * 60 * 60);
-            
+
             if (hoursSinceStart < 24) {
               setShowSurveyDialog(true);
             } else {
@@ -76,7 +76,7 @@ const MainLayout = ({ handleLogout }) => {
     };
 
     window.addEventListener('focus', handleFocus);
-    
+
     return () => {
       window.removeEventListener('focus', handleFocus);
     };
@@ -143,10 +143,8 @@ const MainLayout = ({ handleLogout }) => {
           <Route path="/add-profile" element={<AddProfileFlow />} />
 
           <Route path="/privacy" element={<Privacy />} />
-          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-          <Route path="/terms-of-service" element={<TermsOfService />} />
+          <Route path="/use-of-terms" element={<TermsOfService />} />
           <Route path="/notifications" element={<Notifications />} />
-          <Route path="/contact-us" element={<ContactUs />} />
           <Route path="/faqs" element={<FAQs />} />
           <Route path="/survey/:profileId" element={<HealthSurvey />} />
           <Route path="/survey-results" element={<SurveyResults />} />

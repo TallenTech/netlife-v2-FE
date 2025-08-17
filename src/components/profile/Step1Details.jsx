@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
 import { MapPin, AlertCircle, Loader2, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { DateOfBirthPicker } from "@/components/ui/DateOfBirthPicker";

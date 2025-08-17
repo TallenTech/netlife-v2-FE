@@ -6,12 +6,12 @@ const whatsappAuth = {
   async sendCode(phone) {
     // Simulate API call delay
     await new Promise(resolve => setTimeout(resolve, 1000));
-    
+
     // Generate a mock code for testing
     const mockCode = Math.floor(100000 + Math.random() * 900000).toString();
-    
+
     console.log('Mock WhatsApp code for', phone, ':', mockCode);
-    
+
     return {
       success: true,
       message: 'OTP code sent successfully via WhatsApp',
@@ -22,7 +22,7 @@ const whatsappAuth = {
   async verifyCode(phone, code) {
     // Simulate API call delay
     await new Promise(resolve => setTimeout(resolve, 1000));
-    
+
     // For testing, accept any 6-digit code
     if (code && code.length === 6) {
       return {
@@ -45,9 +45,9 @@ import { useToast } from '@/components/ui/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import InputMask from 'react-input-mask';
 import { Link } from 'react-router-dom';
-import { 
-  cleanPhoneNumber, 
-  validatePhoneNumber, 
+import {
+  cleanPhoneNumber,
+  validatePhoneNumber,
   formatPhoneNumberForDisplay,
   isPhoneNumberComplete,
   getPhoneNumberMask,
@@ -74,16 +74,16 @@ const AuthForm = ({ isLogin, phoneNumber, setPhoneNumber, onSubmit, isLoading, v
 
   const handlePhoneChange = (e) => {
     let value = e.target.value;
-    
+
     // Normalize the input to help users
     value = normalizePhoneNumberInput(value);
     setPhoneNumber(value);
-    
+
     // Clear error when user starts typing
     if (phoneError) {
       setPhoneError('');
     }
-    
+
     // Validate if phone number looks complete
     if (isPhoneNumberComplete(value)) {
       const validation = validatePhone(value);
@@ -104,19 +104,19 @@ const AuthForm = ({ isLogin, phoneNumber, setPhoneNumber, onSubmit, isLoading, v
         <label className="text-gray-800 font-medium">WhatsApp Phone Number</label>
         <div className="space-y-2">
           <InputMask
-              mask={getPhoneNumberMask(phoneNumber)}
-              value={phoneNumber}
-              onChange={handlePhoneChange}
-              disabled={isLoading}
+            mask={getPhoneNumberMask(phoneNumber)}
+            value={phoneNumber}
+            onChange={handlePhoneChange}
+            disabled={isLoading}
           >
-              {(inputProps) => (
-                <Input 
-                  {...inputProps} 
-                  type="tel" 
-                  placeholder="+256 XXX XXX XXX" 
-                  className={`text-lg h-14 ${phoneError ? 'border-red-500 focus:border-red-500' : ''}`}
-                />
-              )}
+            {(inputProps) => (
+              <Input
+                {...inputProps}
+                type="tel"
+                placeholder="+256 XXX XXX XXX"
+                className={`text-lg h-14 ${phoneError ? 'border-red-500 focus:border-red-500' : ''}`}
+              />
+            )}
           </InputMask>
           {phoneError && (
             <p className="text-red-500 text-sm flex items-center">
@@ -145,8 +145,8 @@ const AuthForm = ({ isLogin, phoneNumber, setPhoneNumber, onSubmit, isLoading, v
         <p className="text-gray-600 text-sm">No passwords. No emails.</p>
         <p className="text-gray-500 text-xs">
           By proceeding, you accept our{' '}
-          <Link to="/terms-of-service" className="text-primary underline">Terms of Service</Link> and{' '}
-          <Link to="/privacy-policy" className="text-primary underline">Privacy Policy</Link>
+          <Link to="/use-of-terms" className="text-primary underline">Use of Terms</Link> and{' '}
+          <Link to="/privacy" className="text-primary underline">Privacy</Link>
         </p>
       </div>
     </motion.div>
@@ -155,7 +155,7 @@ const AuthForm = ({ isLogin, phoneNumber, setPhoneNumber, onSubmit, isLoading, v
 
 
 const WhatsAppAuth = ({ onBack, onContinue }) => {
-  const [step, setStep] = useState('phone'); 
+  const [step, setStep] = useState('phone');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [verificationCode, setVerificationCode] = useState('');
   const [loadingStates, setLoadingStates] = useState({
@@ -187,10 +187,10 @@ const WhatsAppAuth = ({ onBack, onContinue }) => {
   React.useEffect(() => {
     const handleOnline = () => setNetworkStatus('online');
     const handleOffline = () => setNetworkStatus('offline');
-    
+
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-    
+
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
@@ -200,7 +200,7 @@ const WhatsAppAuth = ({ onBack, onContinue }) => {
   // Enhanced countdown timer with better formatting
   const startCountdownTimer = (seconds, callback = null) => {
     setResendTimer(seconds);
-    
+
     const interval = setInterval(() => {
       setResendTimer(prev => {
         if (prev <= 1) {
@@ -211,7 +211,7 @@ const WhatsAppAuth = ({ onBack, onContinue }) => {
         return prev - 1;
       });
     }, 1000);
-    
+
     return interval;
   };
 
@@ -228,13 +228,13 @@ const WhatsAppAuth = ({ onBack, onContinue }) => {
 
     // Classify the error
     const errorCode = error?.code || error?.error || classifyNetworkError(error);
-    
+
     // Handle the error with comprehensive messaging
     const errorInfo = handleError(toast, errorCode, fallbackMessage || error?.message);
-    
+
     // Log for debugging
     console.error(`${operation} error:`, error);
-    
+
     return errorInfo;
   };
 
@@ -242,7 +242,7 @@ const WhatsAppAuth = ({ onBack, onContinue }) => {
   const shouldRetry = (operation, errorCode) => {
     const retryInfo = getRetryInfo(errorCode);
     const currentAttempts = retryAttempts[operation] || 0;
-    
+
     return retryInfo.canRetry && currentAttempts < retryInfo.maxAttempts;
   };
 
@@ -256,17 +256,17 @@ const WhatsAppAuth = ({ onBack, onContinue }) => {
     }
 
     setLoadingState('sendingCode', true);
-    
+
     try {
       const cleanedPhone = validation.cleanedNumber;
       console.log('Sending OTP to:', cleanedPhone);
-      
+
       const result = await whatsappAuth.sendCode(cleanedPhone);
-      
+
       if (result.success) {
         // Reset retry attempts on success
         setRetryAttempts(prev => ({ ...prev, sendCode: 0 }));
-        
+
         setStep('verify');
         startCountdownTimer(60);
 
@@ -287,7 +287,7 @@ const WhatsAppAuth = ({ onBack, onContinue }) => {
       } else {
         incrementRetryAttempt('sendCode');
         const errorInfo = handleApiError(result, 'sendCode', "Failed to send verification code");
-        
+
         // Handle rate limiting with specific timer
         if (result.error === 'RATE_LIMIT_EXCEEDED') {
           const retryDelay = result.retryAfter || 300; // 5 minutes default
@@ -309,7 +309,7 @@ const WhatsAppAuth = ({ onBack, onContinue }) => {
     }
 
     setLoadingState('verifyingCode', true);
-    
+
     try {
       const validation = validatePhoneNumber(phoneNumber);
       if (!validation.isValid) {
@@ -319,24 +319,24 @@ const WhatsAppAuth = ({ onBack, onContinue }) => {
 
       const cleanedPhone = validation.cleanedNumber;
       console.log('Verifying OTP for:', cleanedPhone, 'Code:', verificationCode);
-      
+
       const result = await whatsappAuth.verifyCode(cleanedPhone, verificationCode);
-      
+
       if (result.success) {
         // Reset retry attempts on success
         setRetryAttempts(prev => ({ ...prev, verifyCode: 0 }));
-        
+
         // Store simple authentication data for localStorage approach
         console.log('WhatsApp verification result:', result);
-        
+
         const authData = {
           phoneNumber: cleanedPhone,
           verified: true,
           timestamp: Date.now()
         };
-        
+
         localStorage.setItem('netlife_auth', JSON.stringify(authData));
-        
+
         toast({
           title: "Verification Successful!",
           description: result.message || "Your phone number has been verified",
@@ -352,7 +352,7 @@ const WhatsAppAuth = ({ onBack, onContinue }) => {
         if (['INVALID_CODE', 'CODE_EXPIRED', 'CODE_ALREADY_USED'].includes(result.error)) {
           setVerificationCode('');
         }
-        
+
         // Handle max attempts exceeded
         if (result.error === 'MAX_ATTEMPTS_EXCEEDED') {
           startCountdownTimer(60); // 1 minute before allowing new code request
@@ -361,7 +361,7 @@ const WhatsAppAuth = ({ onBack, onContinue }) => {
     } catch (error) {
       incrementRetryAttempt('verifyCode');
       handleApiError(error, 'verifyCode', "Network error during verification");
-      
+
       // Clear the verification code on network error
       setVerificationCode('');
     } finally {
@@ -371,9 +371,9 @@ const WhatsAppAuth = ({ onBack, onContinue }) => {
 
   const handleResendCode = async () => {
     if (resendTimer > 0 || loadingStates.resendingCode) return;
-    
+
     setLoadingState('resendingCode', true);
-    
+
     try {
       const validation = validatePhoneNumber(phoneNumber);
       if (!validation.isValid) {
@@ -383,13 +383,13 @@ const WhatsAppAuth = ({ onBack, onContinue }) => {
 
       const cleanedPhone = validation.cleanedNumber;
       console.log('Resending OTP to:', cleanedPhone);
-      
+
       const result = await whatsappAuth.sendCode(cleanedPhone);
-      
+
       if (result.success) {
         // Reset retry attempts on success
         setRetryAttempts(prev => ({ ...prev, resendCode: 0 }));
-        
+
         startCountdownTimer(60);
 
         toast({
@@ -409,7 +409,7 @@ const WhatsAppAuth = ({ onBack, onContinue }) => {
       } else {
         incrementRetryAttempt('resendCode');
         const errorInfo = handleApiError(result, 'resendCode', "Failed to resend verification code");
-        
+
         // Handle rate limiting with specific timer
         if (result.error === 'RATE_LIMIT_EXCEEDED') {
           const retryDelay = result.retryAfter || 300; // 5 minutes default
@@ -440,77 +440,77 @@ const WhatsAppAuth = ({ onBack, onContinue }) => {
           </div>
 
           <div className="flex-1 flex flex-col px-6 pb-6">
-          {step === 'phone' ? (
-            <div className="flex-1 flex flex-col">
-              <div className="border-2 border-primary/20 rounded-2xl p-6 mb-8 text-primary">
-                <div className="flex items-center space-x-4 mb-4">
-                  <NetLifeLogo className="w-12 h-12" />
-                  <div>
-                    <h1 className="text-xl font-bold text-gray-900">Welcome to NetLife</h1>
-                    <p className="text-gray-600 text-sm">Secure WhatsApp authentication</p>
+            {step === 'phone' ? (
+              <div className="flex-1 flex flex-col">
+                <div className="border-2 border-primary/20 rounded-2xl p-6 mb-8 text-primary">
+                  <div className="flex items-center space-x-4 mb-4">
+                    <NetLifeLogo className="w-12 h-12" />
+                    <div>
+                      <h1 className="text-xl font-bold text-gray-900">Welcome to NetLife</h1>
+                      <p className="text-gray-600 text-sm">Secure WhatsApp authentication</p>
+                    </div>
+                  </div>
+                </div>
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="join"><UserPlus className="w-4 h-4 mr-2" />Join</TabsTrigger>
+                    <TabsTrigger value="login"><LogIn className="w-4 h-4 mr-2" />Login</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="join" className="pt-4">
+                    <AuthForm
+                      isLogin={false}
+                      phoneNumber={phoneNumber}
+                      setPhoneNumber={setPhoneNumber}
+                      onSubmit={handlePhoneSubmit}
+                      isLoading={loadingStates.sendingCode}
+                      validatePhone={validatePhoneNumber}
+                    />
+                  </TabsContent>
+                  <TabsContent value="login" className="pt-4">
+                    <AuthForm
+                      isLogin={true}
+                      phoneNumber={phoneNumber}
+                      setPhoneNumber={setPhoneNumber}
+                      onSubmit={handlePhoneSubmit}
+                      isLoading={loadingStates.sendingCode}
+                      validatePhone={validatePhoneNumber}
+                    />
+                  </TabsContent>
+                </Tabs>
+                <div className="flex flex-col items-center justify-center space-y-2 mt-auto text-gray-500">
+                  {networkStatus === 'offline' && (
+                    <div className="flex items-center space-x-2 text-red-500 text-sm">
+                      <span className="w-2 h-2 bg-red-500 rounded-full"></span>
+                      <span>You appear to be offline</span>
+                    </div>
+                  )}
+                  <div className="flex items-center space-x-2">
+                    <Shield className="w-5 h-5 text-primary" />
+                    <span className="text-sm">Your privacy and security are our priority</span>
                   </div>
                 </div>
               </div>
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="join"><UserPlus className="w-4 h-4 mr-2"/>Join</TabsTrigger>
-                  <TabsTrigger value="login"><LogIn className="w-4 h-4 mr-2"/>Login</TabsTrigger>
-                </TabsList>
-                <TabsContent value="join" className="pt-4">
-                    <AuthForm 
-                        isLogin={false} 
-                        phoneNumber={phoneNumber} 
-                        setPhoneNumber={setPhoneNumber}
-                        onSubmit={handlePhoneSubmit}
-                        isLoading={loadingStates.sendingCode}
-                        validatePhone={validatePhoneNumber}
-                    />
-                </TabsContent>
-                <TabsContent value="login" className="pt-4">
-                    <AuthForm 
-                        isLogin={true} 
-                        phoneNumber={phoneNumber}
-                        setPhoneNumber={setPhoneNumber}
-                        onSubmit={handlePhoneSubmit}
-                        isLoading={loadingStates.sendingCode}
-                        validatePhone={validatePhoneNumber}
-                    />
-                </TabsContent>
-              </Tabs>
-              <div className="flex flex-col items-center justify-center space-y-2 mt-auto text-gray-500">
-                {networkStatus === 'offline' && (
-                  <div className="flex items-center space-x-2 text-red-500 text-sm">
-                    <span className="w-2 h-2 bg-red-500 rounded-full"></span>
-                    <span>You appear to be offline</span>
+            ) : (
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.3 }}
+                className="flex-1 flex flex-col"
+              >
+                <div className="border-2 border-primary/20 rounded-2xl p-6 mb-8 text-center text-primary">
+                  <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <MessageCircle className="w-8 h-8" />
                   </div>
-                )}
-                <div className="flex items-center space-x-2">
-                  <Shield className="w-5 h-5 text-primary" />
-                  <span className="text-sm">Your privacy and security are our priority</span>
+                  <h1 className="text-xl font-bold mb-2 text-gray-900">Verify Your Number</h1>
+                  <p className="text-gray-600 text-sm mb-2">
+                    We've sent a 6-digit code to
+                  </p>
+                  <p className="font-semibold text-gray-800">{phoneNumber}</p>
                 </div>
-              </div>
-            </div>
-          ) : (
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.3 }}
-              className="flex-1 flex flex-col"
-            >
-              <div className="border-2 border-primary/20 rounded-2xl p-6 mb-8 text-center text-primary">
-                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <MessageCircle className="w-8 h-8" />
-                </div>
-                <h1 className="text-xl font-bold mb-2 text-gray-900">Verify Your Number</h1>
-                <p className="text-gray-600 text-sm mb-2">
-                  We've sent a 6-digit code to
-                </p>
-                <p className="font-semibold text-gray-800">{phoneNumber}</p>
-              </div>
 
-              <div className="space-y-4 mb-8">
-                <label className="text-gray-800 font-medium">Enter Verification Code</label>
-                 <Input
+                <div className="space-y-4 mb-8">
+                  <label className="text-gray-800 font-medium">Enter Verification Code</label>
+                  <Input
                     type="text"
                     inputMode="numeric"
                     placeholder="_ _ _ _ _ _"
@@ -518,33 +518,33 @@ const WhatsAppAuth = ({ onBack, onContinue }) => {
                     value={verificationCode}
                     onChange={(e) => setVerificationCode(e.target.value.replace(/[^0-9]/g, ''))}
                     className="h-14 text-center text-2xl font-bold tracking-[1.5em]"
-                />
-              </div>
+                  />
+                </div>
 
-              <LoadingButton
-                onClick={handleVerifyCode}
-                isLoading={loadingStates.verifyingCode}
-                loadingText="Verifying..."
-                disabled={verificationCode.length !== 6}
-                className="w-full h-14 bg-primary text-white hover:bg-primary/90 font-semibold text-lg rounded-xl mb-6"
-              >
-                Verify Code
-              </LoadingButton>
-
-              <div className="text-center space-y-2">
-                <p className="text-gray-600 text-sm">Didn't receive the code?</p>
-                <button
-                  onClick={handleResendCode}
-                  disabled={resendTimer > 0 || loadingStates.resendingCode}
-                  className="text-primary font-medium underline disabled:text-gray-400 disabled:no-underline flex items-center justify-center"
+                <LoadingButton
+                  onClick={handleVerifyCode}
+                  isLoading={loadingStates.verifyingCode}
+                  loadingText="Verifying..."
+                  disabled={verificationCode.length !== 6}
+                  className="w-full h-14 bg-primary text-white hover:bg-primary/90 font-semibold text-lg rounded-xl mb-6"
                 >
-                  {loadingStates.resendingCode && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
-                  {resendTimer > 0 ? `Resend in ${formatCountdown(resendTimer)}` : 
-                   loadingStates.resendingCode ? 'Sending...' : 'Resend Code'}
-                </button>
-              </div>
-            </motion.div>
-          )}
+                  Verify Code
+                </LoadingButton>
+
+                <div className="text-center space-y-2">
+                  <p className="text-gray-600 text-sm">Didn't receive the code?</p>
+                  <button
+                    onClick={handleResendCode}
+                    disabled={resendTimer > 0 || loadingStates.resendingCode}
+                    className="text-primary font-medium underline disabled:text-gray-400 disabled:no-underline flex items-center justify-center"
+                  >
+                    {loadingStates.resendingCode && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
+                    {resendTimer > 0 ? `Resend in ${formatCountdown(resendTimer)}` :
+                      loadingStates.resendingCode ? 'Sending...' : 'Resend Code'}
+                  </button>
+                </div>
+              </motion.div>
+            )}
           </div>
         </div>
       </div>
@@ -578,38 +578,38 @@ const WhatsAppAuth = ({ onBack, onContinue }) => {
                     </div>
                   </div>
                 </div>
-                
+
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                   <TabsList className="grid w-full grid-cols-2 h-12">
                     <TabsTrigger value="join" className="text-base">
-                      <UserPlus className="w-4 h-4 mr-2"/>Join
+                      <UserPlus className="w-4 h-4 mr-2" />Join
                     </TabsTrigger>
                     <TabsTrigger value="login" className="text-base">
-                      <LogIn className="w-4 h-4 mr-2"/>Login
+                      <LogIn className="w-4 h-4 mr-2" />Login
                     </TabsTrigger>
                   </TabsList>
                   <TabsContent value="join" className="pt-6">
-                      <AuthForm 
-                          isLogin={false} 
-                          phoneNumber={phoneNumber} 
-                          setPhoneNumber={setPhoneNumber}
-                          onSubmit={handlePhoneSubmit}
-                          isLoading={loadingStates.sendingCode}
-                          validatePhone={validatePhoneNumber}
-                      />
+                    <AuthForm
+                      isLogin={false}
+                      phoneNumber={phoneNumber}
+                      setPhoneNumber={setPhoneNumber}
+                      onSubmit={handlePhoneSubmit}
+                      isLoading={loadingStates.sendingCode}
+                      validatePhone={validatePhoneNumber}
+                    />
                   </TabsContent>
                   <TabsContent value="login" className="pt-6">
-                      <AuthForm 
-                          isLogin={true} 
-                          phoneNumber={phoneNumber}
-                          setPhoneNumber={setPhoneNumber}
-                          onSubmit={handlePhoneSubmit}
-                          isLoading={loadingStates.sendingCode}
-                          validatePhone={validatePhoneNumber}
-                      />
+                    <AuthForm
+                      isLogin={true}
+                      phoneNumber={phoneNumber}
+                      setPhoneNumber={setPhoneNumber}
+                      onSubmit={handlePhoneSubmit}
+                      isLoading={loadingStates.sendingCode}
+                      validatePhone={validatePhoneNumber}
+                    />
                   </TabsContent>
                 </Tabs>
-                
+
                 <div className="flex flex-col items-center justify-center space-y-3 text-gray-500">
                   {networkStatus === 'offline' && (
                     <div className="flex items-center space-x-2 text-red-500 text-sm">
@@ -643,14 +643,14 @@ const WhatsAppAuth = ({ onBack, onContinue }) => {
 
                 <div className="space-y-4">
                   <label className="text-gray-800 font-medium text-lg">Enter Verification Code</label>
-                   <Input
-                      type="text"
-                      inputMode="numeric"
-                      placeholder="_ _ _ _ _ _"
-                      maxLength="6"
-                      value={verificationCode}
-                      onChange={(e) => setVerificationCode(e.target.value.replace(/[^0-9]/g, ''))}
-                      className="h-16 text-center text-3xl font-bold tracking-[1.5em]"
+                  <Input
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="_ _ _ _ _ _"
+                    maxLength="6"
+                    value={verificationCode}
+                    onChange={(e) => setVerificationCode(e.target.value.replace(/[^0-9]/g, ''))}
+                    className="h-16 text-center text-3xl font-bold tracking-[1.5em]"
                   />
                 </div>
 
@@ -672,8 +672,8 @@ const WhatsAppAuth = ({ onBack, onContinue }) => {
                     className="text-primary font-medium underline disabled:text-gray-400 disabled:no-underline flex items-center justify-center text-lg"
                   >
                     {loadingStates.resendingCode && <Loader2 className="w-5 h-5 mr-2 animate-spin" />}
-                    {resendTimer > 0 ? `Resend in ${formatCountdown(resendTimer)}` : 
-                     loadingStates.resendingCode ? 'Sending...' : 'Resend Code'}
+                    {resendTimer > 0 ? `Resend in ${formatCountdown(resendTimer)}` :
+                      loadingStates.resendingCode ? 'Sending...' : 'Resend Code'}
                   </button>
                 </div>
               </motion.div>

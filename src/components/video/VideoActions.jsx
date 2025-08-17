@@ -125,9 +125,9 @@ const VideoActions = ({ videoId, videoTitle, videoUrl, className = "" }) => {
     return (
         <div className={`flex items-center ${className}`}>
             {/* Single Capsule Container */}
-            <div className="flex items-center bg-gray-100 rounded-full px-1 py-1 sm:px-2 sm:py-2">
+            <div className="flex items-center bg-gray-100 rounded-full px-1 py-2 sm:px-2 sm:py-2">
                 {/* Like Section */}
-                <div className="flex items-center space-x-1 sm:space-x-2 px-1.5 sm:px-3 py-0.5 sm:py-1">
+                <div className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-1">
                     <Button
                         variant="ghost"
                         size="sm"
@@ -144,10 +144,10 @@ const VideoActions = ({ videoId, videoTitle, videoUrl, className = "" }) => {
                 </div>
 
                 {/* Divider */}
-                <div className="w-px h-4 sm:h-6 bg-gray-300 mx-0.5 sm:mx-1"></div>
+                <div className="w-px h-5 sm:h-6 bg-gray-300 mx-0.5 sm:mx-1"></div>
 
                 {/* Share Section */}
-                <div className="flex items-center space-x-1 sm:space-x-2 px-1.5 sm:px-3 py-0.5 sm:py-1 relative" ref={shareDropdownRef}>
+                <div className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-1 relative" ref={shareDropdownRef}>
                     <Button
                         variant="ghost"
                         size="sm"

@@ -73,9 +73,8 @@ const AuthForm = ({
                 {...inputProps}
                 type="tel"
                 placeholder="+256 XXX XXX XXX"
-                className={`text-base sm:text-lg h-12 sm:h-14 ${
-                  phoneError ? "border-red-500 focus:border-red-500" : ""
-                }`}
+                className={`text-base sm:text-lg h-12 sm:h-14 ${phoneError ? "border-red-500 focus:border-red-500" : ""
+                  }`}
               />
             )}
           </InputMask>
@@ -111,14 +110,25 @@ const AuthForm = ({
         <p className="text-gray-600 text-xs sm:text-sm">No passwords. No emails.</p>
         <p className="text-gray-500 text-xs leading-relaxed px-2">
           By proceeding, you accept our{" "}
-          <Link to="/terms-of-service" className="text-primary underline">
-            Terms of Service
+          <Link to="/use-of-terms" className="text-primary underline">
+            Use of Terms
           </Link>{" "}
           and{" "}
-          <Link to="/privacy-policy" className="text-primary underline">
-            Privacy Policy
+          <Link to="/privacy" className="text-primary underline">
+            Privacy
           </Link>
         </p>
+      </div>
+
+      {/* Contact Us Button */}
+      <div className="mt-4 sm:mt-6 text-center">
+        <Link
+          to="/contact-us"
+          className="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors duration-200"
+        >
+          <span className="mr-2">📞</span>
+          Contact Us
+        </Link>
       </div>
     </motion.div>
   );
