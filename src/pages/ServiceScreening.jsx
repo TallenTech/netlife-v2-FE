@@ -30,6 +30,7 @@ const ServiceScreening = () => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState({});
   const [progressRestored, setProgressRestored] = useState(false);
+  const [progressLoaded, setProgressLoaded] = useState(false);
 
   const questions = (questionsData || []).map((q) => ({
     ...q,
@@ -37,16 +38,17 @@ const ServiceScreening = () => {
       q.options && q.options.length > 0
         ? q.options
         : [
-            { id: "yes", text: "Yes", value: "yes" },
-            { id: "no", text: "No", value: "no" },
-          ],
+          { id: "yes", text: "Yes", value: "yes" },
+          { id: "no", text: "No", value: "no" },
+        ],
   }));
 
   useEffect(() => {
-    if (questions.length > 0 && activeProfile) {
+    if (questionsData && questionsData.length > 0 && activeProfile && !progressLoaded) {
       loadSavedProgress();
+      setProgressLoaded(true);
     }
-  }, [questions, activeProfile]);
+  }, [questionsData, activeProfile, progressLoaded]);
 
   const getProgressKey = () =>
     `screening_progress_${serviceId}_${activeProfile?.id}`;
@@ -63,7 +65,7 @@ const ServiceScreening = () => {
       };
       localStorage.setItem(getProgressKey(), JSON.stringify(progressData));
     } catch (e) {
-      console.warn("Failed to save screening progress:", e);
+      // Failed to save screening progress
     }
   };
 
@@ -87,7 +89,6 @@ const ServiceScreening = () => {
         }
       }
     } catch (e) {
-      console.warn("Failed to load saved progress:", e);
       clearProgress();
     }
   };
@@ -97,7 +98,7 @@ const ServiceScreening = () => {
     try {
       localStorage.removeItem(getProgressKey());
     } catch (e) {
-      console.warn("Failed to clear progress:", e);
+      // Failed to clear progress
     }
   };
 
@@ -160,6 +161,7 @@ const ServiceScreening = () => {
     setAnswers({});
     setCurrentQuestionIndex(0);
     setProgressRestored(false);
+    setProgressLoaded(false);
   };
 
   if (loading) {
@@ -262,14 +264,13 @@ const ServiceScreening = () => {
                       key={option.id}
                       onClick={() => handleAnswer(option.value)}
                       disabled={saving}
-                      className={`h-28 flex flex-col space-y-2 text-lg font-bold border-2 shadow-sm hover:shadow-md ${
-                        isNoOption
-                          ? "bg-red-100 text-red-700 hover:bg-red-200 border-red-200"
-                          : "bg-green-100 text-green-700 hover:bg-green-200 border-green-200"
-                      }`}
+                      className={`h-28 flex flex-col space-y-2 text-lg font-bold border-2 shadow-sm hover:shadow-md ${isNoOption
+                        ? "bg-red-100 text-red-700 hover:bg-red-200 border-red-200"
+                        : "bg-green-100 text-green-700 hover:bg-green-200 border-green-200"
+                        }`}
                     >
                       {saving &&
-                      currentQuestionIndex === questions.length - 1 ? (
+                        currentQuestionIndex === questions.length - 1 ? (
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-current"></div>
                       ) : isNoOption ? (
                         <X size={32} />

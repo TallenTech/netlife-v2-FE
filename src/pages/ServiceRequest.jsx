@@ -22,7 +22,6 @@ const ServiceRequest = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { activeProfile, profile } = useAuth();
-  const formConfig = serviceRequestForms[serviceId];
 
   const [step, setStep] = useState(0);
   const [formData, setFormData] = useState({});
@@ -35,6 +34,38 @@ const ServiceRequest = () => {
   const { mutateAsync: submitRequestAsync, isLoading: isSubmitting } =
     useSubmitServiceRequest();
 
+  // Try to get form config by serviceId first, then by service name
+  let formConfig = serviceRequestForms[serviceId];
+
+  // If not found by serviceId, try to match by service name
+  if (!formConfig && serviceData?.name) {
+    const serviceName = serviceData.name.toLowerCase();
+    const availableForms = Object.keys(serviceRequestForms);
+
+    // Map service names to form keys
+    const nameToFormMap = {
+      'sti screening': 'sti-screening',
+      'counseling': 'counselling-services',
+      'counselling': 'counselling-services',
+      'counselling services': 'counselling-services',
+      'hiv testing': 'hts',
+      'hiv testing services (hts)': 'hts',
+      'prep access': 'prep',
+      'pre-exposure prophylaxis (prep)': 'prep',
+      'pep access': 'pep',
+      'post-exposure prophylaxis (pep)': 'pep',
+      'art support': 'art',
+      'antiretroviral therapy (art)': 'art'
+    };
+
+    const mappedFormKey = nameToFormMap[serviceName];
+    if (mappedFormKey && serviceRequestForms[mappedFormKey]) {
+      formConfig = serviceRequestForms[mappedFormKey];
+    }
+  }
+
+
+
   useEffect(() => {
     if (formConfig && activeProfile && !progressLoaded) {
       loadSavedProgress();
@@ -43,7 +74,20 @@ const ServiceRequest = () => {
   }, [formConfig, activeProfile, progressLoaded]);
 
   if (!activeProfile) return <div>Loading profile...</div>;
-  if (!formConfig) return <div>Service request form not found.</div>;
+  if (!formConfig) {
+    return (
+      <div className="bg-white min-h-screen flex items-center justify-center">
+        <div className="text-center p-6">
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Service Not Available</h2>
+          <p className="text-gray-600 mb-4">The request form for this service is not currently available.</p>
+          <p className="text-sm text-gray-500 mb-4">Service ID: {serviceId}</p>
+          <Button onClick={() => navigate('/services')} className="bg-primary text-white">
+            Back to Services
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   const totalSteps = formConfig.steps.length;
   const isPreviewStep = step === totalSteps;
@@ -70,7 +114,7 @@ const ServiceRequest = () => {
         })
       );
     } catch (error) {
-      console.warn("Failed to save service request progress:", error);
+      // Failed to save service request progress
     }
   };
 
@@ -89,7 +133,6 @@ const ServiceRequest = () => {
         }
       }
     } catch (error) {
-      console.warn("Failed to load saved progress:", error);
       clearProgress();
     }
   };
@@ -98,7 +141,7 @@ const ServiceRequest = () => {
     try {
       localStorage.removeItem(getProgressKey());
     } catch (error) {
-      console.warn("Failed to clear progress:", error);
+      // Failed to clear progress
     }
   };
 
@@ -278,7 +321,7 @@ const ServiceRequest = () => {
                     className={cn(
                       "w-full h-14 text-lg font-bold rounded-xl",
                       !currentStepValid &&
-                        "bg-gray-300 text-gray-500 cursor-not-allowed"
+                      "bg-gray-300 text-gray-500 cursor-not-allowed"
                     )}
                   >
                     {step === totalSteps - 1 ? "Review Request" : "Next Step"}
@@ -343,7 +386,7 @@ const ServiceRequest = () => {
                       className={cn(
                         "h-14 px-8 text-lg font-bold rounded-xl shadow-lg",
                         !currentStepValid &&
-                          "bg-gray-300 text-gray-500 cursor-not-allowed hover:bg-gray-300 shadow-none"
+                        "bg-gray-300 text-gray-500 cursor-not-allowed hover:bg-gray-300 shadow-none"
                       )}
                     >
                       {step === totalSteps - 1 ? "Review Request" : "Next Step"}
