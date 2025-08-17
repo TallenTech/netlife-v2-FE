@@ -47,7 +47,6 @@ coverage/
 # Temporary folders
 tmp/
 temp/
-/supabase
 
 # Additional sensitive files
 *.pem
