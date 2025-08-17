@@ -136,7 +136,7 @@ export const servicesApi = {
         service_id: request.service_id,
         status: request.status || "pending",
         request_data: request.request_data,
-        attachments: attachmentPath,
+        attachments: attachmentPath ? [attachmentPath] : [],
         delivery_method: extractedFields.delivery_method,
         delivery_location: extractedFields.delivery_location,
         preferred_date: extractedFields.preferred_date,

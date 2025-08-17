@@ -18,3 +18,15 @@ export const ZEPTOMAIL_API_URL_TEMPLATE =
 
 export const LOGO_URL =
   "https://res.cloudinary.com/dr6rfoqxy/image/upload/v1754989923/white2_qkwqhw.png";
+
+// const adminTemplateSid = Deno.env.get("TWILIO_TEMPLATE_ADMIN_ALERT_SID")!;
+// const adminMessage = `${requesterName} has requested "${
+//   service?.name || "a service"
+// }" for ${patientName}. Check email for PDF.`;
+// if (adminTemplateSid) {
+//   await Promise.all(
+//     ADMIN_WHATSAPP_LIST.map((p) =>
+//       sendWhatsappTemplate(p, adminTemplateSid, { "1": adminMessage })
+//     )
+//   );
+// }

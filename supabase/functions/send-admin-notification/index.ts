@@ -3,7 +3,6 @@ import { serve } from "std/http/server.ts";
 import { encodeBase64 } from "std/encoding/base64.ts";
 import {
   ADMIN_LIST,
-  ADMIN_WHATSAPP_LIST,
   FROM_ADDRESS,
   ZEPTOMAIL_API_URL_TEMPLATE,
 } from "./constants.ts";
@@ -16,6 +15,7 @@ import {
 } from "./utils.ts";
 import { createRequestPdf } from "./pdf.ts";
 import { sendWhatsappTemplate } from "./whatsapp.ts";
+import mime from "mime";
 
 serve(async (req) => {
   try {
@@ -35,7 +35,6 @@ serve(async (req) => {
         .select("name, slug, service_number")
         .eq("id", record.service_id)
         .single();
-
       if (!service) {
         throw new Error(`Service with ID ${record.service_id} not found.`);
       }
@@ -76,8 +75,8 @@ serve(async (req) => {
           `Could not find requester profile for ID: ${requesterId}`
         );
 
-      const patientName = patientProfile.username || "N/A";
-      const requesterName = requesterProfile.username || "N/A";
+      const patientName = patientProfile.username || "user";
+      const requesterName = requesterProfile.username || "user";
       const deliveryDate = record.preferred_date
         ? new Date(record.preferred_date)
         : null;
@@ -118,26 +117,79 @@ serve(async (req) => {
       const dateString = `${now.getFullYear()}${String(
         now.getMonth() + 1
       ).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
-      const serviceSlug = service.slug.toUpperCase() || "Service";
+      const serviceSlug = service.slug.toLowerCase() || "service";
       const serviceNumberFormatted = String(
         service.service_number || 0
       ).padStart(3, "0");
-      const pdfFilename = `${patientName}_${serviceSlug}_Request_${dateString}_${serviceNumberFormatted}.pdf`;
+
+      const pdfFilename =
+        `${patientName}_${serviceSlug}_request_${dateString}_${serviceNumberFormatted}.pdf`.toLowerCase();
+
+      const { data: uploadData, error: uploadError } =
+        await supabaseAdmin.storage
+          .from("generated-service-pdfs")
+          .upload(pdfFilename, pdfBytes, {
+            contentType: "application/pdf",
+            upsert: true,
+          });
+
+      if (uploadError || !uploadData) {
+        console.error("Error uploading PDF to storage:", uploadError);
+        throw new Error("Failed to upload generated PDF to storage.");
+      }
+
+      await supabaseAdmin.from("generated_pdfs").insert({
+        service_request_id: record.id,
+        file_path: uploadData.path,
+        file_name: pdfFilename,
+      });
+
       const pdfBase64 = encodeBase64(pdfBytes);
       const emailAttachments = [
         { name: pdfFilename, content: pdfBase64, mime_type: "application/pdf" },
       ];
 
-      // --- DYNAMIC TEMPLATE SELECTION LOGIC ---
+      const userAttachments = record.attachments;
+      if (Array.isArray(userAttachments) && userAttachments.length > 0) {
+        for (const attachmentPath of userAttachments) {
+          if (!attachmentPath) continue;
+          try {
+            const { data: fileBlob, error: downloadError } =
+              await supabaseAdmin.storage
+                .from("attachments")
+                .download(attachmentPath);
+
+            if (downloadError) {
+              console.error(
+                `Failed to download attachment ${attachmentPath}:`,
+                downloadError
+              );
+              continue;
+            }
+
+            if (fileBlob) {
+              const fileBytes = new Uint8Array(await fileBlob.arrayBuffer());
+              const fileBase64 = encodeBase64(fileBytes);
+              const fileName = attachmentPath.split("/").pop() || "attachment";
+              const mimeType =
+                mime.getType(fileName) || "application/octet-stream";
+              emailAttachments.push({
+                name: fileName,
+                content: fileBase64,
+                mime_type: mimeType,
+              });
+            }
+          } catch (e) {
+            console.error(`Error processing attachment ${attachmentPath}:`, e);
+          }
+        }
+      }
+
       const serviceSlugKey = service.slug.toUpperCase().replace(/-/g, "_");
       const zeptoTemplateKey = Deno.env.get(
         `ZEPTOMAIL_TEMPLATE_${serviceSlugKey}`
       );
-      const twilioUserTemplateSid = Deno.env.get(
-        `TWILIO_TEMPLATE_USER_${serviceSlugKey}`
-      );
 
-      // Send Admin Email with the dynamic template
       if (zeptoTemplateKey) {
         for (const admin of ADMIN_LIST) {
           const subject = `New ${service.name} Request from ${patientName} - #${record.id}`;
@@ -155,6 +207,7 @@ serve(async (req) => {
             merge_info: mergeInfo,
             attachments: emailAttachments,
           };
+
           await fetch(ZEPTOMAIL_API_URL_TEMPLATE, {
             method: "POST",
             headers: {
@@ -164,50 +217,32 @@ serve(async (req) => {
             body: JSON.stringify(emailApiPayload),
           });
         }
-      } else {
-        console.warn(
-          `No ZeptoMail template key found for service: ${service.slug}`
-        );
       }
 
-      // Send User WhatsApp with the dynamic template
+      const twilioUserTemplateSid = Deno.env.get(
+        `TWILIO_TEMPLATE_USER_${serviceSlugKey}`
+      );
       const recipientPhoneNumber = formatPhoneNumberE164(
         requesterProfile.whatsapp_number
       );
+
       if (recipientPhoneNumber && twilioUserTemplateSid) {
         await sendWhatsappTemplate(
           recipientPhoneNumber,
           twilioUserTemplateSid,
-          {
-            "1": requesterName,
-          }
-        );
-      } else {
-        console.warn(
-          `No Twilio template SID or phone number for user. Service: ${service.slug}`
+          { "1": requesterName }
         );
       }
 
-      // const adminTemplateSid = Deno.env.get("TWILIO_TEMPLATE_ADMIN_ALERT_SID")!;
-      // const adminMessage = `${requesterName} has requested "${
-      //   service?.name || "a service"
-      // }" for ${patientName}. Check email for PDF.`;
-      // if (adminTemplateSid) {
-      //   await Promise.all(
-      //     ADMIN_WHATSAPP_LIST.map((p) =>
-      //       sendWhatsappTemplate(p, adminTemplateSid, { "1": adminMessage })
-      //     )
-      //   );
-      // }
-
-      return new Response("OK - PDF Email and WhatsApp sent", { status: 200 });
+      return new Response("OK", { status: 200 });
     }
 
-    return new Response("OK - Unhandled event", { status: 200 });
+    return new Response("OK", { status: 200 });
   } catch (error) {
     console.error("Error in Edge Function:", error.message, error.stack);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
+      headers: { "Content-Type": "application/json" },
     });
   }
 });

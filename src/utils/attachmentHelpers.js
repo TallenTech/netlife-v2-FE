@@ -25,7 +25,8 @@ export async function processAndUploadAttachment(
 
     const serviceNumberFormatted = String(serviceNumber || 0).padStart(3, "0");
 
-    const newFileName = `${patientUsername}_${baseName}_${dateString}_${serviceNumberFormatted}.${extension}`;
+    const newFileName =
+      `${patientUsername}_${baseName}_${dateString}_${serviceNumberFormatted}.${extension}`.toLowerCase();
     const filePath = `user-attachments/${newFileName}`;
 
     const { data: signedUrlData, error: signedUrlError } =
