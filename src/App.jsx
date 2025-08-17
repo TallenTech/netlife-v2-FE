@@ -212,7 +212,7 @@ function AppRoutes() {
         }
       />
       <Route path="/privacy" element={<PrivacyPolicy />} />
-      <Route path="/use-of-terms" element={<TermsOfService />} />
+      <Route path="/terms" element={<TermsOfService />} />
       <Route path="/contact-us" element={<ContactUs />} />
     </Routes>
   );

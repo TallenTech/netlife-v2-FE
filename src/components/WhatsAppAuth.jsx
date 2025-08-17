@@ -145,7 +145,7 @@ const AuthForm = ({ isLogin, phoneNumber, setPhoneNumber, onSubmit, isLoading, v
         <p className="text-gray-600 text-sm">No passwords. No emails.</p>
         <p className="text-gray-500 text-xs">
           By proceeding, you accept our{' '}
-          <Link to="/use-of-terms" className="text-primary underline">Use of Terms</Link> and{' '}
+          <Link to="/terms" className="text-primary underline">Terms</Link> and{' '}
           <Link to="/privacy" className="text-primary underline">Privacy</Link>
         </p>
       </div>
