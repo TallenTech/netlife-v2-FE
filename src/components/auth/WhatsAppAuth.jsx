@@ -54,6 +54,7 @@ const WhatsAppAuth = ({ onBack, onContinue }) => {
             setVerificationCode={setVerificationCode}
             onVerify={handleVerifyCode}
             onResend={handleResendCode}
+            onEditNumber={goBackToPhoneStep}
             isLoading={isLoading}
             resendTimer={resendTimer}
             isResendTimerActive={isResendTimerActive}

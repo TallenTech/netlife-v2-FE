@@ -45,7 +45,8 @@ const ContactUs = () => {
                 <title>Contact Us - NetLife</title>
                 <meta name="description" content="Get in touch with the NetLife team for support and inquiries." />
             </Helmet>
-            <div className="p-4 md:p-6 bg-gray-50 min-h-screen">
+            {/* Mobile Layout */}
+            <div className="lg:hidden p-4 md:p-6 bg-gray-50 min-h-screen">
                 <header className="flex items-center mb-6">
                     <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="mr-2">
                         <ArrowLeft className="h-5 w-5" />
@@ -74,6 +75,44 @@ const ContactUs = () => {
                             </div>
                         </div>
                     ))}
+                </div>
+            </div>
+
+            {/* Desktop Layout */}
+            <div className="hidden lg:block min-h-screen bg-gray-50">
+                <div className="max-w-4xl mx-auto px-8 py-12">
+                    <header className="text-center mb-12">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => navigate(-1)}
+                            className="absolute top-8 left-8 hover:bg-gray-100"
+                        >
+                            <ArrowLeft className="h-6 w-6" />
+                        </Button>
+                        <h1 className="text-4xl font-bold text-gray-900 mb-3">Contact Us</h1>
+                        <p className="text-xl text-gray-500">We're here to help!</p>
+                    </header>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+                        {contactDetails.map((item, index) => (
+                            <div key={index} className="bg-white p-6 rounded-2xl border shadow-sm hover:shadow-md transition-shadow duration-200 flex items-start space-x-4">
+                                <div className="flex-shrink-0 w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
+                                    <item.icon className="w-6 h-6 text-primary" />
+                                </div>
+                                <div className="flex-1">
+                                    <h3 className="font-semibold text-gray-800 text-lg mb-1">{item.title}</h3>
+                                    {item.href ? (
+                                        <a href={item.href} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all text-base">
+                                            {item.value}
+                                        </a>
+                                    ) : (
+                                        <p className="text-gray-600 break-all text-base">{item.value}</p>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             </div>
         </>

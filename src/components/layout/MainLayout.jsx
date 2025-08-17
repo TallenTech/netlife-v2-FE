@@ -143,7 +143,7 @@ const MainLayout = ({ handleLogout }) => {
           <Route path="/add-profile" element={<AddProfileFlow />} />
 
           <Route path="/privacy" element={<Privacy />} />
-          <Route path="/use-of-terms" element={<TermsOfService />} />
+          <Route path="/terms" element={<TermsOfService />} />
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/faqs" element={<FAQs />} />
           <Route path="/survey/:profileId" element={<HealthSurvey />} />
