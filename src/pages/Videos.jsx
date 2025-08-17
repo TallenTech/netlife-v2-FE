@@ -8,6 +8,7 @@ import { motion } from "framer-motion";
 import { useToast } from "@/components/ui/use-toast";
 import { formatSmartTime } from "@/utils/timeUtils";
 import { useVideos } from "@/hooks/useServiceQueries";
+import VideoAnalytics from "@/components/video/VideoAnalytics";
 
 const Videos = () => {
   const [activeFilter, setActiveFilter] = useState("All");
@@ -142,11 +143,10 @@ const Videos = () => {
             <button
               key={filter}
               onClick={() => setActiveFilter(filter)}
-              className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors flex-shrink-0 ${
-                activeFilter === filter
-                  ? "bg-primary text-white shadow"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
+              className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors flex-shrink-0 ${activeFilter === filter
+                ? "bg-primary text-white shadow"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
             >
               {filter}
             </button>
@@ -209,7 +209,7 @@ const Videos = () => {
                     <img
                       alt={video.title}
                       className="absolute inset-0 w-full h-full object-cover opacity-30"
-                      // src="https://images.unsplash.com/photo-1567443024551-f3e3cc2be870"
+                    // src="https://images.unsplash.com/photo-1567443024551-f3e3cc2be870"
                     />
                   )}
                   <Play
@@ -238,6 +238,9 @@ const Videos = () => {
                       Video
                     </span>
                     <span>{formatSmartTime(video.created_at)}</span>
+                  </div>
+                  <div className="mt-2">
+                    <VideoAnalytics videoId={video.id} className="text-xs" />
                   </div>
                 </div>
               </motion.div>
