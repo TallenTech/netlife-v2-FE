@@ -15,7 +15,7 @@ import {
 } from "./utils.ts";
 import { createRequestPdf } from "./pdf.ts";
 import { sendWhatsappTemplate } from "./whatsapp.ts";
-import { getMimeType } from "std/media_types/get_mime_type.ts";
+import { getMimeType } from "std/media_types/mod.ts";
 
 serve(async (req) => {
   try {
@@ -121,10 +121,7 @@ serve(async (req) => {
       const dateString = `${now.getFullYear()}${String(
         now.getMonth() + 1
       ).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
-
-      // MODIFICATION: Changed toLowerCase()
       const serviceSlug = service.slug.toLowerCase() || "service";
-
       const serviceNumberFormatted = String(
         service.service_number || 0
       ).padStart(3, "0");
@@ -170,12 +167,8 @@ serve(async (req) => {
       // --- 5. Fetch and Add User Attachments to Email ---
       const userAttachments = record.attachments;
       let attachmentPaths: string[] = [];
-      if (userAttachments) {
-        if (Array.isArray(userAttachments)) {
-          attachmentPaths = userAttachments;
-        } else if (typeof userAttachments === "string") {
-          attachmentPaths = [userAttachments];
-        }
+      if (Array.isArray(userAttachments)) {
+        attachmentPaths = userAttachments;
       }
 
       if (attachmentPaths.length > 0) {
