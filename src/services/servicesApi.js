@@ -334,4 +334,37 @@ export const servicesApi = {
       throw new Error(handleApiError(error));
     }
   },
+
+  async getVideos() {
+    try {
+      const { data, error } = await supabase
+        .from("videos")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw new Error(`Failed to fetch videos: ${error.message}`);
+      return data || [];
+    } catch (error) {
+      logError(error, "servicesApi.getVideos");
+      throw new Error(handleApiError(error));
+    }
+  },
+
+  async getVideoById(videoId) {
+    try {
+      validateRequiredFields({ videoId }, ["videoId"]);
+      const { data, error } = await supabase
+        .from("videos")
+        .select("*")
+        .eq("id", videoId)
+        .single();
+      if (error) {
+        if (error.code === "PGRST116") return null;
+        throw new Error(`Failed to fetch video by ID: ${error.message}`);
+      }
+      return data;
+    } catch (error) {
+      logError(error, "servicesApi.getVideoById", { videoId });
+      throw new Error(handleApiError(error));
+    }
+  },
 };

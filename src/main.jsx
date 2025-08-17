@@ -7,6 +7,8 @@ import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client
 import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
 import App from "@/App";
 import "@/index.css";
+// Import video count sync utility (available in browser console)
+import "@/utils/syncVideoCounts";
 
 const queryClient = new QueryClient({
   defaultOptions: {

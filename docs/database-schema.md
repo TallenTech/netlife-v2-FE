@@ -159,8 +159,65 @@ CREATE TABLE public.videos (
     description text,
     video_url text NOT NULL,
     source text DEFAULT 'netlife'::text,
+    view_count integer DEFAULT 0,
+    like_count integer DEFAULT 0,
+    share_count integer DEFAULT 0,
+    duration_seconds integer DEFAULT 0,
+    thumbnail_url text,
+    category text DEFAULT 'general',
+    tags text[] DEFAULT '{}',
     created_at timestamp with time zone DEFAULT now(),
     CONSTRAINT videos_pkey PRIMARY KEY (id)
+);
+```
+
+### video_views
+
+```sql
+CREATE TABLE public.video_views (
+    id uuid NOT NULL DEFAULT uuid_generate_v4(),
+    video_id uuid NOT NULL,
+    user_id uuid,
+    ip_address inet,
+    user_agent text,
+    viewed_at timestamp with time zone DEFAULT now(),
+    view_duration_seconds integer DEFAULT 0,
+    is_complete boolean DEFAULT false,
+    CONSTRAINT video_views_pkey PRIMARY KEY (id),
+    CONSTRAINT video_views_video_id_fkey FOREIGN KEY (video_id) REFERENCES public.videos(id) ON DELETE CASCADE,
+    CONSTRAINT video_views_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE SET NULL
+);
+```
+
+### video_likes
+
+```sql
+CREATE TABLE public.video_likes (
+    id uuid NOT NULL DEFAULT uuid_generate_v4(),
+    video_id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    liked_at timestamp with time zone DEFAULT now(),
+    CONSTRAINT video_likes_pkey PRIMARY KEY (id),
+    CONSTRAINT video_likes_video_id_fkey FOREIGN KEY (video_id) REFERENCES public.videos(id) ON DELETE CASCADE,
+    CONSTRAINT video_likes_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE,
+    CONSTRAINT video_likes_unique UNIQUE (video_id, user_id)
+);
+```
+
+### video_shares
+
+```sql
+CREATE TABLE public.video_shares (
+    id uuid NOT NULL DEFAULT uuid_generate_v4(),
+    video_id uuid NOT NULL,
+    user_id uuid,
+    share_platform text NOT NULL,
+    shared_at timestamp with time zone DEFAULT now(),
+    ip_address inet,
+    user_agent text,
+    CONSTRAINT video_shares_pkey PRIMARY KEY (id),
+    CONSTRAINT video_shares_video_id_fkey FOREIGN KEY (video_id) REFERENCES public.videos(id) ON DELETE CASCADE,
+    CONSTRAINT video_shares_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE SET NULL
 );
 ```
 
@@ -202,5 +259,8 @@ CREATE TABLE public.notifications (
 - `profiles` → `service_requests` (one-to-many)
 - `profiles` → `user_screening_answers` (one-to-many)
 - `districts` → `sub_counties` (one-to-many)
+- `videos` → `video_views` (one-to-many)
+- `videos` → `video_likes` (one-to-many)
+- `videos` → `video_shares` (one-to-many)
 - `videos` → `user_videos` (one-to-many)
 - `profiles` → `notifications` (one-to-many)
