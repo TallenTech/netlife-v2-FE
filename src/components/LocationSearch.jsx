@@ -52,7 +52,6 @@ const LocationSearch = ({ field, value, onLocationSelect }) => {
           setSuggestions(results);
           setShowSuggestions(results.length > 0 || searchTerm.length >= 3);
         } catch (error) {
-          console.warn('Google Places search failed:', error);
           setSuggestions([]);
           setShowSuggestions(false);
         } finally {
@@ -105,7 +104,7 @@ const LocationSearch = ({ field, value, onLocationSelect }) => {
           lng: geocodeResult.lng
         };
       } catch (error) {
-        console.warn('Failed to get coordinates for selected place:', error);
+        // Failed to get coordinates for selected place
       }
     } else if (suggestion.lat && suggestion.lng) {
       coordinates = {
@@ -141,7 +140,6 @@ const LocationSearch = ({ field, value, onLocationSelect }) => {
       try {
         readableAddress = await reverseGeocodeGoogle(location.lat, location.lng);
       } catch (geocodeError) {
-        console.warn('Google reverse geocoding failed:', geocodeError);
         readableAddress = `Current Location (${formatCoordinates(location.lat, location.lng, 4)})`;
       }
 

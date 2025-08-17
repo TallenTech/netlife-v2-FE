@@ -30,6 +30,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import MobileConfirmDialog from "@/components/ui/MobileConfirmDialog";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -203,11 +204,10 @@ const Notifications = () => {
             <button
               key={tab.key}
               onClick={() => setFilter(tab.key)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex-shrink-0 ${
-                filter === tab.key
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex-shrink-0 ${filter === tab.key
                   ? "bg-primary text-white"
                   : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
-              }`}
+                }`}
             >
               {tab.label} {tab.count > 0 && `(${tab.count})`}
             </button>
@@ -264,9 +264,8 @@ const Notifications = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: index * 0.05 }}
-                className={`bg-white p-4 rounded-2xl border flex items-start space-x-4 ${
-                  !notification.read ? "border-primary/50 bg-primary/5" : ""
-                }`}
+                className={`bg-white p-4 rounded-2xl border flex items-start space-x-4 ${!notification.read ? "border-primary/50 bg-primary/5" : ""
+                  }`}
               >
                 <div
                   className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center ${getNotificationColor(
@@ -335,8 +334,8 @@ const Notifications = () => {
               {filter === "unread"
                 ? "No Unread Notifications"
                 : filter === "read"
-                ? "No Read Notifications"
-                : "No Notifications Yet"}
+                  ? "No Read Notifications"
+                  : "No Notifications Yet"}
             </h2>
             <p className="text-gray-500">
               {filter === "all"
@@ -346,29 +345,17 @@ const Notifications = () => {
           </div>
         )}
 
-        <AlertDialog
-          open={deleteAllDialogOpen}
-          onOpenChange={setDeleteAllDialogOpen}
-        >
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Clear All Notifications</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to delete all notifications? This action
-                cannot be undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={handleClearAll}
-                className="bg-red-600 hover:bg-red-700"
-              >
-                Clear All
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <MobileConfirmDialog
+          isOpen={deleteAllDialogOpen}
+          onClose={() => setDeleteAllDialogOpen(false)}
+          onConfirm={handleClearAll}
+          title="Clear All Notifications"
+          description="Are you sure you want to delete all notifications? This action cannot be undone."
+          confirmText="Clear All"
+          cancelText="Cancel"
+          variant="destructive"
+          icon={Trash2}
+        />
       </div>
     </>
   );
