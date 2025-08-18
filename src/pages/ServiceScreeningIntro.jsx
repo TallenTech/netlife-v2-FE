@@ -36,14 +36,12 @@ const ServiceScreeningIntro = () => {
       <div className="bg-white min-h-screen">
         <div className="max-w-2xl mx-auto px-6 py-8">
           <header className="flex items-center mb-8">
-            <Button
-              variant="ghost"
-              size="icon"
+            <button
               onClick={() => navigate("/services")}
-              className="mr-2 text-gray-700 hover:bg-gray-100"
+              className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-gray-200 transition-all mr-2"
             >
               <ArrowLeft className="h-5 w-5" />
-            </Button>
+            </button>
           </header>
 
           <div className="flex flex-col items-center justify-center text-center min-h-[60vh]">
@@ -74,14 +72,12 @@ const ServiceScreeningIntro = () => {
       <div className="bg-white min-h-screen">
         <div className="max-w-8xl mx-auto px-6 py-8">
           <header className="flex items-center mb-8">
-            <Button
-              variant="ghost"
-              size="icon"
+            <button
               onClick={() => navigate("/services")}
-              className="mr-2 text-gray-700 hover:bg-gray-100"
+              className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-gray-200 transition-all mr-2"
             >
               <ArrowLeft className="h-5 w-5" />
-            </Button>
+            </button>
           </header>
 
           <div className="flex flex-col items-center justify-center text-center min-h-[60vh]">

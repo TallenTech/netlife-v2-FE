@@ -16,18 +16,18 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [activeProfileId, setActiveProfileId] = useState(null);
   const [isLoadingSession, setIsLoadingSession] = useState(true);
-  
+
   const queryClient = useQueryClient();
 
-  const { 
-    data: userData, 
-    isLoading: isLoadingProfile, 
-    error: profileError 
+  const {
+    data: userData,
+    isLoading: isLoadingProfile,
+    error: profileError
   } = useQuery({
     queryKey: ['userData', user?.id],
     queryFn: async () => {
       if (!user?.user_metadata?.display_name) return null;
-      
+
       const { success, data, error } = await profileService.getUserData();
       if (!success) throw error;
       return data;
@@ -40,7 +40,7 @@ export const AuthProvider = ({ children }) => {
   const profile = userData?.mainProfile;
   const managedProfiles = userData?.managedProfiles || [];
   const activeProfile = managedProfiles.find(p => p.id === activeProfileId) || profile;
-  
+
   useEffect(() => {
     const {
       data: { subscription },
@@ -76,13 +76,36 @@ export const AuthProvider = ({ children }) => {
       if (!activeProfile) throw new Error("No active profile selected");
 
       if (activeProfile.id === profile?.id) {
-        return profileService.upsertProfile(dataToUpdate, user.id);
+        return profileService.updateMainProfile(user.id, dataToUpdate);
       } else {
         return profileService.updateManagedProfile(activeProfile.id, dataToUpdate);
       }
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      // Invalidate and refetch the user data
       queryClient.invalidateQueries({ queryKey: ['userData', user?.id] });
+
+      // Also update the cache immediately if we have the result
+      if (result?.success && result?.data) {
+        queryClient.setQueryData(['userData', user?.id], (oldData) => {
+          if (!oldData) return oldData;
+
+          // Update the appropriate profile in the cache
+          if (activeProfile?.id === profile?.id) {
+            return {
+              ...oldData,
+              mainProfile: { ...oldData.mainProfile, ...result.data }
+            };
+          } else {
+            return {
+              ...oldData,
+              managedProfiles: oldData.managedProfiles?.map(p =>
+                p.id === activeProfile?.id ? { ...p, ...result.data } : p
+              ) || []
+            };
+          }
+        });
+      }
     },
   });
 
@@ -90,7 +113,7 @@ export const AuthProvider = ({ children }) => {
     await supabase.auth.signOut();
     localStorage.removeItem("netlife_active_profile_id");
   }, []);
-  
+
   const value = {
     user,
     session,

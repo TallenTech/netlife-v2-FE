@@ -32,6 +32,8 @@ import { getAvatarEmoji } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { settingsService } from "@/services/settingsService";
 import { DateOfBirthPicker } from "@/components/ui/DateOfBirthPicker";
+import { ProfilePictureEditor } from "@/components/profile/ProfilePictureEditor";
+import { profileService } from "@/services/profileService";
 import {
   useUserSettings,
   useDistricts,
@@ -62,6 +64,11 @@ const Account = () => {
   const [phoneUpdateStep, setPhoneUpdateStep] = useState("idle");
   const [newPhoneNumber, setNewPhoneNumber] = useState("");
   const [phoneOtp, setPhoneOtp] = useState("");
+
+  // Profile picture editing state
+  const [isEditingPicture, setIsEditingPicture] = useState(false);
+  const [newProfilePhoto, setNewProfilePhoto] = useState(null);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
 
   const isMainProfile = activeProfile?.id === user?.id;
 
@@ -111,6 +118,96 @@ const Account = () => {
         description: error.message || "Could not save your profile.",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleProfilePictureChange = async (file) => {
+    setNewProfilePhoto(file);
+    setIsEditingPicture(false);
+
+    if (!file) return;
+
+    try {
+      setIsUploadingPhoto(true);
+
+      // Upload the photo based on profile type
+      let uploadResult;
+      if (isMainProfile) {
+        uploadResult = await profileService.uploadProfilePhoto(file, activeProfile.id);
+      } else {
+        uploadResult = await profileService.uploadManagedProfilePhoto(file, activeProfile.id);
+      }
+
+      if (!uploadResult.success) {
+        throw new Error(uploadResult.error?.message || "Failed to upload photo");
+      }
+
+      // Update the local profile data immediately
+      const newPictureUrl = uploadResult.data?.url;
+
+      if (newPictureUrl) {
+        setProfileData(prev => ({
+          ...prev,
+          profile_picture: newPictureUrl
+        }));
+      }
+
+      // Refresh the profile data from server
+      await refreshAuthAndProfiles();
+
+      toast({
+        title: "Profile Picture Updated",
+        description: "Your profile picture has been updated successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Upload Failed",
+        description: error.message || "Could not upload your profile picture.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploadingPhoto(false);
+      setNewProfilePhoto(null);
+    }
+  };
+
+  const handleAvatarSelect = async (avatarId) => {
+    try {
+      setIsUploadingPhoto(true);
+
+      // Update local state immediately for instant UI feedback
+      setProfileData(prev => ({
+        ...prev,
+        profile_picture: avatarId
+      }));
+
+      // Update profile with avatar
+      await updateProfile({ profile_picture: avatarId });
+
+      // Refresh the profile data from server to ensure consistency
+      await refreshAuthAndProfiles();
+
+      // Close the modal after successful update
+      setIsEditingPicture(false);
+
+      toast({
+        title: "Avatar Updated",
+        description: `Your avatar has been updated to ${getAvatarEmoji(avatarId)}.`,
+      });
+    } catch (error) {
+      // Revert local state if update failed
+      setProfileData(prev => ({
+        ...prev,
+        profile_picture: activeProfile?.profile_picture || null
+      }));
+
+      toast({
+        title: "Update Failed",
+        description: error.message || "Could not update your avatar.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploadingPhoto(false);
     }
   };
 
@@ -196,30 +293,7 @@ const Account = () => {
     }
   };
 
-  const renderAvatar = () => {
-    const picture = profileData.profile_picture;
-    if (
-      picture &&
-      (picture.startsWith("http") || picture.startsWith("data:image"))
-    ) {
-      return (
-        <AvatarImage src={picture} alt={profileData.username || "Profile"} />
-      );
-    }
-    if (picture) {
-      return (
-        <AvatarFallback className="text-5xl bg-transparent">
-          {getAvatarEmoji(picture)}
-        </AvatarFallback>
-      );
-    }
-    const firstName = profileData.username?.split(" ")[0] || "";
-    return (
-      <AvatarFallback>
-        {firstName ? firstName.charAt(0).toUpperCase() : "A"}
-      </AvatarFallback>
-    );
-  };
+
 
   const handleDataPurge = () => {
     const result = settingsService.purgeLocalData();
@@ -246,7 +320,7 @@ const Account = () => {
       onSuccess: () => {
         toast({
           title: "Account Deleted",
-          description: "Your account has been permanently deleted.",
+          description: "Your account and all associated data have been permanently deleted.",
           variant: "destructive",
         });
         setShowDeleteDialog(false);
@@ -257,7 +331,7 @@ const Account = () => {
       onError: (error) => {
         toast({
           title: "Delete Failed",
-          description: error.message,
+          description: error.message || "Could not delete your account. Please try again.",
           variant: "destructive",
         });
       },
@@ -294,6 +368,20 @@ const Account = () => {
               <div className="h-6 bg-gray-200 rounded w-40"></div>
               <div className="h-4 bg-gray-200 rounded w-32"></div>
             </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading overlay when uploading photo
+  if (isUploadingPhoto) {
+    return (
+      <div className="p-4 md:p-6 bg-gray-50 min-h-screen">
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <div className="text-center space-y-4">
+            <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <p className="text-gray-600">Uploading your profile picture...</p>
           </div>
         </div>
       </div>
@@ -337,9 +425,16 @@ const Account = () => {
           <TabsContent value="profile" className="mt-6">
             <div className="bg-white p-4 md:p-6 rounded-2xl border mb-6">
               <div className="flex flex-col items-center text-center space-y-4 mb-6">
-                <Avatar className="w-24 h-24 text-5xl border-4 border-white shadow-md">
-                  {renderAvatar()}
-                </Avatar>
+                <ProfilePictureEditor
+                  currentPicture={profileData.profile_picture}
+                  username={profileData.username}
+                  onPictureChange={handleProfilePictureChange}
+                  onAvatarSelect={handleAvatarSelect}
+                  isEditing={isEditingPicture}
+                  onToggleEdit={() => setIsEditingPicture(!isEditingPicture)}
+                  isUploading={isUploadingPhoto}
+                  className="mb-6"
+                />
                 <div>
                   <h2 className="text-lg font-bold">Personal Information</h2>
                   <p className="text-sm text-gray-500">
@@ -690,7 +785,7 @@ const Account = () => {
           onClose={() => setShowDeleteDialog(false)}
           onConfirm={handleDeleteAccount}
           title="Delete Account?"
-          description="This action is permanent and cannot be undone."
+          description="This action is permanent and cannot be undone. This will delete your account, all your data, files, and profile pictures from our servers."
           confirmText="Yes, delete my account"
           isLoading={isDeletingAccount}
         />

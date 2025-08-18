@@ -34,8 +34,7 @@ const ProfileSetup = ({
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [usernameChecking, setUsernameChecking] = useState(false);
-  const [districts, setDistricts] = useState([]);
-  const [loadingDistricts, setLoadingDistricts] = useState(true);
+
   const { toast } = useToast();
 
   useEffect(() => {
@@ -54,26 +53,7 @@ const ProfileSetup = ({
     }
   }, [existingData]);
 
-  useEffect(() => {
-    let isMounted = true;
-    const loadDistricts = async () => {
-      setLoadingDistricts(true);
-      const result = await profileService.getDistricts();
-      if (isMounted) {
-        if (result.success) setDistricts(result.data);
-        else setDistricts([]);
-        setLoadingDistricts(false);
-      }
-    };
-    if (!isNewDependent) {
-      loadDistricts();
-    } else {
-      setLoadingDistricts(false);
-    }
-    return () => {
-      isMounted = false;
-    };
-  }, [isNewDependent]);
+
 
   const validateField = useCallback(
     (name, value) => {
@@ -188,7 +168,10 @@ const ProfileSetup = ({
       if (!profileResult.success) throw profileResult.error;
 
       if (profilePhotoFile) {
-        await profileService.uploadProfilePhoto(profilePhotoFile, user.id);
+        const uploadResult = await profileService.uploadProfilePhoto(profilePhotoFile, user.id);
+        if (!uploadResult.success) {
+          throw new Error(uploadResult.error || "Failed to upload profile photo");
+        }
       }
 
       const { error: updateUserError } = await supabase.auth.updateUser({
@@ -290,8 +273,6 @@ const ProfileSetup = ({
                     validateField={validateField}
                     checkUsername={checkUsername}
                     usernameChecking={usernameChecking}
-                    districts={districts}
-                    loadingDistricts={loadingDistricts}
                     isNewDependent={isNewDependent}
                   />
                 ) : (
