@@ -198,14 +198,12 @@ const ServiceScreening = () => {
       <div className="bg-white min-h-screen">
         <div className="px-6 py-4">
           <header className="flex items-center mb-6">
-            <Button
-              variant="ghost"
-              size="icon"
+            <button
               onClick={() => navigate(`/services/${serviceId}/intro`)}
-              className="mr-2"
+              className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-gray-200 transition-all mr-2"
             >
               <ArrowLeft className="h-5 w-5" />
-            </Button>
+            </button>
             <div className="flex-1">
               <h1 className="text-xl font-bold">Health Screening</h1>
               <p className="text-sm text-gray-500">Eligibility Assessment</p>

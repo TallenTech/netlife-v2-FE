@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import {
   Home,
@@ -28,28 +28,45 @@ const navItems = [
 const SideNav = () => {
   const { activeProfile, logout } = useAuth();
   const navigate = useNavigate();
+  const [imageError, setImageError] = useState(false);
+
+  // Reset image error when profile picture changes
+  React.useEffect(() => {
+    if (activeProfile?.profile_picture) {
+      setImageError(false);
+    }
+  }, [activeProfile?.profile_picture]);
 
   const renderAvatar = () => {
     if (!activeProfile) {
       return <AvatarFallback>A</AvatarFallback>;
     }
-    const isUrl = activeProfile.profile_picture?.startsWith("http");
 
-    if (isUrl) {
+    const picture = activeProfile.profile_picture;
+
+    // Check if it's a URL (uploaded photo)
+    if (picture && (picture.startsWith("http") || picture.startsWith("data:")) && !imageError) {
       return (
         <AvatarImage
-          src={activeProfile.profile_picture}
+          src={picture}
           alt={activeProfile.username}
+          className="object-cover"
+          onLoad={() => setImageError(false)}
+          onError={() => setImageError(true)}
         />
       );
     }
-    if (activeProfile.profile_picture) {
+
+    // Check if it's an avatar ID
+    if (picture && picture.startsWith("avatar-")) {
       return (
         <AvatarFallback className="bg-transparent text-lg">
-          {getAvatarEmoji(activeProfile.profile_picture)}
+          {getAvatarEmoji(picture)}
         </AvatarFallback>
       );
     }
+
+    // Fallback to first letter of username
     return (
       <AvatarFallback>
         {activeProfile.username?.charAt(0).toUpperCase() || "A"}
@@ -99,7 +116,7 @@ const SideNav = () => {
             <p className="text-xs text-gray-500">My Account</p>
           </div>
         </NavLink>
-        
+
         <button
           onClick={() => navigate("/account/manage-profiles")}
           className="flex items-center w-full text-left space-x-3 px-4 py-3 rounded-lg transition-colors duration-200 text-gray-600 hover:bg-gray-100"
