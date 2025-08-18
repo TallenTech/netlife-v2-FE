@@ -1,7 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { serve } from "std/http/server.ts";
-import { encodeBase64, decodeBase64 } from "std/encoding/base64.ts";
-import mime from "mime";
+import { encodeBase64 } from "std/encoding/base64.ts";
 import {
   ADMIN_LIST,
   FROM_ADDRESS,
@@ -31,15 +30,13 @@ serve(async (req) => {
     const zeptoToken = Deno.env.get("ZEPTOMAIL_TOKEN");
     if (!zeptoToken) throw new Error("ZEPTOMAIL_TOKEN not set");
 
-    // --- 1. Fetch Core Data ---
     const { data: service } = await supabaseAdmin
       .from("services")
       .select("name, slug, service_number")
       .eq("id", record.service_id)
       .single();
-    if (!service) {
+    if (!service)
       throw new Error(`Service with ID ${record.service_id} not found.`);
-    }
 
     const requestData = record.request_data || {};
     const profileInfo = requestData._profileInfo || {};
@@ -63,20 +60,18 @@ serve(async (req) => {
         .single();
       patientProfile = managedPatientProfile;
     }
-    if (!patientProfile) {
+    if (!patientProfile)
       throw new Error(`Could not find patient profile for ID: ${patientId}`);
-    }
 
     const { data: requesterProfile } = await supabaseAdmin
       .from("profiles")
       .select("*")
       .eq("id", record.user_id)
       .single();
-    if (!requesterProfile) {
+    if (!requesterProfile)
       throw new Error(
         `Could not find requester profile for ID: ${record.user_id}`
       );
-    }
 
     const patientName = patientProfile.username || "user";
     const requesterName = requesterProfile.username || "user";
@@ -85,73 +80,57 @@ serve(async (req) => {
       : null;
 
     const emailAttachments = [];
-    const uploadedAttachmentPaths = [];
 
-    // --- 2. Process User Attachment from Base64 Data ---
-    const userAttachmentData = requestData.attachment;
-    if (
-      userAttachmentData &&
-      userAttachmentData.name &&
-      userAttachmentData.data
-    ) {
-      console.log(
-        "Processing user attachment received in Edge Function:",
-        userAttachmentData.name
+    const { data: attachmentRecord, error: attachmentError } =
+      await supabaseAdmin
+        .from("user_attachments")
+        .select("file_path, original_name, mime_type")
+        .eq("service_request_id", record.id)
+        .maybeSingle();
+
+    if (attachmentError) {
+      console.error(
+        "EDGE FUNCTION ERROR: Failed to query user_attachments table:",
+        attachmentError
       );
-      const parts = userAttachmentData.data.split(",");
-      const base64Data = parts[1];
-
-      if (base64Data) {
-        const decodedFile = decodeBase64(base64Data);
-        const newFileName = `user-attachments/${patientName}_${Date.now()}_${
-          userAttachmentData.name
-        }`
-          .toLowerCase()
-          .replace(/[^a-z0-9-_\.\/]/g, ""); // Sanitize filename
-
-        const { data: uploadData, error: uploadError } =
-          await supabaseAdmin.storage
-            .from("attachments")
-            .upload(newFileName, decodedFile, {
-              contentType:
-                mime.getType(userAttachmentData.name) ||
-                "application/octet-stream",
-              upsert: true,
-            });
-
-        if (uploadError) {
-          console.error(
-            "EDGE FUNCTION ERROR: Failed to upload attachment to bucket:",
-            uploadError
-          );
-        } else {
-          console.log(
-            "Attachment successfully saved to bucket. Path:",
-            uploadData.path
-          );
-          uploadedAttachmentPaths.push(uploadData.path);
-          emailAttachments.push({
-            name: userAttachmentData.name,
-            content: base64Data,
-            mime_type:
-              mime.getType(userAttachmentData.name) ||
-              "application/octet-stream",
-          });
-
-          // Update the original request with the path of the saved attachment
-          await supabaseAdmin
-            .from("service_requests")
-            .update({ attachments: uploadedAttachmentPaths })
-            .eq("id", record.id);
-        }
-      } else {
-        console.warn(
-          "Attachment data was found but the Base64 content was empty."
-        );
-      }
     }
 
-    // --- 3. Generate and Save PDF ---
+    if (attachmentRecord && attachmentRecord.file_path) {
+      console.log(
+        `Found attachment record. Path: ${attachmentRecord.file_path}. Downloading from storage...`
+      );
+
+      const { data: fileData, error: downloadError } =
+        await supabaseAdmin.storage
+          .from("service-attachments")
+          .download(attachmentRecord.file_path);
+
+      if (downloadError) {
+        console.error(
+          `EDGE FUNCTION ERROR: Failed to download file from storage path ${attachmentRecord.file_path}:`,
+          downloadError
+        );
+      } else {
+        console.log(
+          "File downloaded successfully. Encoding to Base64 for email."
+        );
+
+        const fileBase64 = encodeBase64(await fileData.arrayBuffer());
+
+        const structuredFilename =
+          attachmentRecord.file_path.split("/").pop() ||
+          attachmentRecord.original_name;
+
+        emailAttachments.push({
+          name: structuredFilename,
+          content: fileBase64,
+          mime_type: attachmentRecord.mime_type || "application/octet-stream",
+        });
+      }
+    } else {
+      console.log("No user attachment found for this service request.");
+    }
+
     const pdfPayload = {
       patient_name: patientName,
       patient_gender: patientProfile.gender,
@@ -223,7 +202,6 @@ serve(async (req) => {
       mime_type: "application/pdf",
     });
 
-    // --- 4. Send Notifications ---
     const serviceSlugKey = service.slug.toUpperCase().replace(/-/g, "_");
     const zeptoTemplateKey = Deno.env.get(
       `ZEPTOMAIL_TEMPLATE_${serviceSlugKey}`
@@ -232,7 +210,9 @@ serve(async (req) => {
     if (zeptoTemplateKey) {
       console.log(`Sending email with ${emailAttachments.length} attachments.`);
       for (const admin of ADMIN_LIST) {
-        const subject = `New ${service.name} Request from ${patientName} - #${record.id}`;
+        const subject = `New ${
+          service.name
+        } Request from ${patientName} - #${record.id.slice(0, 8)}`;
         const mergeInfo = {
           admin_name: admin.name,
           requester_name: requesterName,
@@ -247,7 +227,7 @@ serve(async (req) => {
           merge_info: mergeInfo,
           attachments: emailAttachments,
         };
-        await fetch(ZEPTOMAIL_API_URL_TEMPLATE, {
+        const response = await fetch(ZEPTOMAIL_API_URL_TEMPLATE, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -255,6 +235,12 @@ serve(async (req) => {
           },
           body: JSON.stringify(emailApiPayload),
         });
+        if (!response.ok) {
+          console.error(
+            `Failed to send email to ${admin.email}:`,
+            await response.json()
+          );
+        }
       }
     }
 
@@ -272,7 +258,7 @@ serve(async (req) => {
 
     return new Response("OK", { status: 200 });
   } catch (error) {
-    console.error("Error in Edge Function:", error.message, error.stack);
+    console.error("FATAL ERROR in Edge Function:", error.message, error.stack);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
