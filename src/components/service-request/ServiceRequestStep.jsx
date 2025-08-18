@@ -1,209 +1,163 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Upload, AlertCircle } from 'lucide-react';
-import LocationSearch from '@/components/LocationSearch';
-import FileUpload from '@/components/FileUpload';
-import DateTimePicker from '@/components/ui/DateTimePicker';
-import ValidationSummary from './ValidationSummary';
-import { useToast } from '@/components/ui/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
-import { cn } from '@/lib/utils';
+import React, { useState, useEffect, useCallback } from "react";
+import { motion } from "framer-motion";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { AlertCircle } from "lucide-react";
+import LocationSearch from "@/components/LocationSearch";
+import FileUpload from "@/components/FileUpload";
+import DateTimePicker from "@/components/ui/DateTimePicker";
+import ValidationSummary from "./ValidationSummary";
+import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { cn } from "@/lib/utils";
 
-const ServiceRequestStep = ({ stepConfig, formData, handleInputChange, onValidationChange }) => {
+const ServiceRequestStep = ({
+  stepConfig,
+  formData,
+  handleInputChange,
+  onValidationChange,
+}) => {
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
   const { toast } = useToast();
   const { activeProfile } = useAuth();
 
-  // Validation functions for different field types
+  useEffect(() => {
+    console.log("[ServiceRequestStep] formData updated from parent:", formData);
+  }, [formData]);
+
   const validateDateTime = (value) => {
     if (!value) return "This field is required.";
-
     const selectedDate = new Date(value);
     const now = new Date();
-    
-    const minDate = new Date(now.getTime() + 6 * 60 * 60 * 1000); // 6 hours from now
-    const maxDate = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000); // 60 days from now
-
-    if (selectedDate < minDate) {
+    const minDate = new Date(now.getTime() + 6 * 60 * 60 * 1000);
+    const maxDate = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000);
+    if (selectedDate < minDate)
       return "Date must be at least 6 hours from now.";
-    }
-    if (selectedDate > maxDate) {
-      return "Date must be within the next 60 days.";
-    }
+    if (selectedDate > maxDate) return "Date must be within the next 60 days.";
     return "";
   };
 
   const validateQuantity = (value) => {
-    if (value === '' || value === null || value === undefined) {
-      return ""; // Optional field
-    }
-    
-    const num = typeof value === 'number' ? value : parseInt(value);
-    
-    if (isNaN(num)) {
-      return "Please enter a valid number.";
-    }
-    
-    if (num < 1) {
-      return "Quantity must be at least 1.";
-    }
-    
-    if (num > 10) {
-      return "Maximum quantity is 10.";
-    }
-    
-    return "";
-  };
-
-  const validateRequired = (value, fieldName) => {
-    if (!value || value === '') {
-      return `${fieldName} is required.`;
-    }
+    if (value === "" || value === null || value === undefined) return "";
+    const num = typeof value === "number" ? value : parseInt(value);
+    if (isNaN(num)) return "Please enter a valid number.";
+    if (num < 1) return "Quantity must be at least 1.";
+    if (num > 10) return "Maximum quantity is 10.";
     return "";
   };
 
   const validateTextArea = (value, maxLength = 500) => {
-    if (value && value.length > maxLength) {
+    if (value && value.length > maxLength)
       return `Maximum ${maxLength} characters allowed.`;
-    }
     return "";
   };
 
-  // Comprehensive field validation
-  const validateField = (field, value) => {
+  const validateField = useCallback((field, value) => {
     if (!field) return "";
-
-    // Check if field is required and empty
-    if (field.required && (!value || value === '' || (Array.isArray(value) && value.length === 0))) {
+    if (
+      field.required &&
+      (!value || value === "" || (Array.isArray(value) && value.length === 0))
+    ) {
       return `${field.label} is required.`;
     }
-
-    // Skip validation for optional empty fields
-    if (!value || value === '') {
-      return "";
-    }
-
-    // Type-specific validation
+    if (!value || value === "") return "";
     switch (field.type) {
-      case 'number':
-        if (field.name === 'quantity') {
-          return validateQuantity(value);
-        }
+      case "number":
+        if (field.name === "quantity") return validateQuantity(value);
         break;
-      
-      case 'textarea':
+      case "textarea":
         return validateTextArea(value);
-      
-      case 'datetime-local':
+      case "datetime-local":
         return validateDateTime(value);
-      
-      case 'radio':
-        if (field.required && !field.options.includes(value)) {
+      case "radio":
+        if (field.required && !field.options.includes(value))
           return `Please select a valid option for ${field.label}.`;
-        }
         break;
-      
-      case 'select':
-        if (field.required && !field.options.includes(value)) {
+      case "select":
+        if (field.required && !field.options.includes(value))
           return `Please select a valid option for ${field.label}.`;
-        }
         break;
-      
-      case 'file':
-        // File validation is handled separately in FileUpload component
-        break;
-      
-      case 'map':
-        if (field.required && (!value || !value.address)) {
+      case "map":
+        if (field.required && (!value || !value.address))
           return `Please select a location for ${field.label}.`;
-        }
         break;
-      
       default:
-        // Text input validation
-        if (typeof value === 'string' && value.trim().length === 0 && field.required) {
+        if (
+          typeof value === "string" &&
+          value.trim().length === 0 &&
+          field.required
+        )
           return `${field.label} is required.`;
-        }
         break;
     }
-
     return "";
-  };
+  }, []);
 
-  // Validate all visible fields in current step
-  const validateCurrentStep = () => {
+  const validateCurrentStep = useCallback(() => {
     const stepErrors = {};
     let hasErrors = false;
-
-    stepConfig.fields.forEach(field => {
-      // Skip validation for conditional fields that aren't shown
-      if (field.condition && !field.condition(formData)) {
-        return;
-      }
-
+    stepConfig.fields.forEach((field) => {
+      if (field.condition && !field.condition(formData)) return;
       const error = validateField(field, formData[field.name]);
       if (error) {
         stepErrors[field.name] = error;
         hasErrors = true;
       }
     });
-
     setErrors(stepErrors);
     return !hasErrors;
-  };
+  }, [formData, stepConfig.fields, validateField]);
 
-  // Notify parent component about validation status
-  React.useEffect(() => {
+  useEffect(() => {
     const isValid = validateCurrentStep();
     if (onValidationChange) {
       onValidationChange(isValid);
     }
-  }, [formData, stepConfig]);
+  }, [formData, stepConfig, onValidationChange, validateCurrentStep]);
 
   const handleFieldChange = (name, value, field) => {
-    // Mark field as touched
-    setTouched(prev => ({ ...prev, [name]: true }));
-    
-    // Update form data
+    console.log(
+      `[ServiceRequestStep] Field '${name}' changed. New value:`,
+      value
+    );
+    setTouched((prev) => ({ ...prev, [name]: true }));
     handleInputChange(name, value);
-    
-    // Validate field immediately if it's been touched
     const error = validateField(field, value);
-    
-    if (error) {
-      setErrors(prev => ({ ...prev, [name]: error }));
-    } else {
-      const newErrors = { ...errors };
+    setErrors((prev) => {
+      if (error) return { ...prev, [name]: error };
+      const newErrors = { ...prev };
       delete newErrors[name];
-      setErrors(newErrors);
-    }
+      return newErrors;
+    });
   };
 
   const handleFieldBlur = (name, field) => {
-    setTouched(prev => ({ ...prev, [name]: true }));
-    
-    // Validate on blur
+    setTouched((prev) => ({ ...prev, [name]: true }));
     const error = validateField(field, formData[name]);
     if (error) {
-      setErrors(prev => ({ ...prev, [name]: error }));
+      setErrors((prev) => ({ ...prev, [name]: error }));
     }
   };
 
   const onDateTimeChange = (fieldName, value) => {
     const error = validateDateTime(value);
     if (error) {
-      setErrors(prev => ({ ...prev, [fieldName]: error }));
+      setErrors((prev) => ({ ...prev, [fieldName]: error }));
       toast({
         title: "Invalid Date",
         description: error,
         variant: "destructive",
       });
     } else {
-      const newErrors = {...errors};
+      const newErrors = { ...errors };
       delete newErrors[fieldName];
       setErrors(newErrors);
     }
@@ -211,20 +165,13 @@ const ServiceRequestStep = ({ stepConfig, formData, handleInputChange, onValidat
   };
 
   const handleLocationSelect = (field, locationData) => {
-    // Enhanced location data processing
     const processedLocation = {
       address: locationData.address || locationData,
       coordinates: locationData.coordinates || null,
       details: locationData.details || null,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
-    
-    handleFieldChange(field.name, processedLocation);
-  };
-
-  const validateDeliveryMethod = (method) => {
-    const validMethods = ['Home Delivery', 'Facility pickup', 'Community Group Delivery', 'Pick-up from facility'];
-    return validMethods.includes(method);
+    handleFieldChange(field.name, processedLocation, field);
   };
 
   const ErrorMessage = ({ field }) => {
@@ -244,15 +191,16 @@ const ServiceRequestStep = ({ stepConfig, formData, handleInputChange, onValidat
     const hasError = errors[fieldName] && touched[fieldName];
     return cn(
       baseClassName,
-      hasError ? 'border-red-300 bg-red-50 focus:border-red-500 focus:ring-red-200' : ''
+      hasError
+        ? "border-red-300 bg-red-50 focus:border-red-500 focus:ring-red-200"
+        : ""
     );
   };
 
   const renderField = (field) => {
     if (field.condition && !field.condition(formData)) return null;
-
     switch (field.type) {
-      case 'radio':
+      case "radio":
         return (
           <div key={field.name} className="space-y-3">
             <Label className="text-base font-semibold text-gray-900">
@@ -260,18 +208,18 @@ const ServiceRequestStep = ({ stepConfig, formData, handleInputChange, onValidat
               {field.required && <span className="text-red-500 ml-1">*</span>}
             </Label>
             <div className="space-y-3">
-              {field.options.map(option => {
+              {field.options.map((option) => {
                 const isSelected = formData[field.name] === option;
                 return (
-                  <label 
-                    key={option} 
-                    htmlFor={`${field.name}-${option}`} 
+                  <label
+                    key={option}
+                    htmlFor={`${field.name}-${option}`}
                     className={`flex items-center space-x-4 p-4 rounded-xl cursor-pointer transition-all duration-200 border-2 min-h-[60px] ${
-                      isSelected 
-                        ? 'border-primary bg-primary/10 shadow-sm' 
+                      isSelected
+                        ? "border-primary bg-primary/10 shadow-sm"
                         : errors[field.name] && touched[field.name]
-                        ? 'border-red-300 bg-red-50'
-                        : 'border-gray-200 bg-gray-50 hover:border-gray-300 hover:bg-gray-100'
+                        ? "border-red-300 bg-red-50"
+                        : "border-gray-200 bg-gray-50 hover:border-gray-300 hover:bg-gray-100"
                     }`}
                   >
                     <div className="relative">
@@ -281,25 +229,31 @@ const ServiceRequestStep = ({ stepConfig, formData, handleInputChange, onValidat
                         name={field.name}
                         value={option}
                         checked={isSelected}
-                        onChange={(e) => handleFieldChange(field.name, e.target.value, field)}
+                        onChange={(e) =>
+                          handleFieldChange(field.name, e.target.value, field)
+                        }
                         onBlur={() => handleFieldBlur(field.name, field)}
                         className="sr-only"
                       />
-                      <div className={`w-5 h-5 rounded-full border-2 transition-all duration-200 ${
-                        isSelected 
-                          ? 'border-primary bg-primary' 
-                          : errors[field.name] && touched[field.name]
-                          ? 'border-red-400 bg-white'
-                          : 'border-gray-400 bg-white'
-                      }`}>
+                      <div
+                        className={`w-5 h-5 rounded-full border-2 transition-all duration-200 ${
+                          isSelected
+                            ? "border-primary bg-primary"
+                            : errors[field.name] && touched[field.name]
+                            ? "border-red-400 bg-white"
+                            : "border-gray-400 bg-white"
+                        }`}
+                      >
                         {isSelected && (
                           <div className="w-2 h-2 bg-white rounded-full absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
                         )}
                       </div>
                     </div>
-                    <span className={`flex-1 text-base font-medium transition-colors duration-200 ${
-                      isSelected ? 'text-primary' : 'text-gray-800'
-                    }`}>
+                    <span
+                      className={`flex-1 text-base font-medium transition-colors duration-200 ${
+                        isSelected ? "text-primary" : "text-gray-800"
+                      }`}
+                    >
                       {option}
                     </span>
                   </label>
@@ -309,30 +263,40 @@ const ServiceRequestStep = ({ stepConfig, formData, handleInputChange, onValidat
             <ErrorMessage field={field.name} />
           </div>
         );
-      case 'select':
+      case "select":
         return (
           <div key={field.name} className="space-y-2">
-            <Label htmlFor={field.name} className="text-base font-semibold text-gray-900">
+            <Label
+              htmlFor={field.name}
+              className="text-base font-semibold text-gray-900"
+            >
               {field.label}
               {field.required && <span className="text-red-500 ml-1">*</span>}
             </Label>
-            <Select 
-              onValueChange={(value) => handleFieldChange(field.name, value, field)} 
+            <Select
+              onValueChange={(value) =>
+                handleFieldChange(field.name, value, field)
+              }
               value={formData[field.name] || ""}
               onOpenChange={(open) => {
                 if (!open) handleFieldBlur(field.name, field);
               }}
             >
-              <SelectTrigger 
-                id={field.name} 
-                className={getFieldClassName(field.name, 'h-14 text-base bg-gray-50 border-2 hover:border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 border-gray-200')}
+              <SelectTrigger
+                id={field.name}
+                className={getFieldClassName(
+                  field.name,
+                  "h-14 text-base bg-gray-50 border-2 hover:border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 border-gray-200"
+                )}
               >
-                <SelectValue placeholder={`Select ${field.label.toLowerCase()}`} />
+                <SelectValue
+                  placeholder={`Select ${field.label.toLowerCase()}`}
+                />
               </SelectTrigger>
               <SelectContent className="z-50 max-h-60 overflow-y-auto">
-                {field.options.map(option => (
-                  <SelectItem 
-                    key={option} 
+                {field.options.map((option) => (
+                  <SelectItem
+                    key={option}
                     value={option}
                     className="cursor-pointer hover:bg-primary/10 focus:bg-primary/10 py-3 text-base"
                   >
@@ -344,93 +308,143 @@ const ServiceRequestStep = ({ stepConfig, formData, handleInputChange, onValidat
             <ErrorMessage field={field.name} />
           </div>
         );
-      case 'file':
+      case "file":
         return (
           <div key={field.name} className="space-y-2">
-            <Label htmlFor={field.name} className="text-base font-semibold text-gray-900">
+            <Label
+              htmlFor={field.name}
+              className="text-base font-semibold text-gray-900"
+            >
               {field.label}
               {field.required && <span className="text-red-500 ml-1">*</span>}
             </Label>
-            <FileUpload 
-              onFileSelect={(file) => handleFieldChange(field.name, file, field)}
+            <FileUpload
+              initialFile={formData[field.name]}
+              onFileSelect={(file) =>
+                handleFieldChange(field.name, file, field)
+              }
               healthRecords={activeProfile?.healthRecords || []}
             />
             <ErrorMessage field={field.name} />
           </div>
         );
-      case 'textarea':
+      case "textarea":
         return (
           <div key={field.name} className="space-y-2">
-            <Label htmlFor={field.name} className="text-base font-semibold text-gray-900">
+            <Label
+              htmlFor={field.name}
+              className="text-base font-semibold text-gray-900"
+            >
               {field.label}
               {field.required && <span className="text-red-500 ml-1">*</span>}
             </Label>
             <div className="relative">
               <textarea
                 id={field.name}
-                value={formData[field.name] || ''}
-                onChange={(e) => handleFieldChange(field.name, e.target.value, field)}
+                value={formData[field.name] || ""}
+                onChange={(e) =>
+                  handleFieldChange(field.name, e.target.value, field)
+                }
                 onBlur={() => handleFieldBlur(field.name, field)}
                 placeholder={field.placeholder}
-                className={getFieldClassName(field.name, 'w-full min-h-[120px] p-4 bg-gray-50 rounded-xl border-2 hover:border-gray-300 focus:ring-2 focus:ring-primary/20 focus:border-primary text-base transition-all duration-200 resize-none border-gray-200')}
+                className={getFieldClassName(
+                  field.name,
+                  "w-full min-h-[120px] p-4 bg-gray-50 rounded-xl border-2 hover:border-gray-300 focus:ring-2 focus:ring-primary/20 focus:border-primary text-base transition-all duration-200 resize-none border-gray-200"
+                )}
                 maxLength={500}
               />
               <div className="absolute bottom-2 right-2 text-xs text-gray-400">
-                {(formData[field.name] || '').length}/500
+                {(formData[field.name] || "").length}/500
               </div>
             </div>
             <ErrorMessage field={field.name} />
           </div>
         );
-      case 'map':
-        return <LocationSearch key={field.name} field={field} value={formData[field.name]} onLocationSelect={(val) => handleLocationSelect(field, val)} />;
-      case 'datetime-local':
+      case "map":
+        return (
+          <LocationSearch
+            key={field.name}
+            field={field}
+            value={formData[field.name]}
+            onLocationSelect={(val) => handleLocationSelect(field, val)}
+          />
+        );
+      case "datetime-local":
         return (
           <div key={field.name}>
             <DateTimePicker
-              value={formData[field.name] || ''}
+              value={formData[field.name] || ""}
               onChange={(value) => onDateTimeChange(field.name, value)}
               label={field.label}
               placeholder="Choose your preferred date and time"
               required={field.required}
-              error={errors[field.name] && touched[field.name] ? errors[field.name] : null}
+              error={
+                errors[field.name] && touched[field.name]
+                  ? errors[field.name]
+                  : null
+              }
             />
             {!errors[field.name] && (
-              <p className="text-xs text-gray-500 mt-2">Select a date at least 6 hours from now</p>
+              <p className="text-xs text-gray-500 mt-2">
+                Select a date at least 6 hours from now
+              </p>
             )}
           </div>
         );
       default:
         return (
           <div key={field.name} className="space-y-2">
-            <Label htmlFor={field.name} className="text-base font-semibold text-gray-900">
+            <Label
+              htmlFor={field.name}
+              className="text-base font-semibold text-gray-900"
+            >
               {field.label}
               {field.required && <span className="text-red-500 ml-1">*</span>}
             </Label>
             <div className="relative">
-              <Input 
-                id={field.name} 
-                type={field.type} 
-                placeholder={field.placeholder} 
-                value={formData[field.name] || ''} 
+              <Input
+                id={field.name}
+                type={field.type}
+                placeholder={field.placeholder}
+                value={formData[field.name] || ""}
                 onChange={(e) => {
-                  const value = field.type === 'number' ? (e.target.value === '' ? '' : Number(e.target.value)) : e.target.value;
+                  const value =
+                    field.type === "number"
+                      ? e.target.value === ""
+                        ? ""
+                        : Number(e.target.value)
+                      : e.target.value;
                   handleFieldChange(field.name, value, field);
-                }} 
+                }}
                 onBlur={() => handleFieldBlur(field.name, field)}
-                className={getFieldClassName(field.name, 'h-14 text-base bg-gray-50 border-2 hover:border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 border-gray-200')}
-                min={field.type === 'number' && field.name === 'quantity' ? 1 : undefined}
-                max={field.type === 'number' && field.name === 'quantity' ? 10 : undefined}
+                className={getFieldClassName(
+                  field.name,
+                  "h-14 text-base bg-gray-50 border-2 hover:border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 border-gray-200"
+                )}
+                min={
+                  field.type === "number" && field.name === "quantity"
+                    ? 1
+                    : undefined
+                }
+                max={
+                  field.type === "number" && field.name === "quantity"
+                    ? 10
+                    : undefined
+                }
               />
-              {field.type === 'number' && field.name === 'quantity' && (
+              {field.type === "number" && field.name === "quantity" && (
                 <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-400">
                   1-10
                 </div>
               )}
             </div>
-            {field.type === 'number' && field.name === 'quantity' && !errors[field.name] && (
-              <p className="text-xs text-gray-500">Enter a number between 1 and 10</p>
-            )}
+            {field.type === "number" &&
+              field.name === "quantity" &&
+              !errors[field.name] && (
+                <p className="text-xs text-gray-500">
+                  Enter a number between 1 and 10
+                </p>
+              )}
             <ErrorMessage field={field.name} />
           </div>
         );
@@ -446,16 +460,16 @@ const ServiceRequestStep = ({ stepConfig, formData, handleInputChange, onValidat
       className="space-y-8 pb-8"
     >
       <div className="space-y-2">
-        <h2 className="text-2xl md:text-3xl font-bold text-gray-900">{stepConfig.title}</h2>
-        <p className="text-gray-600">Please fill in the required information below.</p>
+        <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
+          {stepConfig.title}
+        </h2>
+        <p className="text-gray-600">
+          Please fill in the required information below.
+        </p>
       </div>
-      <div className="space-y-6">
-        {stepConfig.fields.map(renderField)}
-      </div>
-      
-      {/* Validation Summary */}
+      <div className="space-y-6">{stepConfig.fields.map(renderField)}</div>
       <div className="mt-8">
-        <ValidationSummary 
+        <ValidationSummary
           errors={errors}
           stepConfig={stepConfig}
           formData={formData}
