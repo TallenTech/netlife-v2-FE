@@ -19,7 +19,6 @@ export const useServiceBySlug = (slug) =>
 export const useServiceQuestions = (serviceSlug) => {
   const { data: service } = useServiceBySlug(serviceSlug);
   const serviceId = service?.id;
-
   return useQuery({
     queryKey: ["serviceQuestions", serviceId],
     queryFn: () => servicesApi.getServiceQuestions(serviceId),
@@ -61,10 +60,14 @@ export const useVideoById = (videoId) =>
     enabled: !!videoId,
   });
 
-export const useSubmitServiceRequest = () => {
+// --- START OF THE MAIN FIX ---
+
+export const useSubmitServiceRequest = ({ onSuccess, onError } = {}) => {
   const queryClient = useQueryClient();
-  const mutation = useMutation({
+
+  return useMutation({
     mutationFn: servicesApi.submitServiceRequest,
+
     onMutate: async (newRequest) => {
       await queryClient.cancelQueries({
         queryKey: ["serviceRequests", newRequest.user_id],
@@ -75,6 +78,12 @@ export const useSubmitServiceRequest = () => {
       ]);
       const optimisticRequest = {
         ...newRequest,
+        attachments: newRequest.attachments
+          ? {
+              name: newRequest.attachments.name,
+              size: newRequest.attachments.size,
+            }
+          : null,
         id: `optimistic-${Date.now()}`,
         created_at: new Date().toISOString(),
         status: "pending",
@@ -87,25 +96,63 @@ export const useSubmitServiceRequest = () => {
       );
       return { previousRequests };
     },
+
+    // This callback runs when the mutationFn succeeds
+    onSuccess: (data) => {
+      console.log(
+        "Mutation successful, calling the onSuccess callback from the component."
+      );
+      if (onSuccess) onSuccess(data);
+    },
+
+    // This callback runs when the mutationFn fails
     onError: (error, newRequest, context) => {
-      if (!navigator.onLine) {
-        console.warn("User is offline. Queuing request for sync.", error);
-        addToSyncQueue({ type: "SUBMIT_SERVICE_REQUEST", payload: newRequest });
-      } else {
+      console.warn(
+        "Mutation failed, reverting optimistic update and calling the onError callback.",
+        error
+      );
+      if (context?.previousRequests) {
         queryClient.setQueryData(
           ["serviceRequests", newRequest.user_id],
           context.previousRequests
         );
       }
+      addToSyncQueue(newRequest); // Simplified offline handling
+      logError(error, "useSubmitServiceRequest:onError", {
+        request: newRequest,
+      });
+      if (onError) onError(error);
     },
+
+    // This callback runs after success or error
     onSettled: (data, error, newRequest) => {
+      console.log(
+        "Submission settled. Invalidating queries to get fresh data."
+      );
       queryClient.invalidateQueries({
         queryKey: ["serviceRequests", newRequest.user_id],
       });
     },
   });
+};
 
-  return mutation;
+// --- END OF THE MAIN FIX ---
+
+export const useDeleteServiceRequest = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (requestId) => servicesApi.deleteServiceRequest(requestId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["serviceRequests"] });
+    },
+    onError: (error, requestId) => {
+      console.warn("Deleting request failed, queuing.", error);
+      addToSyncQueue({
+        type: "DELETE_SERVICE_REQUEST",
+        payload: { requestId },
+      });
+    },
+  });
 };
 
 export const useSaveScreeningAnswers = () => {
@@ -139,23 +186,6 @@ export const useSaveScreeningResult = () => {
     onError: (error, variables) => {
       console.warn("Saving result failed, queuing.", error);
       addToSyncQueue({ type: "SAVE_SCREENING_RESULT", payload: variables });
-    },
-  });
-};
-
-export const useDeleteServiceRequest = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (requestId) => servicesApi.deleteServiceRequest(requestId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["serviceRequests"] });
-    },
-    onError: (error, requestId) => {
-      console.warn("Deleting request failed, queuing.", error);
-      addToSyncQueue({
-        type: "DELETE_SERVICE_REQUEST",
-        payload: { requestId },
-      });
     },
   });
 };

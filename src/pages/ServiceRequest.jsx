@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet";
 import { AnimatePresence } from "framer-motion";
@@ -31,40 +31,132 @@ const ServiceRequest = () => {
   const [validationErrors, setValidationErrors] = useState([]);
 
   const { data: serviceData } = useServiceBySlug(serviceId);
-  const { mutateAsync: submitRequestAsync, isLoading: isSubmitting } =
-    useSubmitServiceRequest();
 
-  // Try to get form config by serviceId first, then by service name
-  let formConfig = serviceRequestForms[serviceId];
+  // --- START OF THE MAIN FIX ---
 
-  // If not found by serviceId, try to match by service name
-  if (!formConfig && serviceData?.name) {
-    const serviceName = serviceData.name.toLowerCase();
-    const availableForms = Object.keys(serviceRequestForms);
+  // 1. Define stable callbacks for the hook
+  const handleSuccess = useCallback(() => {
+    console.log("[ServiceRequest] onSuccess callback triggered.");
+    clearProgress();
+    setShowSuccess(true);
+    setTimeout(() => {
+      setShowSuccess(false);
+      navigate("/history");
+    }, 7000);
+  }, [navigate]);
 
-    // Map service names to form keys
-    const nameToFormMap = {
-      'sti screening': 'sti-screening',
-      'counseling': 'counselling-services',
-      'counselling': 'counselling-services',
-      'counselling services': 'counselling-services',
-      'hiv testing': 'hts',
-      'hiv testing services (hts)': 'hts',
-      'prep access': 'prep',
-      'pre-exposure prophylaxis (prep)': 'prep',
-      'pep access': 'pep',
-      'post-exposure prophylaxis (pep)': 'pep',
-      'art support': 'art',
-      'antiretroviral therapy (art)': 'art'
+  const handleError = useCallback(
+    (error) => {
+      console.log("[ServiceRequest] onError callback triggered.");
+      toast({
+        title: "Submission Failed",
+        description:
+          error.message || "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    },
+    [toast]
+  );
+
+  // 2. Pass the callbacks to the hook and get the correct `mutate` function
+  const { mutate: submitRequest, isLoading: isSubmitting } =
+    useSubmitServiceRequest({
+      onSuccess: handleSuccess,
+      onError: handleError,
+    });
+
+  useEffect(() => {
+    console.log(
+      `[ServiceRequest] Loading state (isSubmitting) is now: ${isSubmitting}`
+    );
+  }, [isSubmitting]);
+
+  // This is a stable function now thanks to useCallback
+  const clearProgress = useCallback(() => {
+    try {
+      localStorage.removeItem(getProgressKey());
+    } catch (error) {}
+  }, []);
+
+  // 3. The new handleSubmit is NOT async and does NOT use try/catch
+  const handleSubmit = useCallback(() => {
+    console.log("[handleSubmit] Firing mutation...");
+    if (isSubmitting) {
+      console.warn(
+        "[handleSubmit] Aborted: A submission is already in progress."
+      );
+      return;
+    }
+    if (!serviceData || !profile || !activeProfile) {
+      toast({
+        title: "Error",
+        description: "User or service data is missing.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const finalFormData = { ...formData };
+    const fileFieldKey = Object.keys(finalFormData).find(
+      (key) => finalFormData[key] instanceof File
+    );
+    const attachmentFile = fileFieldKey ? finalFormData[fileFieldKey] : null;
+
+    if (fileFieldKey) {
+      delete finalFormData[fileFieldKey];
+    }
+    const serviceRequestData = {
+      user_id: profile.id,
+      service_id: serviceData.id,
+      attachments: attachmentFile,
+      username: activeProfile.username,
+      service_number: serviceData.service_number,
+      request_data: {
+        ...finalFormData,
+        _profileInfo: {
+          profileId: activeProfile.id,
+          profileName: activeProfile.full_name || activeProfile.username,
+          isMainUser: activeProfile.id === profile.id,
+          requestedBy: profile.full_name || profile.username,
+        },
+      },
     };
 
+    // Fire-and-forget: The loader will show immediately. The callbacks will handle the result.
+    submitRequest(serviceRequestData);
+  }, [
+    isSubmitting,
+    serviceData,
+    profile,
+    activeProfile,
+    formData,
+    submitRequest,
+  ]);
+
+  // --- END OF THE MAIN FIX ---
+
+  let formConfig = serviceRequestForms[serviceId];
+
+  if (!formConfig && serviceData?.name) {
+    const serviceName = serviceData.name.toLowerCase();
+    const nameToFormMap = {
+      "sti screening": "sti-screening",
+      counseling: "counselling-services",
+      counselling: "counselling-services",
+      "counselling services": "counselling-services",
+      "hiv testing": "hts",
+      "hiv testing services (hts)": "hts",
+      "prep access": "prep",
+      "pre-exposure prophylaxis (prep)": "prep",
+      "pep access": "pep",
+      "post-exposure prophylaxis (pep)": "pep",
+      "art support": "art",
+      "antiretroviral therapy (art)": "art",
+    };
     const mappedFormKey = nameToFormMap[serviceName];
     if (mappedFormKey && serviceRequestForms[mappedFormKey]) {
       formConfig = serviceRequestForms[mappedFormKey];
     }
   }
-
-
 
   useEffect(() => {
     if (formConfig && activeProfile && !progressLoaded) {
@@ -72,31 +164,6 @@ const ServiceRequest = () => {
       setProgressLoaded(true);
     }
   }, [formConfig, activeProfile, progressLoaded]);
-
-  if (!activeProfile) return <div>Loading profile...</div>;
-  if (!formConfig) {
-    return (
-      <div className="bg-white min-h-screen flex items-center justify-center">
-        <div className="text-center p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Service Not Available</h2>
-          <p className="text-gray-600 mb-4">The request form for this service is not currently available.</p>
-          <p className="text-sm text-gray-500 mb-4">Service ID: {serviceId}</p>
-          <Button onClick={() => navigate('/services')} className="bg-primary text-white">
-            Back to Services
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  const totalSteps = formConfig.steps.length;
-  const isPreviewStep = step === totalSteps;
-
-  const handleInputChange = (name, value) => {
-    const newFormData = { ...formData, [name]: value };
-    setFormData(newFormData);
-    saveProgress(newFormData, step);
-  };
 
   const getProgressKey = () =>
     `service_request_progress_${serviceId}_${activeProfile?.id}`;
@@ -113,9 +180,13 @@ const ServiceRequest = () => {
           totalSteps: formConfig.steps.length,
         })
       );
-    } catch (error) {
-      // Failed to save service request progress
-    }
+    } catch (error) {}
+  };
+
+  const handleInputChange = (name, value) => {
+    const newFormData = { ...formData, [name]: value };
+    setFormData(newFormData);
+    saveProgress(newFormData, step);
   };
 
   const loadSavedProgress = () => {
@@ -137,13 +208,32 @@ const ServiceRequest = () => {
     }
   };
 
-  const clearProgress = () => {
-    try {
-      localStorage.removeItem(getProgressKey());
-    } catch (error) {
-      // Failed to clear progress
-    }
-  };
+  if (!activeProfile) return <div>Loading profile...</div>;
+
+  if (!formConfig) {
+    return (
+      <div className="bg-white min-h-screen flex items-center justify-center">
+        <div className="text-center p-6">
+          <h2 className="text-xl font-bold text-gray-900 mb-2">
+            Service Not Available
+          </h2>
+          <p className="text-gray-600 mb-4">
+            The request form for this service is not currently available.
+          </p>
+          <p className="text-sm text-gray-500 mb-4">Service ID: {serviceId}</p>
+          <Button
+            onClick={() => navigate("/services")}
+            className="bg-primary text-white"
+          >
+            Back to Services
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  const totalSteps = formConfig.steps.length;
+  const isPreviewStep = step === totalSteps;
 
   const nextStep = () => {
     if (!currentStepValid && step < totalSteps) {
@@ -161,63 +251,6 @@ const ServiceRequest = () => {
   const prevStep = () => (step > 0 ? setStep(step - 1) : navigate(-1));
   const goToStep = (s) => setStep(s);
   const handleValidationChange = (isValid) => setCurrentStepValid(isValid);
-
-  const handleSubmit = async () => {
-    if (isSubmitting) return;
-
-    if (!serviceData || !profile || !activeProfile) {
-      toast({
-        title: "Error",
-        description: "User or service data is missing.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const serviceRequestData = {
-      user_id: profile.id,
-      service_id: serviceData.id,
-      request_data: {
-        ...formData,
-        _profileInfo: {
-          profileId: activeProfile.id,
-          profileName: activeProfile.full_name || activeProfile.username,
-          isMainUser: activeProfile.id === profile.id,
-          requestedBy: profile.full_name || profile.username,
-        },
-      },
-      attachments:
-        formData.attachment || formData.file || formData.document || null,
-    };
-
-    try {
-      await submitRequestAsync(serviceRequestData);
-
-      clearProgress();
-      setShowSuccess(true);
-      setTimeout(() => {
-        setShowSuccess(false);
-        navigate("/history");
-      }, 7000);
-    } catch (error) {
-      if (!navigator.onLine) {
-        clearProgress();
-        toast({
-          title: "You appear to be offline",
-          description:
-            "Your request has been saved and will be submitted when you're back online.",
-        });
-        navigate("/history");
-      } else {
-        toast({
-          title: "Submission Failed",
-          description:
-            error.message || "An unexpected error occurred. Please try again.",
-          variant: "destructive",
-        });
-      }
-    }
-  };
 
   const renderStepContent = () => {
     if (isPreviewStep) {
@@ -321,7 +354,7 @@ const ServiceRequest = () => {
                     className={cn(
                       "w-full h-14 text-lg font-bold rounded-xl",
                       !currentStepValid &&
-                      "bg-gray-300 text-gray-500 cursor-not-allowed"
+                        "bg-gray-300 text-gray-500 cursor-not-allowed"
                     )}
                   >
                     {step === totalSteps - 1 ? "Review Request" : "Next Step"}
@@ -386,7 +419,7 @@ const ServiceRequest = () => {
                       className={cn(
                         "h-14 px-8 text-lg font-bold rounded-xl shadow-lg",
                         !currentStepValid &&
-                        "bg-gray-300 text-gray-500 cursor-not-allowed hover:bg-gray-300 shadow-none"
+                          "bg-gray-300 text-gray-500 cursor-not-allowed hover:bg-gray-300 shadow-none"
                       )}
                     >
                       {step === totalSteps - 1 ? "Review Request" : "Next Step"}

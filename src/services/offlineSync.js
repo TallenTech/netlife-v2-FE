@@ -17,25 +17,47 @@ export async function addToSyncQueue(request) {
   const serializableRequest = { ...request };
 
   if (request.attachments && request.attachments instanceof File) {
-    serializableRequest.attachments = {
-      dataUrl: await fileToBase64(request.attachments),
-      name: request.attachments.name,
-      type: request.attachments.type,
-    };
+    try {
+      serializableRequest.attachments = {
+        dataUrl: await fileToBase64(request.attachments),
+        name: request.attachments.name,
+        type: request.attachments.type,
+      };
+    } catch (error) {
+      logError(error, "addToSyncQueue.fileToBase64", { request });
+      serializableRequest.attachments = null;
+    }
   }
 
   const queue = getSyncQueue();
   const item = { ...serializableRequest, queueId: `offline_${Date.now()}` };
+
   queue.push(item);
-  localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(item));
+
+  localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(queue));
 }
 
 export function getSyncQueue() {
   try {
-    const queue = localStorage.getItem(SYNC_QUEUE_KEY);
-    return queue ? JSON.parse(queue) : [];
+    const queueJson = localStorage.getItem(SYNC_QUEUE_KEY);
+    if (!queueJson) {
+      return [];
+    }
+
+    const parsedQueue = JSON.parse(queueJson);
+
+    if (Array.isArray(parsedQueue)) {
+      return parsedQueue;
+    } else {
+      logError(
+        new Error("Sync queue was not an array, resetting."),
+        "getSyncQueue.validation"
+      );
+      localStorage.removeItem(SYNC_QUEUE_KEY);
+      return [];
+    }
   } catch (error) {
-    logError(error, "getSyncQueue");
+    logError(error, "getSyncQueue.parseError");
     localStorage.removeItem(SYNC_QUEUE_KEY);
     return [];
   }
@@ -43,7 +65,14 @@ export function getSyncQueue() {
 
 export async function processSyncQueue() {
   let queue = getSyncQueue();
-  if (queue.length === 0) {
+
+  if (!Array.isArray(queue) || queue.length === 0) {
+    if (queue.length > 0) {
+      logError(
+        new Error("processSyncQueue received a non-iterable queue."),
+        "processSyncQueue.precondition"
+      );
+    }
     return true;
   }
 
@@ -53,12 +82,12 @@ export async function processSyncQueue() {
 
   for (const request of queue) {
     try {
-      await servicesApi.submitServiceRequestForSync(request, true);
+      await servicesApi.submitServiceRequestForSync(request);
       console.log(
         `SYNC: Successfully submitted queued request for user ${request.user_id}`
       );
     } catch (error) {
-      logError(error, "processSyncQueue", { request });
+      logError(error, "processSyncQueue.itemError", { request });
       remainingItems.push(request);
     }
   }

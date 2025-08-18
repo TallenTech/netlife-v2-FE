@@ -63,7 +63,6 @@ export const Step1Details = ({
         setDistrictSuggestions([]);
       }
     } catch (error) {
-      console.error("District search failed:", error);
       setDistrictSuggestions([]);
     } finally {
       setSearchLoading(false);
