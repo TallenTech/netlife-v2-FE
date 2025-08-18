@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet";
 import { AnimatePresence } from "framer-motion";
@@ -16,7 +16,6 @@ import {
   useServiceBySlug,
   useSubmitServiceRequest,
 } from "@/hooks/useServiceQueries";
-import { fileToBase64 } from "@/utils/attachmentHelpers";
 
 const ServiceRequest = () => {
   const { serviceId } = useParams();
@@ -32,18 +31,113 @@ const ServiceRequest = () => {
   const [validationErrors, setValidationErrors] = useState([]);
 
   const { data: serviceData } = useServiceBySlug(serviceId);
-  const { mutateAsync: submitRequestAsync, isLoading: isSubmitting } =
-    useSubmitServiceRequest();
 
-  // Try to get form config by serviceId first, then by service name
+  // --- START OF THE MAIN FIX ---
+
+  // 1. Define stable callbacks for the hook
+  const handleSuccess = useCallback(() => {
+    console.log("[ServiceRequest] onSuccess callback triggered.");
+    clearProgress();
+    setShowSuccess(true);
+    setTimeout(() => {
+      setShowSuccess(false);
+      navigate("/history");
+    }, 7000);
+  }, [navigate]);
+
+  const handleError = useCallback(
+    (error) => {
+      console.log("[ServiceRequest] onError callback triggered.");
+      toast({
+        title: "Submission Failed",
+        description:
+          error.message || "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    },
+    [toast]
+  );
+
+  // 2. Pass the callbacks to the hook and get the correct `mutate` function
+  const { mutate: submitRequest, isLoading: isSubmitting } =
+    useSubmitServiceRequest({
+      onSuccess: handleSuccess,
+      onError: handleError,
+    });
+
+  useEffect(() => {
+    console.log(
+      `[ServiceRequest] Loading state (isSubmitting) is now: ${isSubmitting}`
+    );
+  }, [isSubmitting]);
+
+  // This is a stable function now thanks to useCallback
+  const clearProgress = useCallback(() => {
+    try {
+      localStorage.removeItem(getProgressKey());
+    } catch (error) {}
+  }, []);
+
+  // 3. The new handleSubmit is NOT async and does NOT use try/catch
+  const handleSubmit = useCallback(() => {
+    console.log("[handleSubmit] Firing mutation...");
+    if (isSubmitting) {
+      console.warn(
+        "[handleSubmit] Aborted: A submission is already in progress."
+      );
+      return;
+    }
+    if (!serviceData || !profile || !activeProfile) {
+      toast({
+        title: "Error",
+        description: "User or service data is missing.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const finalFormData = { ...formData };
+    const fileFieldKey = Object.keys(finalFormData).find(
+      (key) => finalFormData[key] instanceof File
+    );
+    const attachmentFile = fileFieldKey ? finalFormData[fileFieldKey] : null;
+
+    if (fileFieldKey) {
+      delete finalFormData[fileFieldKey];
+    }
+    const serviceRequestData = {
+      user_id: profile.id,
+      service_id: serviceData.id,
+      attachments: attachmentFile,
+      username: activeProfile.username,
+      service_number: serviceData.service_number,
+      request_data: {
+        ...finalFormData,
+        _profileInfo: {
+          profileId: activeProfile.id,
+          profileName: activeProfile.full_name || activeProfile.username,
+          isMainUser: activeProfile.id === profile.id,
+          requestedBy: profile.full_name || profile.username,
+        },
+      },
+    };
+
+    // Fire-and-forget: The loader will show immediately. The callbacks will handle the result.
+    submitRequest(serviceRequestData);
+  }, [
+    isSubmitting,
+    serviceData,
+    profile,
+    activeProfile,
+    formData,
+    submitRequest,
+  ]);
+
+  // --- END OF THE MAIN FIX ---
+
   let formConfig = serviceRequestForms[serviceId];
 
-  // If not found by serviceId, try to match by service name
   if (!formConfig && serviceData?.name) {
     const serviceName = serviceData.name.toLowerCase();
-    const availableForms = Object.keys(serviceRequestForms);
-
-    // Map service names to form keys
     const nameToFormMap = {
       "sti screening": "sti-screening",
       counseling: "counselling-services",
@@ -58,7 +152,6 @@ const ServiceRequest = () => {
       "art support": "art",
       "antiretroviral therapy (art)": "art",
     };
-
     const mappedFormKey = nameToFormMap[serviceName];
     if (mappedFormKey && serviceRequestForms[mappedFormKey]) {
       formConfig = serviceRequestForms[mappedFormKey];
@@ -72,7 +165,51 @@ const ServiceRequest = () => {
     }
   }, [formConfig, activeProfile, progressLoaded]);
 
+  const getProgressKey = () =>
+    `service_request_progress_${serviceId}_${activeProfile?.id}`;
+
+  const saveProgress = (currentFormData, currentStep) => {
+    try {
+      localStorage.setItem(
+        getProgressKey(),
+        JSON.stringify({
+          formData: currentFormData,
+          step: currentStep,
+          serviceId: serviceId,
+          timestamp: Date.now(),
+          totalSteps: formConfig.steps.length,
+        })
+      );
+    } catch (error) {}
+  };
+
+  const handleInputChange = (name, value) => {
+    const newFormData = { ...formData, [name]: value };
+    setFormData(newFormData);
+    saveProgress(newFormData, step);
+  };
+
+  const loadSavedProgress = () => {
+    try {
+      const saved = localStorage.getItem(getProgressKey());
+      if (saved) {
+        const data = JSON.parse(saved);
+        if (
+          data.serviceId === serviceId &&
+          data.totalSteps === formConfig.steps.length &&
+          Date.now() - data.timestamp < 24 * 60 * 60 * 1000
+        ) {
+          setFormData(data.formData || {});
+          setStep(data.step || 0);
+        }
+      }
+    } catch (error) {
+      clearProgress();
+    }
+  };
+
   if (!activeProfile) return <div>Loading profile...</div>;
+
   if (!formConfig) {
     return (
       <div className="bg-white min-h-screen flex items-center justify-center">
@@ -98,55 +235,6 @@ const ServiceRequest = () => {
   const totalSteps = formConfig.steps.length;
   const isPreviewStep = step === totalSteps;
 
-  const handleInputChange = (name, value) => {
-    const newFormData = { ...formData, [name]: value };
-    setFormData(newFormData);
-    saveProgress(newFormData, step);
-  };
-
-  const getProgressKey = () =>
-    `service_request_progress_${serviceId}_${activeProfile?.id}`;
-
-  const saveProgress = (currentFormData, currentStep) => {
-    try {
-      localStorage.setItem(
-        getProgressKey(),
-        JSON.stringify({
-          formData: currentFormData,
-          step: currentStep,
-          serviceId: serviceId,
-          timestamp: Date.now(),
-          totalSteps: formConfig.steps.length,
-        })
-      );
-    } catch (error) { }
-  };
-
-  const loadSavedProgress = () => {
-    try {
-      const saved = localStorage.getItem(getProgressKey());
-      if (saved) {
-        const data = JSON.parse(saved);
-        if (
-          data.serviceId === serviceId &&
-          data.totalSteps === formConfig.steps.length &&
-          Date.now() - data.timestamp < 24 * 60 * 60 * 1000
-        ) {
-          setFormData(data.formData || {});
-          setStep(data.step || 0);
-        }
-      }
-    } catch (error) {
-      clearProgress();
-    }
-  };
-
-  const clearProgress = () => {
-    try {
-      localStorage.removeItem(getProgressKey());
-    } catch (error) { }
-  };
-
   const nextStep = () => {
     if (!currentStepValid && step < totalSteps) {
       toast({
@@ -163,88 +251,6 @@ const ServiceRequest = () => {
   const prevStep = () => (step > 0 ? setStep(step - 1) : navigate(-1));
   const goToStep = (s) => setStep(s);
   const handleValidationChange = (isValid) => setCurrentStepValid(isValid);
-
-  const handleSubmit = async () => {
-    if (isSubmitting) return;
-    if (!serviceData || !profile || !activeProfile) {
-      toast({
-        title: "Error",
-        description: "User or service data is missing.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const finalFormData = { ...formData };
-
-    const attachmentFile =
-      finalFormData.attachment || finalFormData.file || finalFormData.document;
-
-    if (attachmentFile && attachmentFile instanceof File) {
-      try {
-        const base64String = await fileToBase64(attachmentFile);
-        finalFormData.attachment = {
-          name: attachmentFile.name,
-          data: base64String,
-        };
-        delete finalFormData.file;
-        delete finalFormData.document;
-      } catch (error) {
-        toast({
-          title: "Attachment Error",
-          description: "Could not process the attached file.",
-          variant: "destructive",
-        });
-        return;
-      }
-    } else {
-      delete finalFormData.attachment;
-      delete finalFormData.file;
-      delete finalFormData.document;
-    }
-
-    const serviceRequestData = {
-      user_id: profile.id,
-      service_id: serviceData.id,
-      request_data: {
-        ...finalFormData,
-        _profileInfo: {
-          profileId: activeProfile.id,
-          profileName: activeProfile.full_name || activeProfile.username,
-          isMainUser: activeProfile.id === profile.id,
-          requestedBy: profile.full_name || profile.username,
-        },
-      },
-    };
-
-    try {
-      await submitRequestAsync(serviceRequestData);
-
-      clearProgress();
-      setShowSuccess(true);
-      setTimeout(() => {
-        setShowSuccess(false);
-        navigate("/history");
-      }, 7000);
-    } catch (error) {
-      if (!navigator.onLine) {
-        clearProgress();
-        toast({
-          title: "You appear to be offline",
-          description:
-            "Your request has been saved and will be submitted when you're back online.",
-        });
-        navigate("/history");
-      } else {
-        toast({
-          title: "Submission Failed",
-          description:
-            error.message || "An unexpected error occurred. Please try again.",
-          variant: "destructive",
-        });
-      }
-    }
-  };
 
   const renderStepContent = () => {
     if (isPreviewStep) {
@@ -348,7 +354,7 @@ const ServiceRequest = () => {
                     className={cn(
                       "w-full h-14 text-lg font-bold rounded-xl",
                       !currentStepValid &&
-                      "bg-gray-300 text-gray-500 cursor-not-allowed"
+                        "bg-gray-300 text-gray-500 cursor-not-allowed"
                     )}
                   >
                     {step === totalSteps - 1 ? "Review Request" : "Next Step"}
@@ -413,7 +419,7 @@ const ServiceRequest = () => {
                       className={cn(
                         "h-14 px-8 text-lg font-bold rounded-xl shadow-lg",
                         !currentStepValid &&
-                        "bg-gray-300 text-gray-500 cursor-not-allowed hover:bg-gray-300 shadow-none"
+                          "bg-gray-300 text-gray-500 cursor-not-allowed hover:bg-gray-300 shadow-none"
                       )}
                     >
                       {step === totalSteps - 1 ? "Review Request" : "Next Step"}

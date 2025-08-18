@@ -5,7 +5,7 @@ import {
   validateRequiredFields,
   retryWithBackoff,
 } from "@/utils/errorHandling";
-import { processAndUploadAttachment } from "@/utils/attachmentHelpers";
+import { uploadServiceAttachment } from "@/utils/attachmentHelpers";
 import {
   validateDeliveryPreferences,
   extractCommonFields,
@@ -98,21 +98,35 @@ export const servicesApi = {
   },
 
   async submitServiceRequest(request) {
+    let uploadedAttachmentMetadata = null;
+
     try {
       validateRequiredFields(request, [
         "user_id",
         "service_id",
         "request_data",
+        "username",
       ]);
 
-      const extractedFields = extractCommonFields(request.request_data);
+      const attachmentFile = request.attachments;
 
+      // STEP 1: UPLOAD ATTACHMENT FIRST (if it exists)
+      if (attachmentFile) {
+        uploadedAttachmentMetadata = await uploadServiceAttachment(
+          attachmentFile,
+          request.user_id,
+          request.username,
+          request.service_number
+        );
+      }
+
+      // STEP 2: CREATE THE MAIN SERVICE REQUEST RECORD
+      const extractedFields = extractCommonFields(request.request_data);
       const requestPayload = {
         user_id: request.user_id,
         service_id: request.service_id,
         status: request.status || "pending",
         request_data: request.request_data,
-        attachments: [],
         delivery_method: extractedFields.delivery_method,
         delivery_location: extractedFields.delivery_location,
         preferred_date: extractedFields.preferred_date,
@@ -123,18 +137,46 @@ export const servicesApi = {
         updated_at: new Date().toISOString(),
       };
 
-      const { data, error } = await supabase
+      const { data: requestData, error: requestError } = await supabase
         .from("service_requests")
         .insert([requestPayload])
         .select("id")
         .single();
 
-      if (error) {
-        throw new Error(`Failed to submit service request: ${error.message}`);
+      if (requestError) throw requestError;
+      const newRequestId = requestData.id;
+
+      if (uploadedAttachmentMetadata) {
+        const attachmentRecord = {
+          ...uploadedAttachmentMetadata,
+          user_id: request.user_id,
+          service_request_id: newRequestId,
+        };
+
+        const { error: attachmentDbError } = await supabase
+          .from("user_attachments")
+          .insert([attachmentRecord]);
+
+        if (attachmentDbError) {
+          logError(attachmentDbError, "submitServiceRequest.linkAttachment", {
+            newRequestId,
+          });
+        }
       }
-      return data.id;
+
+      return newRequestId;
     } catch (error) {
-      logError(error, "servicesApi.submitServiceRequest", { request });
+      if (uploadedAttachmentMetadata?.file_path) {
+        console.warn(
+          "Submission failed after upload. Cleaning up orphaned file..."
+        );
+        await supabase.storage
+          .from("service-attachments")
+          .remove([uploadedAttachmentMetadata.file_path]);
+      }
+      logError(error, "servicesApi.submitServiceRequest", {
+        request: { ...request, attachments: "omitted" },
+      });
       throw new Error(handleApiError(error));
     }
   },
