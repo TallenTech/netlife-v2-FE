@@ -189,7 +189,7 @@ const MyFiles = () => {
       <Helmet>
         <title>My Files - NetLife</title>
       </Helmet>
-      <div className="p-4 sm:p-6 bg-gray-50 min-h-screen">
+      <div className="py-4 sm:py-6 bg-white min-h-screen">
         <header className="mb-6">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -244,11 +244,10 @@ const MyFiles = () => {
                 <button
                   key={type}
                   onClick={() => setActiveFilter(type)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex-shrink-0 ${
-                    activeFilter === type
-                      ? "bg-primary text-white"
-                      : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
-                  }`}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex-shrink-0 ${activeFilter === type
+                    ? "bg-primary text-white"
+                    : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
+                    }`}
                 >
                   {type}
                 </button>

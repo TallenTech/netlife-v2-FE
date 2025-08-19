@@ -22,7 +22,7 @@ const TermsOfService = () => {
             </Helmet>
             {/* Mobile Layout */}
             <div className="block md:hidden bg-white min-h-screen">
-                <div className="p-6">
+                <div className="py-6">
                     <header className="flex items-center mb-6 -ml-2">
                         <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
                             <ChevronLeft size={24} />
