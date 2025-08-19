@@ -102,6 +102,49 @@ const FileUpload = ({
     }
   };
 
+  const handleBrowseClick = (e) => {
+    e.stopPropagation();
+    // Create a temporary file input to handle the browse functionality
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.pdf,.jpg,.jpeg,.png';
+    input.multiple = false;
+
+    input.onchange = (event) => {
+      const file = event.target.files[0];
+      if (file) {
+        // Use the same validation logic as onDrop
+        setError("");
+
+        const maxSize = 5 * 1024 * 1024;
+        const allowedTypes = [
+          "application/pdf",
+          "image/jpeg",
+          "image/png",
+          "image/jpg",
+        ];
+
+        if (!allowedTypes.includes(file.type)) {
+          setError("Please upload PDF, JPEG, or PNG files only.");
+          onFileSelect(null);
+          return;
+        }
+
+        if (file.size > maxSize) {
+          setError("File size must be under 5MB.");
+          onFileSelect(null);
+          return;
+        }
+
+        if (onFileSelect) {
+          onFileSelect(file);
+        }
+      }
+    };
+
+    input.click();
+  };
+
   const handleRecordSelect = (record) => {
     if (onFileSelect) {
       onFileSelect(record);
@@ -173,10 +216,7 @@ const FileUpload = ({
           <div className="flex flex-wrap items-center justify-center gap-2 mt-2">
             <Button
               type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                document.getElementById("file-upload-input")?.click();
-              }}
+              onClick={handleBrowseClick}
             >
               Browse Device
             </Button>
