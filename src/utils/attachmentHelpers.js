@@ -2,15 +2,33 @@ import { supabase } from "@/lib/supabase";
 import { logError } from "@/utils/errorHandling";
 
 const capitalize = (s) => {
-  if (typeof s !== 'string' || s.length === 0) return '';
+  if (typeof s !== "string" || s.length === 0) return "";
   return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
 };
 
-const formatServiceSlugForFilename = (slug) => {
-    if (!slug) return 'General';
-    if (slug === 'sti-screening') return 'STI-Screening';
-    if (slug === 'counselling-services') return 'Counselling-Services';
-    return slug.toUpperCase();
+const getStandardizedNameForService = (slug) => {
+  if (!slug) return "Attachment";
+
+  switch (slug) {
+    case "pep":
+    case "prep":
+      return "Latest_HIV_Test_Result";
+    case "art":
+      return "Referral_Slip";
+    case "sti-screening":
+      return "Previous_Lab_Results";
+    case "hts":
+    case "counselling-services":
+      let formattedSlug = slug;
+      if (slug === "counselling-services") {
+        formattedSlug = "Counselling-Services";
+      } else {
+        formattedSlug = slug.toUpperCase();
+      }
+      return `${formattedSlug}_Result`;
+    default:
+      return `${slug.toUpperCase()}_Report`;
+  }
 };
 
 export async function uploadServiceAttachment(
@@ -33,18 +51,22 @@ export async function uploadServiceAttachment(
   }
 
   try {
-    const extension = file.name ? file.name.split(".").pop()?.toLowerCase() : "dat";
+    const extension = file.name
+      ? file.name.split(".").pop()?.toLowerCase()
+      : "dat";
+
     const capitalizedUsername = capitalize(username);
-    const formattedSlug = formatServiceSlugForFilename(serviceSlug);
-    
+    const standardizedName = getStandardizedNameForService(serviceSlug);
+
     const now = new Date();
-    const dateString = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
+    const dateString = `${now.getFullYear()}${String(
+      now.getMonth() + 1
+    ).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
     const serviceNumberFormatted = String(serviceNumber || 0).padStart(3, "0");
     const uniqueSuffix = Math.random().toString(36).substring(2, 8);
 
-    const newFileName =
-      `${capitalizedUsername}_${formattedSlug}_Report_${dateString}_${serviceNumberFormatted}_${uniqueSuffix}.${extension}`;
-      
+    const newFileName = `${capitalizedUsername}_${standardizedName}_${dateString}_${serviceNumberFormatted}_${uniqueSuffix}.${extension}`;
+
     const filePath = `${userId}/${newFileName}`;
 
     const { data, error } = await supabase.storage
@@ -52,10 +74,13 @@ export async function uploadServiceAttachment(
       .upload(filePath, file, { cacheControl: "3600", upsert: false });
 
     if (error) {
-      logError(error, "uploadServiceAttachment.supabaseUpload", { userId, filePath });
+      logError(error, "uploadServiceAttachment.supabaseUpload", {
+        userId,
+        filePath,
+      });
       throw error;
     }
-    
+
     return {
       file_path: data.path,
       original_name: file.name,
@@ -63,7 +88,12 @@ export async function uploadServiceAttachment(
       size_bytes: file.size,
     };
   } catch (error) {
-    logError(error, "uploadServiceAttachment.catchAll", { userId, fileName: file?.name });
-    throw new Error(`Failed to process the attachment. Reason: ${error.message}`);
+    logError(error, "uploadServiceAttachment.catchAll", {
+      userId,
+      fileName: file?.name,
+    });
+    throw new Error(
+      `Failed to process the attachment. Reason: ${error.message}`
+    );
   }
 }
