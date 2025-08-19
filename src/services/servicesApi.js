@@ -118,7 +118,7 @@ export const servicesApi = {
           request.user_id,
           request.username,
           request.service_number,
-          request.service_slug 
+          request.service_slug
         );
       }
 
@@ -205,7 +205,14 @@ export const servicesApi = {
       validateRequiredFields({ userId }, ["userId"]);
       const { data, error } = await supabase
         .from("service_requests")
-        .select(`*, services (id, name, description, slug)`)
+        .select(
+          `
+          *, 
+          services (id, name, description, slug),
+          user_attachments (*),
+          generated_pdfs (*)
+        `
+        )
         .eq("user_id", userId)
         .order("created_at", { ascending: false });
       if (error)

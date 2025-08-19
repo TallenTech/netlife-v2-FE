@@ -20,9 +20,7 @@ const PreviewStep = ({
   const [consent, setConsent] = useState(false);
   const { profile, activeProfile } = useAuth();
 
-  useEffect(() => {
-    console.log(`[PreviewStep] Received submitting prop: ${submitting}`);
-  }, [submitting]);
+
 
   const handleFieldSave = (fieldName, newValue) => {
     setFormData((prev) => ({
@@ -88,9 +86,8 @@ const PreviewStep = ({
           </p>
           <p>
             <strong>Location:</strong>{" "}
-            {`${profile?.subCounty || profile?.sub_county || ""}${
-              profile?.subCounty || profile?.sub_county ? ", " : ""
-            }${profile?.district}`}
+            {`${profile?.subCounty || profile?.sub_county || ""}${profile?.subCounty || profile?.sub_county ? ", " : ""
+              }${profile?.district}`}
           </p>
         </div>
       </div>
@@ -125,8 +122,8 @@ const PreviewStep = ({
               {activeProfile?.date_of_birth
                 ? new Date(activeProfile.date_of_birth).toLocaleDateString()
                 : activeProfile?.birthDate
-                ? new Date(activeProfile.birthDate).toLocaleDateString()
-                : "Not specified"}
+                  ? new Date(activeProfile.birthDate).toLocaleDateString()
+                  : "Not specified"}
             </p>
           </div>
         </div>
@@ -161,11 +158,10 @@ const PreviewStep = ({
             </p>
             <p>
               <strong>Location:</strong>{" "}
-              {`${activeProfile?.subCounty || activeProfile?.sub_county || ""}${
-                activeProfile?.subCounty || activeProfile?.sub_county
+              {`${activeProfile?.subCounty || activeProfile?.sub_county || ""}${activeProfile?.subCounty || activeProfile?.sub_county
                   ? ", "
                   : ""
-              }${activeProfile?.district}`}
+                }${activeProfile?.district}`}
             </p>
           </div>
         </div>

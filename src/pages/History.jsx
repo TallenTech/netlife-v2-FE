@@ -24,6 +24,7 @@ import {
   useDeleteServiceRequest,
   useDeleteScreeningResult,
 } from "@/hooks/useServiceQueries";
+import { downloadGeneratedPdf } from "@/utils/pdfUtils";
 
 const tabs = ["Services", "Screening", "Records"];
 
@@ -163,39 +164,32 @@ const History = () => {
     }
   };
 
-  const handleDownload = (item) => {
-    toast({
-      title: "Generating PDF...",
-      description: "Your record is being prepared for download.",
-    });
-
-    const doc = new jsPDF();
-    doc.setFontSize(18);
-    doc.text(`NetLife Health Record: ${item.title}`, 14, 22);
-    doc.setFontSize(12);
-    doc.text(`User: ${activeProfile.username}`, 14, 32);
-    doc.text(`Date: ${item.date}`, 14, 38);
-    doc.setLineWidth(0.5);
-    doc.line(14, 45, 196, 45);
-    doc.setFontSize(10);
-    let y = 55;
-
-    if (item.type === "service_request") {
-      Object.entries(item.data.request_data).forEach(([key, value]) => {
-        if (typeof value !== "object" && key !== "_profileInfo") {
-          const fieldLabel = key
-            .replace(/([A-Z])/g, " $1")
-            .replace(/^./, (str) => str.toUpperCase());
-          doc.text(`${fieldLabel}:`, 14, y);
-          doc.text(String(value), 60, y);
-          y += 7;
-        }
+  const handleDownload = async (item) => {
+    if (item.type !== "service_request") {
+      toast({
+        title: "No PDF Available",
+        description: "PDF summaries are only generated for service requests.",
+        variant: "destructive",
       });
+      return;
     }
 
-    doc.save(`netlife-record-${item.title.replace(/\s+/g, "-")}.pdf`);
-  };
+    toast({ title: "Preparing Download..." });
+    const result = await downloadGeneratedPdf(item.data);
 
+    if (result.success) {
+      toast({
+        title: "Download Started",
+        description: "Your record has been downloaded.",
+      });
+    } else {
+      toast({
+        title: "Download Failed",
+        description: result.error,
+        variant: "destructive",
+      });
+    }
+  };
   const handleItemClick = (item) => {
     if (item.isOffline) {
       toast({
@@ -205,7 +199,7 @@ const History = () => {
       });
       return;
     }
-    navigate(`/records/${item.id}`);
+    navigate(`/records/db_service_request_${item.id}`);
   };
 
   const firstName = activeProfile?.username?.split(" ")[0] || "";
@@ -283,7 +277,7 @@ const History = () => {
       <Helmet>
         <title>Health History - NetLife</title>
       </Helmet>
-      <div className="p-4 md:p-6 bg-white min-h-screen">
+      <div className="py-4 md:py-6 bg-white min-h-screen">
         <header className="mb-6">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 truncate">

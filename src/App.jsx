@@ -8,6 +8,7 @@ import ScrollToTop from "@/components/ScrollToTop";
 import MainLayout from "@/components/layout/MainLayout";
 import NetLifeLogo from "@/components/NetLifeLogo";
 import PWAInstallPrompt from "@/components/PWAInstallPrompt";
+import AutoLogoutWarning from "@/components/AutoLogoutWarning";
 import LandingPage from "@/pages/LandingPage";
 import WhatsAppAuth from "@/components/auth/WhatsAppAuth";
 import ProfileSetup from "@/components/ProfileSetup";
@@ -66,6 +67,7 @@ function AppWrapper() {
       </Helmet>
       <ScrollToTop />
       <PWAInstallPrompt />
+      <AutoLogoutWarning />
       <AppRoutes />
       <Toaster />
     </>

@@ -29,9 +29,7 @@ const ServiceRequestStep = ({
   const { toast } = useToast();
   const { activeProfile } = useAuth();
 
-  useEffect(() => {
-    console.log("[ServiceRequestStep] formData updated from parent:", formData);
-  }, [formData]);
+
 
   const validateDateTime = (value) => {
     if (!value) return "This field is required.";
@@ -124,10 +122,6 @@ const ServiceRequestStep = ({
   }, [formData, stepConfig, onValidationChange, validateCurrentStep]);
 
   const handleFieldChange = (name, value, field) => {
-    console.log(
-      `[ServiceRequestStep] Field '${name}' changed. New value:`,
-      value
-    );
     setTouched((prev) => ({ ...prev, [name]: true }));
     handleInputChange(name, value);
     const error = validateField(field, value);
@@ -214,13 +208,12 @@ const ServiceRequestStep = ({
                   <label
                     key={option}
                     htmlFor={`${field.name}-${option}`}
-                    className={`flex items-center space-x-4 p-4 rounded-xl cursor-pointer transition-all duration-200 border-2 min-h-[60px] ${
-                      isSelected
+                    className={`flex items-center space-x-4 p-4 rounded-xl cursor-pointer transition-all duration-200 border-2 min-h-[60px] ${isSelected
                         ? "border-primary bg-primary/10 shadow-sm"
                         : errors[field.name] && touched[field.name]
-                        ? "border-red-300 bg-red-50"
-                        : "border-gray-200 bg-gray-50 hover:border-gray-300 hover:bg-gray-100"
-                    }`}
+                          ? "border-red-300 bg-red-50"
+                          : "border-gray-200 bg-gray-50 hover:border-gray-300 hover:bg-gray-100"
+                      }`}
                   >
                     <div className="relative">
                       <input
@@ -236,13 +229,12 @@ const ServiceRequestStep = ({
                         className="sr-only"
                       />
                       <div
-                        className={`w-5 h-5 rounded-full border-2 transition-all duration-200 ${
-                          isSelected
+                        className={`w-5 h-5 rounded-full border-2 transition-all duration-200 ${isSelected
                             ? "border-primary bg-primary"
                             : errors[field.name] && touched[field.name]
-                            ? "border-red-400 bg-white"
-                            : "border-gray-400 bg-white"
-                        }`}
+                              ? "border-red-400 bg-white"
+                              : "border-gray-400 bg-white"
+                          }`}
                       >
                         {isSelected && (
                           <div className="w-2 h-2 bg-white rounded-full absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
@@ -250,9 +242,8 @@ const ServiceRequestStep = ({
                       </div>
                     </div>
                     <span
-                      className={`flex-1 text-base font-medium transition-colors duration-200 ${
-                        isSelected ? "text-primary" : "text-gray-800"
-                      }`}
+                      className={`flex-1 text-base font-medium transition-colors duration-200 ${isSelected ? "text-primary" : "text-gray-800"
+                        }`}
                     >
                       {option}
                     </span>

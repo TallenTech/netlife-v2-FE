@@ -358,7 +358,7 @@ const Account = () => {
 
   if (isAuthLoading || !activeProfile || loadingSettings) {
     return (
-      <div className="p-4 md:p-6 bg-gray-50 min-h-screen">
+      <div className="py-4 md:py-6 bg-white min-h-screen">
         <div className="animate-pulse">
           <div className="h-8 bg-gray-200 rounded w-48 mb-2"></div>
           <div className="h-4 bg-gray-200 rounded mb-6 w-32"></div>
@@ -377,7 +377,7 @@ const Account = () => {
   // Show loading overlay when uploading photo
   if (isUploadingPhoto) {
     return (
-      <div className="p-4 md:p-6 bg-gray-50 min-h-screen">
+      <div className="py-4 md:py-6 bg-white min-h-screen">
         <div className="flex items-center justify-center min-h-[50vh]">
           <div className="text-center space-y-4">
             <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
@@ -393,7 +393,7 @@ const Account = () => {
       <Helmet>
         <title>Account - {firstName}</title>
       </Helmet>
-      <div className="p-4 md:p-6 bg-gray-50 min-h-screen">
+      <div className="py-4 md:py-6 bg-white min-h-screen">
         <header className="mb-6 flex items-start justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">My Account</h1>

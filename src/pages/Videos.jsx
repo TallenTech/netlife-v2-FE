@@ -52,7 +52,7 @@ const Videos = () => {
         <Helmet>
           <title>Health Videos - NetLife</title>
         </Helmet>
-        <div className="p-4 md:p-6 bg-white min-h-screen">
+        <div className="py-4 md:py-6 bg-white min-h-screen">
           <header className="mb-6">
             <h1 className="text-3xl font-extrabold text-gray-900">
               Health Library
@@ -85,7 +85,7 @@ const Videos = () => {
         <Helmet>
           <title>Health Videos - NetLife</title>
         </Helmet>
-        <div className="p-4 md:p-6 bg-white min-h-screen">
+        <div className="py-4 md:py-6 bg-white min-h-screen">
           <header className="mb-6">
             <h1 className="text-3xl font-extrabold text-gray-900">
               Health Library
@@ -117,7 +117,7 @@ const Videos = () => {
       <Helmet>
         <title>Health Videos - NetLife</title>
       </Helmet>
-      <div className="p-4 md:p-6 bg-white min-h-screen">
+      <div className="py-4 md:py-6 bg-white min-h-screen">
         <header className="mb-6">
           <h1 className="text-3xl font-extrabold text-gray-900">
             Health Library

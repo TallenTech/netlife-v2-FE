@@ -47,6 +47,8 @@ import {
   useDeleteScreeningResult,
 } from "@/hooks/useServiceQueries";
 import AttachmentViewer from "@/components/AttachmentViewer";
+import { downloadGeneratedPdf } from "@/utils/pdfUtils";
+import { supabase } from "@/lib/supabase";
 
 const RecordViewer = () => {
   const { recordId } = useParams();
@@ -187,128 +189,29 @@ const RecordViewer = () => {
     }
   };
 
-  // Action handlers
-  const handleDownload = () => {
-    try {
-      const pdf = new jsPDF();
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const margin = 20;
-      let yPosition = margin;
-
-      // Header
-      pdf.setFontSize(20);
-      pdf.setFont(undefined, "bold");
-      pdf.text(title, margin, yPosition);
-      yPosition += 15;
-
-      // User info
-      pdf.setFontSize(12);
-      pdf.setFont(undefined, "normal");
-      pdf.text(
-        `User: ${record.profile.full_name || record.profile.username}`,
-        margin,
-        yPosition
-      );
-      yPosition += 10;
-
-      const date = recordData.created_at
-        ? new Date(recordData.created_at).toLocaleDateString()
-        : recordData.completed_at
-        ? new Date(recordData.completed_at).toLocaleDateString()
-        : record.data.completedAt
-        ? new Date(record.data.completedAt).toLocaleDateString()
-        : "Recently";
-      pdf.text(`Date: ${date}`, margin, yPosition);
-      yPosition += 15;
-
-      // Content based on record type
-      if (recordType === "service_request") {
-        let data;
-        if (record.type === "database_service_request") {
-          data = recordData.request_data || recordData;
-        } else if (
-          recordId.startsWith("service_request_") &&
-          record.data.request
-        ) {
-          data = record.data.request;
-        } else {
-          data = recordData;
-        }
-
-        pdf.setFont(undefined, "bold");
-        pdf.text("Service Request Details:", margin, yPosition);
-        yPosition += 10;
-        pdf.setFont(undefined, "normal");
-
-        // Add key fields
-        const fields = [
-          { label: "Service", value: title },
-          { label: "Status", value: recordData.status || "Submitted" },
-          { label: "Full Name", value: data?.fullName },
-          { label: "Phone", value: data?.phoneNumber },
-          { label: "Email", value: data?.email },
-          {
-            label: "Delivery Method",
-            value: data?.deliveryMethod || data?.accessPoint,
-          },
-          { label: "Location", value: data?.deliveryLocation },
-        ];
-
-        fields.forEach((field) => {
-          if (field.value) {
-            pdf.text(`${field.label}: ${field.value}`, margin, yPosition);
-            yPosition += 8;
-          }
-        });
-      } else if (recordType === "screening_result") {
-        pdf.setFont(undefined, "bold");
-        pdf.text("Screening Results:", margin, yPosition);
-        yPosition += 10;
-        pdf.setFont(undefined, "normal");
-
-        pdf.text(`Eligibility Score: ${recordData.score}%`, margin, yPosition);
-        yPosition += 8;
-        pdf.text(
-          `Eligible: ${recordData.eligible ? "Yes" : "No"}`,
-          margin,
-          yPosition
-        );
-        yPosition += 15;
-
-        // Add answers if available
-        const answers = recordData.answers || recordData.answers_summary;
-        if (answers && typeof answers === "object") {
-          pdf.setFont(undefined, "bold");
-          pdf.text("Screening Answers:", margin, yPosition);
-          yPosition += 10;
-          pdf.setFont(undefined, "normal");
-
-          Object.entries(answers).forEach(([key, value], index) => {
-            const answer =
-              typeof value === "boolean"
-                ? value
-                  ? "Yes"
-                  : "No"
-                : String(value);
-            pdf.text(`Q${index + 1}: ${answer}`, margin, yPosition);
-            yPosition += 8;
-          });
-        }
-      }
-
-      // Save the PDF
-      pdf.save(
-        `${title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_${Date.now()}.pdf`
-      );
-
+  const handleDownload = async () => {
+    if (recordType !== "service_request") {
       toast({
-        title: "Download Complete",
-        description: "Your record has been downloaded as a PDF.",
+        title: "No PDF Available",
+        description:
+          "A downloadable PDF summary is not available for this record type.",
+        variant: "destructive",
       });
-    } catch (error) {
+      return;
+    }
+
+    toast({ title: "Preparing Download..." });
+    const result = await downloadGeneratedPdf(record.data);
+
+    if (result.success) {
+      toast({
+        title: "Download Started",
+        description: "Your record has been downloaded.",
+      });
+    } else {
       toast({
         title: "Download Failed",
-        description: "Unable to generate PDF. Please try again.",
+        description: result.error,
         variant: "destructive",
       });
     }
@@ -389,7 +292,7 @@ const RecordViewer = () => {
     return (
       <div className="space-y-6">
         {/* Service Information */}
-        <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+        <div className="bg-blue-50 p-3 md:p-4 rounded-lg border border-blue-200">
           <h3 className="text-lg font-bold text-blue-900 mb-3 flex items-center gap-2">
             <HeartPulse size={20} />
             Service Information
@@ -487,7 +390,7 @@ const RecordViewer = () => {
 
         {/* Personal Information */}
         {(data?.fullName || data?.phoneNumber || data?.email) && (
-          <div className="bg-gray-50 p-4 rounded-lg">
+          <div className="bg-gray-50 p-3 md:p-4 rounded-lg">
             <h3 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
               <User size={20} />
               Personal Information
@@ -538,7 +441,7 @@ const RecordViewer = () => {
         {(data?.deliveryMethod ||
           data?.accessPoint ||
           data?.deliveryLocation) && (
-          <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+          <div className="bg-green-50 p-3 md:p-4 rounded-lg border border-green-200">
             <h3 className="text-lg font-bold text-green-900 mb-3 flex items-center gap-2">
               <MapPin size={20} />
               Delivery Information
@@ -616,7 +519,7 @@ const RecordViewer = () => {
         })()}
 
         {/* Additional Information */}
-        <div className="bg-gray-50 p-4 rounded-lg">
+        <div className="bg-gray-50 p-3 md:p-4 rounded-lg">
           <h3 className="text-lg font-bold text-gray-900 mb-3">
             Additional Details
           </h3>
@@ -641,6 +544,7 @@ const RecordViewer = () => {
                 "hivTestResult",
                 "medicalRecord",
                 "prescription",
+                "labResults",
                 "labResult",
                 "healthRecord",
                 "document",
@@ -1072,9 +976,9 @@ const RecordViewer = () => {
       <Helmet>
         <title>{title} - NetLife Records</title>
       </Helmet>
-      <div className="bg-gray-50 min-h-screen">
+      <div className="bg-white min-h-screen">
         {/* Sticky header on mobile */}
-        <header className="sticky top-0 z-10 bg-white border-b border-gray-200 p-4 md:p-6 md:bg-gray-50 md:border-none md:relative md:mb-6">
+        <header className="sticky top-0 z-10 bg-white border-b border-gray-200 p-3 md:p-6 md:bg-white md:border-none md:relative md:mb-6">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center space-x-4 min-w-0 flex-1">
               <Button
@@ -1143,17 +1047,13 @@ const RecordViewer = () => {
         </header>
 
         {/* Main content with proper padding */}
-        <div className="p-4 md:p-6">
+        <div className="p-3 md:p-6">
           {loading ? (
-            <div className="bg-white p-6 rounded-2xl border">
+            <div className="bg-white p-4 md:p-6 rounded-2xl border">
               {renderLoading()}
             </div>
-          ) : error ? (
-            <div className="bg-white p-6 rounded-2xl border">
-              {renderError()}
-            </div>
           ) : record && record.profile ? (
-            <div className="bg-white p-6 rounded-2xl border space-y-6">
+            <div className="bg-white p-4 md:p-6 rounded-2xl border space-y-6">
               {/* Profile Header */}
               <div className="flex items-center gap-4 pb-6 border-b">
                 <Avatar className="h-16 w-16">
@@ -1234,7 +1134,7 @@ const RecordViewer = () => {
               </div>
             </div>
           ) : (
-            <div className="bg-white p-6 rounded-2xl border">
+            <div className="bg-white p-4 md:p-6 rounded-2xl border">
               {renderEmptyRecord()}
             </div>
           )}

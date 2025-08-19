@@ -177,7 +177,7 @@ const Dashboard = () => {
         <title>Dashboard - NetLife</title>
       </Helmet>
 
-      <div className="md:hidden fixed top-0 left-0 right-0 z-10 bg-gray-50">
+      <div className="md:hidden fixed top-0 left-0 right-0 z-10 bg-white">
         <div className="flex justify-between items-center px-4 py-3">
           <NetLifeLogo className="w-20 h-8" />
           <div className="flex items-center space-x-0 -mr-4">
@@ -204,7 +204,7 @@ const Dashboard = () => {
         </div>
       </div>
 
-      <div className="p-4 md:p-6 bg-gray-50 min-h-screen pt-16 md:pt-4">
+      <div className="py-4 md:py-6 bg-white min-h-screen pt-16 md:pt-4">
         <header className="hidden md:flex justify-between items-center gap-4 mb-6">
           <div className="flex-1">
             <h1 className="text-xl md:text-2xl font-bold text-gray-900">
@@ -236,104 +236,122 @@ const Dashboard = () => {
           <p className="text-sm text-gray-500">How are you feeling today?</p>
         </div>
 
-        <section className="mb-6">
-          <h2 className="text-lg font-bold text-gray-800 mb-3">
+        <section className="mb-8">
+          <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
+            <div className="w-1 h-6 bg-primary rounded-full mr-3"></div>
             Quick Actions
           </h2>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             {surveyStatusLoading ? (
-              <div className="bg-gray-200 p-4 rounded-2xl text-left flex flex-col justify-between h-32 shadow-lg animate-pulse">
-                <div className="w-6 h-6 bg-gray-300 rounded"></div>
-                <div>
-                  <div className="h-5 bg-gray-300 rounded mb-2 w-3/4"></div>
+              <div className="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm animate-pulse">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="w-8 h-8 bg-gray-300 rounded-lg"></div>
+                  <div className="w-6 h-6 bg-gray-300 rounded-full"></div>
+                </div>
+                <div className="space-y-3">
+                  <div className="h-6 bg-gray-300 rounded w-3/4"></div>
                   <div className="h-4 bg-gray-300 rounded w-1/2"></div>
                 </div>
               </div>
             ) : (
               <button
                 onClick={handleSurveyClick}
-                className={`${
-                  surveyStatus?.canTakeSurvey
-                    ? "bg-gradient-to-br from-primary to-purple-400 text-white"
-                    : "bg-gradient-to-br from-primary to-purple-400 text-white opacity-75"
-                } p-4 rounded-2xl text-left flex flex-col justify-between h-32 shadow-lg transition-all duration-200 ${
-                  surveyStatus?.canTakeSurvey
-                    ? "hover:shadow-xl transform hover:-translate-y-1"
+                className={`${surveyStatus?.canTakeSurvey
+                  ? "bg-gradient-to-br from-primary to-purple-500 text-white border-0"
+                  : "bg-gradient-to-br from-gray-100 to-gray-200 text-gray-700 border border-gray-300"
+                  } p-6 rounded-2xl text-left shadow-sm hover:shadow-md transition-all duration-300 ${surveyStatus?.canTakeSurvey
+                    ? "hover:shadow-lg transform hover:-translate-y-1"
                     : "cursor-default"
-                }`}
+                  }`}
               >
-                <FileText size={24} />
-                <div>
-                  <h3 className="font-bold text-lg">
+                <div className="flex items-start justify-between mb-4">
+                  <div className={`p-3 rounded-xl ${surveyStatus?.canTakeSurvey ? 'bg-white/20' : 'bg-gray-300'}`}>
+                    <FileText size={24} className={surveyStatus?.canTakeSurvey ? 'text-white' : 'text-gray-600'} />
+                  </div>
+                  {surveyStatus?.canTakeSurvey && (
+                    <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <h3 className="font-bold text-xl">
                     {surveyStatus?.canTakeSurvey
                       ? "New Survey"
                       : "Survey Completed"}
                   </h3>
-                  <p className="text-sm opacity-90">
+                  <p className={`text-sm ${surveyStatus?.canTakeSurvey ? 'opacity-90' : 'opacity-70'}`}>
                     {surveyStatus?.canTakeSurvey
                       ? "A new survey is available"
                       : surveyService.getNextAvailableMessage(
-                          surveyStatus?.nextAvailableAt
-                        )}
+                        surveyStatus?.nextAvailableAt
+                      )}
                   </p>
                 </div>
               </button>
             )}
             <button
               onClick={() => navigate("/services")}
-              className="bg-gradient-to-br from-secondary-teal to-teal-400 text-white p-4 rounded-2xl text-left flex flex-col justify-between h-32 shadow-lg"
+              className="bg-gradient-to-br from-secondary-teal to-teal-500 text-white p-6 rounded-2xl text-left shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1"
             >
-              <HeartPulse size={24} />
-              <div>
-                <h3 className="font-bold text-lg">Request Service</h3>
+              <div className="flex items-start justify-between mb-4">
+                <div className="p-3 rounded-xl bg-white/20">
+                  <HeartPulse size={24} />
+                </div>
+                <div className="w-3 h-3 bg-blue-400 rounded-full"></div>
+              </div>
+              <div className="space-y-2">
+                <h3 className="font-bold text-xl">Request Service</h3>
                 <p className="text-sm opacity-90">Get health services</p>
               </div>
             </button>
           </div>
         </section>
 
-        <section className="mb-6">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-bold text-gray-800">
+        <section className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-gray-900 flex items-center">
+              <div className="w-1 h-6 bg-primary rounded-full mr-3"></div>
               Recommended For You
             </h2>
             {(videos || []).length > 0 && (
               <button
                 onClick={() => navigate("/videos")}
-                className="text-primary text-sm font-semibold hover:underline"
+                className="text-primary text-sm font-semibold hover:text-primary/80 transition-colors flex items-center"
               >
                 View All
+                <ChevronRight size={16} className="ml-1" />
               </button>
             )}
           </div>
 
           {videosLoading ? (
-            <div className="flex space-x-4 overflow-x-auto no-scrollbar pb-2">
+            <div className="flex space-x-4 overflow-x-auto no-scrollbar pb-2 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-6 md:overflow-x-visible">
               {[...Array(3)].map((_, i) => (
                 <div
                   key={i}
-                  className="flex-shrink-0 w-40 bg-white border rounded-2xl p-3"
+                  className="flex-shrink-0 w-64 md:w-auto bg-white border border-gray-200 rounded-2xl p-4 shadow-sm animate-pulse"
                 >
-                  <div className="h-20 bg-gray-200 rounded-lg mb-2 animate-pulse"></div>
-                  <div className="h-4 bg-gray-200 rounded mb-1 animate-pulse"></div>
-                  <div className="h-3 bg-gray-200 rounded w-12 animate-pulse"></div>
+                  <div className="h-32 bg-gray-200 rounded-xl mb-3"></div>
+                  <div className="space-y-2">
+                    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                    <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                  </div>
                 </div>
               ))}
             </div>
           ) : (videos || []).length > 0 ? (
-            <div className="flex space-x-4 overflow-x-auto no-scrollbar pb-2">
+            <div className="flex space-x-4 overflow-x-auto no-scrollbar pb-2 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-6 md:overflow-x-visible">
               {(videos || []).slice(0, 3).map((video, index) => (
                 <div
                   key={video.id}
                   onClick={() =>
                     navigate(`/videos/${video.id}`, { state: { video } })
                   }
-                  className="flex-shrink-0 w-40 bg-white border rounded-2xl p-3 cursor-pointer hover:shadow-lg hover:border-primary/20 transition-all duration-200 transform hover:-translate-y-1"
+                  className="flex-shrink-0 w-64 md:w-auto bg-white border border-gray-200 rounded-2xl p-4 cursor-pointer hover:shadow-lg hover:border-primary/20 transition-all duration-300 transform hover:-translate-y-1 group"
                 >
                   <div
-                    className={`h-20 ${getVideoThumbnailColor(
+                    className={`h-32 ${getVideoThumbnailColor(
                       index
-                    )} rounded-lg mb-2 flex items-center justify-center relative overflow-hidden`}
+                    )} rounded-xl mb-4 flex items-center justify-center relative overflow-hidden group-hover:scale-105 transition-transform duration-300`}
                   >
                     {video.video_url ? (
                       <video
@@ -343,44 +361,54 @@ const Dashboard = () => {
                         preload="metadata"
                       />
                     ) : null}
+                    <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors duration-300"></div>
                     <PlayCircle
-                      size={32}
-                      className={`${getVideoIconColor(index)} relative z-10`}
+                      size={40}
+                      className={`${getVideoIconColor(index)} relative z-10 group-hover:scale-110 transition-transform duration-300`}
                     />
                   </div>
-                  <h4
-                    className="font-semibold text-sm line-clamp-2 mb-2"
-                    title={video.title}
-                  >
-                    {video.title}
-                  </h4>
-                  <div className="space-y-1">
-                    {video.source && (
-                      <p className="text-xs text-primary font-medium truncate bg-primary/10 px-2 py-1 rounded-full">
-                        {video.source}
-                      </p>
-                    )}
-                    <p className="text-xs text-gray-400">
-                      {formatSmartTime(video.created_at)}
-                    </p>
+                  <div className="space-y-3">
+                    <h4
+                      className="font-semibold text-gray-900 line-clamp-2 leading-tight"
+                      title={video.title}
+                    >
+                      {video.title}
+                    </h4>
+                    <div className="space-y-2">
+                      {video.source && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-primary font-medium bg-primary/10 px-2 py-1 rounded-full">
+                            {video.source}
+                          </span>
+                          <span className="text-xs text-gray-400">
+                            {formatSmartTime(video.created_at)}
+                          </span>
+                        </div>
+                      )}
+                      {!video.source && (
+                        <span className="text-xs text-gray-400">
+                          {formatSmartTime(video.created_at)}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="bg-white border rounded-2xl p-6 text-center">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                <Video className="h-8 w-8 text-gray-400" />
+            <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center shadow-sm">
+              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Video className="h-10 w-10 text-gray-400" />
               </div>
-              <h3 className="font-semibold text-gray-900 mb-1">
+              <h3 className="font-semibold text-gray-900 mb-2 text-lg">
                 No Videos Yet
               </h3>
-              <p className="text-sm text-gray-500 mb-4">
+              <p className="text-gray-500 mb-6 max-w-sm mx-auto">
                 Educational health videos will appear here when available.
               </p>
               <button
                 onClick={() => navigate("/videos")}
-                className="text-primary text-sm font-semibold hover:underline"
+                className="text-primary text-sm font-semibold hover:text-primary/80 transition-colors"
               >
                 Explore Videos
               </button>
@@ -389,37 +417,39 @@ const Dashboard = () => {
         </section>
 
         {(serviceRequestsLoading || filteredServiceRequests.length > 0) && (
-          <section className="mb-6 space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-gray-800">
+          <section className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900 flex items-center">
+                <div className="w-1 h-6 bg-primary rounded-full mr-3"></div>
                 Recent Requests
               </h2>
               {filteredServiceRequests.length > 0 && (
                 <button
                   onClick={() => navigate("/history")}
-                  className="text-primary text-sm font-semibold hover:underline"
+                  className="text-primary text-sm font-semibold hover:text-primary/80 transition-colors flex items-center"
                 >
                   View All
+                  <ChevronRight size={16} className="ml-1" />
                 </button>
               )}
             </div>
 
             {serviceRequestsLoading ? (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {[...Array(2)].map((_, i) => (
-                  <div key={i} className="bg-white border p-4 rounded-2xl">
+                  <div key={i} className="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm animate-pulse">
                     <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="h-4 bg-gray-200 rounded mb-2 animate-pulse w-3/4"></div>
-                        <div className="h-3 bg-gray-200 rounded animate-pulse w-1/2"></div>
+                      <div className="flex-1 space-y-3">
+                        <div className="h-5 bg-gray-200 rounded w-3/4"></div>
+                        <div className="h-4 bg-gray-200 rounded w-1/2"></div>
                       </div>
-                      <div className="h-6 bg-gray-200 rounded-full animate-pulse w-16"></div>
+                      <div className="h-8 bg-gray-200 rounded-full animate-pulse w-20"></div>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {filteredServiceRequests.map((request) => {
                   const status = getServiceRequestStatus(
                     request.status,
@@ -456,56 +486,55 @@ const Dashboard = () => {
                   return (
                     <div
                       key={request.id}
-                      onClick={() => navigate(`/records/${request.id}`)}
-                      className="bg-white border p-4 sm:p-5 rounded-2xl cursor-pointer hover:shadow-md hover:border-primary/20 transition-all duration-200 group"
+                      onClick={() => navigate(`/records/db_service_request_${request.id}`)}
+                      className="bg-white border border-gray-200 p-6 rounded-2xl cursor-pointer hover:shadow-lg hover:border-primary/20 transition-all duration-300 group"
                     >
-                      <div className="space-y-3">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-gray-900 truncate">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-3 mb-3">
+                            <h3 className="font-semibold text-gray-900 text-lg">
                               {getServiceRequestTitle(request)}
                             </h3>
-                          </div>
-
-                          <div className="flex items-center space-x-2 flex-shrink-0 ml-3">
                             <div
-                              className={`${status.className} text-xs font-bold px-3 py-1 rounded-full`}
+                              className={`${status.className} text-xs font-bold px-3 py-1.5 rounded-full shadow-sm`}
                             >
                               {status.label}
                             </div>
-                            <ChevronRight className="h-4 w-4 text-gray-400 group-hover:text-primary transition-colors" />
                           </div>
-                        </div>
 
-                        <div className="space-y-2">
-                          {profileDisplay.showProfile && (
-                            <div className="flex items-center gap-2">
-                              <div className="flex items-center gap-1 px-2 py-1 bg-purple-100 rounded-full">
-                                <User size={12} className="text-purple-600" />
-                                <span className="text-xs text-purple-700 font-medium">
-                                  {profileDisplay.isForSelf
-                                    ? "Self"
-                                    : profileDisplay.name}
-                                </span>
+                          <div className="space-y-3">
+                            {profileDisplay.showProfile && (
+                              <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-100 rounded-full">
+                                  <User size={14} className="text-purple-600" />
+                                  <span className="text-sm text-purple-700 font-medium">
+                                    {profileDisplay.isForSelf
+                                      ? "Self"
+                                      : profileDisplay.name}
+                                  </span>
+                                </div>
+                                {isMainUser && !profileDisplay.isForSelf && (
+                                  <span className="text-sm text-purple-600 font-medium">
+                                    (Family Member)
+                                  </span>
+                                )}
                               </div>
-                              {isMainUser && !profileDisplay.isForSelf && (
-                                <span className="text-xs text-purple-600 font-medium">
-                                  (Family Member)
-                                </span>
-                              )}
-                            </div>
-                          )}
-
-                          <div className="space-y-1">
-                            <p className="text-sm text-gray-500">
-                              {formatRequestTime(request.created_at)}
-                            </p>
-
-                            {request.request_data?.deliveryMethod && (
-                              <p className="text-xs text-gray-400">
-                                {request.request_data.deliveryMethod}
-                              </p>
                             )}
+
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-4 text-sm text-gray-500">
+                                <span className="flex items-center gap-1">
+                                  <Clock size={14} />
+                                  {formatRequestTime(request.created_at)}
+                                </span>
+                                {request.request_data?.deliveryMethod && (
+                                  <span className="text-gray-400">
+                                    {request.request_data.deliveryMethod}
+                                  </span>
+                                )}
+                              </div>
+                              <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-primary transition-colors" />
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -517,23 +546,41 @@ const Dashboard = () => {
           </section>
         )}
 
-        <section>
-          <h2 className="text-lg font-bold text-gray-800 mb-3">Quick Help</h2>
-          <div className="bg-white border rounded-2xl p-4 space-y-3">
+        <section className="mb-8">
+          <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
+            <div className="w-1 h-6 bg-primary rounded-full mr-3"></div>
+            Quick Help
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <button
               onClick={() => navigate("/contact-us")}
-              className="flex items-center w-full text-left space-x-3"
+              className="bg-white border border-gray-200 rounded-2xl p-6 text-left hover:shadow-lg hover:border-primary/20 transition-all duration-300 group"
             >
-              <MessageCircle className="text-primary" />
-              <span className="font-semibold text-gray-700">Contact Us</span>
+              <div className="flex items-center space-x-4">
+                <div className="p-3 rounded-xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                  <MessageCircle className="text-primary" size={24} />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-gray-900 text-lg mb-1">Contact Us</h3>
+                  <p className="text-sm text-gray-500">Get in touch with our support team</p>
+                </div>
+                <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-primary transition-colors" />
+              </div>
             </button>
-            <div className="border-t"></div>
             <button
               onClick={() => navigate("/faqs")}
-              className="flex items-center w-full text-left space-x-3"
+              className="bg-white border border-gray-200 rounded-2xl p-6 text-left hover:shadow-lg hover:border-primary/20 transition-all duration-300 group"
             >
-              <HelpCircle className="text-primary" />
-              <span className="font-semibold text-gray-700">FAQs</span>
+              <div className="flex items-center space-x-4">
+                <div className="p-3 rounded-xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                  <HelpCircle className="text-primary" size={24} />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-gray-900 text-lg mb-1">FAQs</h3>
+                  <p className="text-sm text-gray-500">Find answers to common questions</p>
+                </div>
+                <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-primary transition-colors" />
+              </div>
             </button>
           </div>
         </section>

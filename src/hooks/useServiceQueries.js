@@ -80,9 +80,9 @@ export const useSubmitServiceRequest = ({ onSuccess, onError } = {}) => {
         ...newRequest,
         attachments: newRequest.attachments
           ? {
-              name: newRequest.attachments.name,
-              size: newRequest.attachments.size,
-            }
+            name: newRequest.attachments.name,
+            size: newRequest.attachments.size,
+          }
           : null,
         id: `optimistic-${Date.now()}`,
         created_at: new Date().toISOString(),
@@ -99,9 +99,6 @@ export const useSubmitServiceRequest = ({ onSuccess, onError } = {}) => {
 
     // This callback runs when the mutationFn succeeds
     onSuccess: (data) => {
-      console.log(
-        "Mutation successful, calling the onSuccess callback from the component."
-      );
       if (onSuccess) onSuccess(data);
     },
 
@@ -126,9 +123,6 @@ export const useSubmitServiceRequest = ({ onSuccess, onError } = {}) => {
 
     // This callback runs after success or error
     onSettled: (data, error, newRequest) => {
-      console.log(
-        "Submission settled. Invalidating queries to get fresh data."
-      );
       queryClient.invalidateQueries({
         queryKey: ["serviceRequests", newRequest.user_id],
       });

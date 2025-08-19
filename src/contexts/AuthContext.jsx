@@ -8,6 +8,8 @@ import React, {
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { profileService } from "@/services/profileService";
+import useAutoLogout from "@/hooks/useAutoLogout";
+import { getAutoLogoutConfig } from "@/config/autoLogout";
 
 const AuthContext = createContext(null);
 
@@ -41,6 +43,10 @@ export const AuthProvider = ({ children }) => {
   const managedProfiles = userData?.managedProfiles || [];
   const activeProfile = managedProfiles.find(p => p.id === activeProfileId) || profile;
 
+  // Auto-logout configuration
+  const isAuthenticated = !!user?.user_metadata?.display_name;
+  const isPartiallyAuthenticated = !!user && !user?.user_metadata?.display_name;
+
   useEffect(() => {
     const {
       data: { subscription },
@@ -56,6 +62,8 @@ export const AuthProvider = ({ children }) => {
 
     return () => subscription?.unsubscribe();
   }, [queryClient]);
+
+
 
   useEffect(() => {
     const lastActiveId = localStorage.getItem("netlife_active_profile_id");
@@ -114,6 +122,10 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem("netlife_active_profile_id");
   }, []);
 
+  // Initialize auto-logout hook with configuration (after logout is defined)
+  const autoLogoutConfig = getAutoLogoutConfig();
+  useAutoLogout(logout, isAuthenticated, autoLogoutConfig);
+
   const value = {
     user,
     session,
@@ -122,8 +134,8 @@ export const AuthProvider = ({ children }) => {
     activeProfile,
     isLoading: isLoadingSession || (!!user && isLoadingProfile),
     error: profileError,
-    isAuthenticated: !!user?.user_metadata?.display_name,
-    isPartiallyAuthenticated: !!user && !user?.user_metadata?.display_name,
+    isAuthenticated,
+    isPartiallyAuthenticated,
     logout,
     switchActiveProfile,
     updateProfile: updateProfileMutation,

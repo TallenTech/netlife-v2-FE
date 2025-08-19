@@ -1,19 +1,88 @@
 const serviceUIMapping = {
+  // HIV Testing variations
   "HIV Testing": { category: "routine", color: "red", icon: "Heart" },
+  "HIV testing": { category: "routine", color: "red", icon: "Heart" },
+  "hiv testing": { category: "routine", color: "red", icon: "Heart" },
+  "HIV Testing Services (HTS)": { category: "routine", color: "red", icon: "Heart" },
+  "HTS": { category: "routine", color: "red", icon: "Heart" },
+
+  // STI Screening variations
   "STI Screening": { category: "routine", color: "blue", icon: "Shield" },
+  "STI screening": { category: "routine", color: "blue", icon: "Shield" },
+  "sti screening": { category: "routine", color: "blue", icon: "Shield" },
+  "STI": { category: "routine", color: "blue", icon: "Shield" },
+
+  // PrEP Access variations
   "PrEP Access": { category: "follow-up", color: "green", icon: "Calendar" },
+  "PrEP access": { category: "follow-up", color: "green", icon: "Calendar" },
+  "prep access": { category: "follow-up", color: "green", icon: "Calendar" },
+  "Pre-exposure Prophylaxis (PrEP)": { category: "follow-up", color: "green", icon: "Calendar" },
+  "PrEP": { category: "follow-up", color: "green", icon: "Calendar" },
+
+  // PEP Access variations
   "PEP Access": { category: "urgent", color: "yellow", icon: "Star" },
+  "PEP access": { category: "urgent", color: "yellow", icon: "Star" },
+  "pep access": { category: "urgent", color: "yellow", icon: "Star" },
+  "Post-exposure Prophylaxis (PEP)": { category: "urgent", color: "yellow", icon: "Star" },
+  "PEP": { category: "urgent", color: "yellow", icon: "Star" },
+
+  // ART Support variations
   "ART Support": { category: "follow-up", color: "purple", icon: "HeartPulse" },
-  Counseling: { category: "routine", color: "indigo", icon: "UserCheck" },
-  Counselling: { category: "routine", color: "indigo", icon: "UserCheck" },
+  "ART support": { category: "follow-up", color: "purple", icon: "HeartPulse" },
+  "art support": { category: "follow-up", color: "purple", icon: "HeartPulse" },
+  "Antiretroviral Therapy (ART)": { category: "follow-up", color: "purple", icon: "HeartPulse" },
+  "ART": { category: "follow-up", color: "purple", icon: "HeartPulse" },
+
+  // Counseling variations
+  "Counseling": { category: "routine", color: "indigo", icon: "UserCheck" },
+  "counseling": { category: "routine", color: "indigo", icon: "UserCheck" },
+  "Counselling": { category: "routine", color: "indigo", icon: "UserCheck" },
+  "counselling": { category: "routine", color: "indigo", icon: "UserCheck" },
+  "Counselling Services": { category: "routine", color: "indigo", icon: "UserCheck" },
+  "counselling services": { category: "routine", color: "indigo", icon: "UserCheck" },
 };
 
 export const transformServiceData = (service) => {
-  const uiMapping = serviceUIMapping[service.name] || {
-    category: "routine",
-    color: "blue",
-    icon: "Heart",
-  };
+  // First try exact match
+  let uiMapping = serviceUIMapping[service.name];
+
+  // If no exact match, try case-insensitive match
+  if (!uiMapping) {
+    const serviceNameLower = service.name.toLowerCase();
+    for (const [key, value] of Object.entries(serviceUIMapping)) {
+      if (key.toLowerCase() === serviceNameLower) {
+        uiMapping = value;
+        break;
+      }
+    }
+  }
+
+  // If still no match, try partial matching
+  if (!uiMapping) {
+    const serviceNameLower = service.name.toLowerCase();
+    if (serviceNameLower.includes('hiv') || serviceNameLower.includes('hts')) {
+      uiMapping = { category: "routine", color: "red", icon: "Heart" };
+    } else if (serviceNameLower.includes('sti') || serviceNameLower.includes('screening')) {
+      uiMapping = { category: "routine", color: "blue", icon: "Shield" };
+    } else if (serviceNameLower.includes('prep')) {
+      uiMapping = { category: "follow-up", color: "green", icon: "Calendar" };
+    } else if (serviceNameLower.includes('pep')) {
+      uiMapping = { category: "urgent", color: "yellow", icon: "Star" };
+    } else if (serviceNameLower.includes('art')) {
+      uiMapping = { category: "follow-up", color: "purple", icon: "HeartPulse" };
+    } else if (serviceNameLower.includes('counsel') || serviceNameLower.includes('guidance')) {
+      uiMapping = { category: "routine", color: "indigo", icon: "UserCheck" };
+    }
+  }
+
+  // Final fallback
+  if (!uiMapping) {
+    uiMapping = {
+      category: "routine",
+      color: "blue",
+      icon: "Heart",
+    };
+  }
 
   return {
     id: service.id,
