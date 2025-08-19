@@ -96,10 +96,6 @@ serve(async (req) => {
     }
 
     if (attachmentRecord && attachmentRecord.file_path) {
-      console.log(
-        `Found attachment record. Path: ${attachmentRecord.file_path}. Downloading from storage...`
-      );
-
       const { data: fileData, error: downloadError } =
         await supabaseAdmin.storage
           .from("service-attachments")
@@ -111,24 +107,16 @@ serve(async (req) => {
           downloadError
         );
       } else {
-        console.log(
-          "File downloaded successfully. Encoding to Base64 for email."
-        );
-
         const fileBase64 = encodeBase64(await fileData.arrayBuffer());
-
         const structuredFilename =
           attachmentRecord.file_path.split("/").pop() ||
           attachmentRecord.original_name;
-
         emailAttachments.push({
           name: structuredFilename,
           content: fileBase64,
           mime_type: attachmentRecord.mime_type || "application/octet-stream",
         });
       }
-    } else {
-      console.log("No user attachment found for this service request.");
     }
 
     const pdfPayload = {
@@ -167,7 +155,6 @@ serve(async (req) => {
     const dateString = `${now.getFullYear()}${String(
       now.getMonth() + 1
     ).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
-    const serviceSlug = service.slug.toLowerCase() || "service";
     const serviceNumberFormatted = String(service.service_number || 0).padStart(
       3,
       "0"
@@ -187,10 +174,10 @@ serve(async (req) => {
       formattedServiceSlug = serviceSlug.toUpperCase();
     }
 
+    const uniqueSuffix = Math.random().toString(36).substring(2, 8);
+
     const pdfFilename =
-      `${capitalizedPatientName}_${formattedServiceSlug}_request_${dateString}_${serviceNumberFormatted}.pdf`;
-    // const pdfFilename =
-    //   `${patientName}_${serviceSlug}_request_${dateString}_${serviceNumberFormatted}.pdf`.toLowerCase();
+      `${capitalizedPatientName}_${formattedServiceSlug}_request_${dateString}_${serviceNumberFormatted}_${uniqueSuffix}.pdf`;
 
     const { data: pdfUploadData, error: pdfUploadError } =
       await supabaseAdmin.storage
@@ -225,7 +212,6 @@ serve(async (req) => {
     );
 
     if (zeptoTemplateKey) {
-      console.log(`Sending email with ${emailAttachments.length} attachments.`);
       for (const admin of ADMIN_LIST) {
         const subject = `New ${
           service.name

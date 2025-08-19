@@ -109,6 +109,7 @@ const ServiceRequest = () => {
       service_id: serviceData.id,
       attachments: attachmentFile,
       username: activeProfile.username,
+      service_slug: serviceData.slug,
       service_number: serviceData.service_number,
       request_data: {
         ...finalFormData,
@@ -121,7 +122,6 @@ const ServiceRequest = () => {
       },
     };
 
-    // Fire-and-forget: The loader will show immediately. The callbacks will handle the result.
     submitRequest(serviceRequestData);
   }, [
     isSubmitting,
