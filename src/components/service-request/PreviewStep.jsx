@@ -159,8 +159,8 @@ const PreviewStep = ({
             <p>
               <strong>Location:</strong>{" "}
               {`${activeProfile?.subCounty || activeProfile?.sub_county || ""}${activeProfile?.subCounty || activeProfile?.sub_county
-                  ? ", "
-                  : ""
+                ? ", "
+                : ""
                 }${activeProfile?.district}`}
             </p>
           </div>
@@ -239,7 +239,7 @@ const PreviewStep = ({
             <Button
               onClick={onSubmit}
               disabled={!consent || submitting}
-              className="w-full h-12 sm:h-14 text-base sm:text-lg bg-primary hover:bg-primary/90 rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed text-white transition-all duration-200"
+              className="w-full h-14 text-lg font-bold rounded-xl bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed text-white transition-all duration-200"
             >
               {submitting ? (
                 <div className="flex items-center justify-center">
@@ -254,20 +254,22 @@ const PreviewStep = ({
         </div>
       </div>
       <div className="hidden md:block mt-8">
-        <Button
-          onClick={onSubmit}
-          disabled={!consent || submitting}
-          className="w-full h-14 text-lg bg-primary hover:bg-primary/90 rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed text-white transition-all duration-200"
-        >
-          {submitting ? (
-            <div className="flex items-center justify-center">
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
-              Submitting...
-            </div>
-          ) : (
-            "Submit Request"
-          )}
-        </Button>
+        <div className="flex justify-end">
+          <Button
+            onClick={onSubmit}
+            disabled={!consent || submitting}
+            className="h-14 px-8 text-lg font-bold rounded-xl shadow-lg bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed text-white transition-all duration-200"
+          >
+            {submitting ? (
+              <div className="flex items-center justify-center">
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+                Submitting...
+              </div>
+            ) : (
+              "Submit Request"
+            )}
+          </Button>
+        </div>
       </div>
     </motion.div>
   );

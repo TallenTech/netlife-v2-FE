@@ -140,8 +140,6 @@ export const extractCommonFields = (requestData) => {
     delivery_location: null,
     preferred_date: null,
     quantity: null,
-    counselling_required: null,
-    counselling_channel: null,
   };
 
   if (!requestData || typeof requestData !== "object") {
@@ -202,15 +200,7 @@ export const extractCommonFields = (requestData) => {
     }
   }
 
-  if (requestData.counsellingSupport) {
-    extracted.counselling_required =
-      requestData.counsellingSupport === "Yes" ||
-      requestData.counsellingSupport === true;
 
-    if (extracted.counselling_required && requestData.counsellingChannel) {
-      extracted.counselling_channel = requestData.counsellingChannel;
-    }
-  }
 
   return extracted;
 };
@@ -235,15 +225,15 @@ export const validateDeliveryPreferences = (requestData) => {
   if (requestData.deliveryMethod || requestData.accessPoint) {
     const method = requestData.deliveryMethod || requestData.accessPoint;
     const validMethods = [
-      "Home Delivery",
+      "Home/Workplace",
       "Facility pickup",
-      "Community Group Delivery",
+      "Community Group",
       "Pick-up from facility",
     ];
     if (!validMethods.includes(method)) {
       errors.push(`Invalid delivery method: ${method}`);
     }
-    const locationBasedMethods = ["Home Delivery", "Community Group Delivery"];
+    const locationBasedMethods = ["Home/Workplace", "Community Group"];
     if (
       locationBasedMethods.includes(method) &&
       !requestData.deliveryLocation

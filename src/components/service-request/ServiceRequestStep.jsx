@@ -209,10 +209,10 @@ const ServiceRequestStep = ({
                     key={option}
                     htmlFor={`${field.name}-${option}`}
                     className={`flex items-center space-x-4 p-4 rounded-xl cursor-pointer transition-all duration-200 border-2 min-h-[60px] ${isSelected
-                        ? "border-primary bg-primary/10 shadow-sm"
-                        : errors[field.name] && touched[field.name]
-                          ? "border-red-300 bg-red-50"
-                          : "border-gray-200 bg-gray-50 hover:border-gray-300 hover:bg-gray-100"
+                      ? "border-primary bg-primary/10 shadow-sm"
+                      : errors[field.name] && touched[field.name]
+                        ? "border-red-300 bg-red-50"
+                        : "border-gray-200 bg-gray-50 hover:border-gray-300 hover:bg-gray-100"
                       }`}
                   >
                     <div className="relative">
@@ -230,10 +230,10 @@ const ServiceRequestStep = ({
                       />
                       <div
                         className={`w-5 h-5 rounded-full border-2 transition-all duration-200 ${isSelected
-                            ? "border-primary bg-primary"
-                            : errors[field.name] && touched[field.name]
-                              ? "border-red-400 bg-white"
-                              : "border-gray-400 bg-white"
+                          ? "border-primary bg-primary"
+                          : errors[field.name] && touched[field.name]
+                            ? "border-red-400 bg-white"
+                            : "border-gray-400 bg-white"
                           }`}
                       >
                         {isSelected && (
@@ -367,7 +367,7 @@ const ServiceRequestStep = ({
               value={formData[field.name] || ""}
               onChange={(value) => onDateTimeChange(field.name, value)}
               label={field.label}
-              placeholder="Choose your preferred date and time"
+              placeholder="Choose"
               required={field.required}
               error={
                 errors[field.name] && touched[field.name]
