@@ -641,6 +641,7 @@ const RecordViewer = () => {
                 "hivTestResult",
                 "medicalRecord",
                 "prescription",
+                "labResults",
                 "labResult",
                 "healthRecord",
                 "document",

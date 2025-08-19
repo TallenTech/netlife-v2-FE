@@ -36,7 +36,6 @@ const ServiceRequest = () => {
 
   // 1. Define stable callbacks for the hook
   const handleSuccess = useCallback(() => {
-    console.log("[ServiceRequest] onSuccess callback triggered.");
     clearProgress();
     setShowSuccess(true);
     setTimeout(() => {
@@ -47,7 +46,6 @@ const ServiceRequest = () => {
 
   const handleError = useCallback(
     (error) => {
-      console.log("[ServiceRequest] onError callback triggered.");
       toast({
         title: "Submission Failed",
         description:
@@ -65,26 +63,18 @@ const ServiceRequest = () => {
       onError: handleError,
     });
 
-  useEffect(() => {
-    console.log(
-      `[ServiceRequest] Loading state (isSubmitting) is now: ${isSubmitting}`
-    );
-  }, [isSubmitting]);
+
 
   // This is a stable function now thanks to useCallback
   const clearProgress = useCallback(() => {
     try {
       localStorage.removeItem(getProgressKey());
-    } catch (error) {}
+    } catch (error) { }
   }, []);
 
   // 3. The new handleSubmit is NOT async and does NOT use try/catch
   const handleSubmit = useCallback(() => {
-    console.log("[handleSubmit] Firing mutation...");
     if (isSubmitting) {
-      console.warn(
-        "[handleSubmit] Aborted: A submission is already in progress."
-      );
       return;
     }
     if (!serviceData || !profile || !activeProfile) {
@@ -180,7 +170,7 @@ const ServiceRequest = () => {
           totalSteps: formConfig.steps.length,
         })
       );
-    } catch (error) {}
+    } catch (error) { }
   };
 
   const handleInputChange = (name, value) => {
@@ -354,7 +344,7 @@ const ServiceRequest = () => {
                     className={cn(
                       "w-full h-14 text-lg font-bold rounded-xl",
                       !currentStepValid &&
-                        "bg-gray-300 text-gray-500 cursor-not-allowed"
+                      "bg-gray-300 text-gray-500 cursor-not-allowed"
                     )}
                   >
                     {step === totalSteps - 1 ? "Review Request" : "Next Step"}
@@ -419,7 +409,7 @@ const ServiceRequest = () => {
                       className={cn(
                         "h-14 px-8 text-lg font-bold rounded-xl shadow-lg",
                         !currentStepValid &&
-                          "bg-gray-300 text-gray-500 cursor-not-allowed hover:bg-gray-300 shadow-none"
+                        "bg-gray-300 text-gray-500 cursor-not-allowed hover:bg-gray-300 shadow-none"
                       )}
                     >
                       {step === totalSteps - 1 ? "Review Request" : "Next Step"}
