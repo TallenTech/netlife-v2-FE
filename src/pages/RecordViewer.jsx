@@ -47,6 +47,8 @@ import {
   useDeleteScreeningResult,
 } from "@/hooks/useServiceQueries";
 import AttachmentViewer from "@/components/AttachmentViewer";
+import { downloadGeneratedPdf } from "@/utils/pdfUtils";
+import { supabase } from "@/lib/supabase";
 
 const RecordViewer = () => {
   const { recordId } = useParams();
@@ -187,128 +189,29 @@ const RecordViewer = () => {
     }
   };
 
-  // Action handlers
-  const handleDownload = () => {
-    try {
-      const pdf = new jsPDF();
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const margin = 20;
-      let yPosition = margin;
-
-      // Header
-      pdf.setFontSize(20);
-      pdf.setFont(undefined, "bold");
-      pdf.text(title, margin, yPosition);
-      yPosition += 15;
-
-      // User info
-      pdf.setFontSize(12);
-      pdf.setFont(undefined, "normal");
-      pdf.text(
-        `User: ${record.profile.full_name || record.profile.username}`,
-        margin,
-        yPosition
-      );
-      yPosition += 10;
-
-      const date = recordData.created_at
-        ? new Date(recordData.created_at).toLocaleDateString()
-        : recordData.completed_at
-          ? new Date(recordData.completed_at).toLocaleDateString()
-          : record.data.completedAt
-            ? new Date(record.data.completedAt).toLocaleDateString()
-            : "Recently";
-      pdf.text(`Date: ${date}`, margin, yPosition);
-      yPosition += 15;
-
-      // Content based on record type
-      if (recordType === "service_request") {
-        let data;
-        if (record.type === "database_service_request") {
-          data = recordData.request_data || recordData;
-        } else if (
-          recordId.startsWith("service_request_") &&
-          record.data.request
-        ) {
-          data = record.data.request;
-        } else {
-          data = recordData;
-        }
-
-        pdf.setFont(undefined, "bold");
-        pdf.text("Service Request Details:", margin, yPosition);
-        yPosition += 10;
-        pdf.setFont(undefined, "normal");
-
-        // Add key fields
-        const fields = [
-          { label: "Service", value: title },
-          { label: "Status", value: recordData.status || "Submitted" },
-          { label: "Full Name", value: data?.fullName },
-          { label: "Phone", value: data?.phoneNumber },
-          { label: "Email", value: data?.email },
-          {
-            label: "Delivery Method",
-            value: data?.deliveryMethod || data?.accessPoint,
-          },
-          { label: "Location", value: data?.deliveryLocation },
-        ];
-
-        fields.forEach((field) => {
-          if (field.value) {
-            pdf.text(`${field.label}: ${field.value}`, margin, yPosition);
-            yPosition += 8;
-          }
-        });
-      } else if (recordType === "screening_result") {
-        pdf.setFont(undefined, "bold");
-        pdf.text("Screening Results:", margin, yPosition);
-        yPosition += 10;
-        pdf.setFont(undefined, "normal");
-
-        pdf.text(`Eligibility Score: ${recordData.score}%`, margin, yPosition);
-        yPosition += 8;
-        pdf.text(
-          `Eligible: ${recordData.eligible ? "Yes" : "No"}`,
-          margin,
-          yPosition
-        );
-        yPosition += 15;
-
-        // Add answers if available
-        const answers = recordData.answers || recordData.answers_summary;
-        if (answers && typeof answers === "object") {
-          pdf.setFont(undefined, "bold");
-          pdf.text("Screening Answers:", margin, yPosition);
-          yPosition += 10;
-          pdf.setFont(undefined, "normal");
-
-          Object.entries(answers).forEach(([key, value], index) => {
-            const answer =
-              typeof value === "boolean"
-                ? value
-                  ? "Yes"
-                  : "No"
-                : String(value);
-            pdf.text(`Q${index + 1}: ${answer}`, margin, yPosition);
-            yPosition += 8;
-          });
-        }
-      }
-
-      // Save the PDF
-      pdf.save(
-        `${title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_${Date.now()}.pdf`
-      );
-
+  const handleDownload = async () => {
+    if (recordType !== "service_request") {
       toast({
-        title: "Download Complete",
-        description: "Your record has been downloaded as a PDF.",
+        title: "No PDF Available",
+        description:
+          "A downloadable PDF summary is not available for this record type.",
+        variant: "destructive",
       });
-    } catch (error) {
+      return;
+    }
+
+    toast({ title: "Preparing Download..." });
+    const result = await downloadGeneratedPdf(record.data);
+
+    if (result.success) {
+      toast({
+        title: "Download Started",
+        description: "Your record has been downloaded.",
+      });
+    } else {
       toast({
         title: "Download Failed",
-        description: "Unable to generate PDF. Please try again.",
+        description: result.error,
         variant: "destructive",
       });
     }
@@ -538,58 +441,58 @@ const RecordViewer = () => {
         {(data?.deliveryMethod ||
           data?.accessPoint ||
           data?.deliveryLocation) && (
-            <div className="bg-green-50 p-3 md:p-4 rounded-lg border border-green-200">
-              <h3 className="text-lg font-bold text-green-900 mb-3 flex items-center gap-2">
-                <MapPin size={20} />
-                Delivery Information
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {(data.deliveryMethod || data.accessPoint) && (
-                  <div>
-                    <p className="text-sm font-semibold text-green-700">
-                      Delivery Method
-                    </p>
-                    <p className="text-lg text-green-900">
-                      {safeRenderValue(data.deliveryMethod || data.accessPoint)}
-                    </p>
-                  </div>
-                )}
-                {data.deliveryLocation && (
-                  <div>
-                    <p className="text-sm font-semibold text-green-700">
-                      Location
-                    </p>
-                    <p className="text-lg text-green-900">
-                      {safeRenderValue(data.deliveryLocation)}
-                    </p>
-                  </div>
-                )}
-                {(data.deliveryDate || data.preferredDate) && (
-                  <div>
-                    <p className="text-sm font-semibold text-green-700">
-                      Preferred Date
-                    </p>
-                    <p className="text-lg text-green-900 flex items-center gap-2">
-                      <Clock size={16} />
-                      {new Date(
-                        data.deliveryDate || data.preferredDate
-                      ).toLocaleDateString()}
-                    </p>
-                  </div>
-                )}
-                {data.quantity && (
-                  <div>
-                    <p className="text-sm font-semibold text-green-700">
-                      Quantity
-                    </p>
-                    <p className="text-lg text-green-900">
-                      {safeRenderValue(data.quantity)}
-                    </p>
-                  </div>
-                )}
-              </div>
+          <div className="bg-green-50 p-3 md:p-4 rounded-lg border border-green-200">
+            <h3 className="text-lg font-bold text-green-900 mb-3 flex items-center gap-2">
+              <MapPin size={20} />
+              Delivery Information
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {(data.deliveryMethod || data.accessPoint) && (
+                <div>
+                  <p className="text-sm font-semibold text-green-700">
+                    Delivery Method
+                  </p>
+                  <p className="text-lg text-green-900">
+                    {safeRenderValue(data.deliveryMethod || data.accessPoint)}
+                  </p>
+                </div>
+              )}
+              {data.deliveryLocation && (
+                <div>
+                  <p className="text-sm font-semibold text-green-700">
+                    Location
+                  </p>
+                  <p className="text-lg text-green-900">
+                    {safeRenderValue(data.deliveryLocation)}
+                  </p>
+                </div>
+              )}
+              {(data.deliveryDate || data.preferredDate) && (
+                <div>
+                  <p className="text-sm font-semibold text-green-700">
+                    Preferred Date
+                  </p>
+                  <p className="text-lg text-green-900 flex items-center gap-2">
+                    <Clock size={16} />
+                    {new Date(
+                      data.deliveryDate || data.preferredDate
+                    ).toLocaleDateString()}
+                  </p>
+                </div>
+              )}
+              {data.quantity && (
+                <div>
+                  <p className="text-sm font-semibold text-green-700">
+                    Quantity
+                  </p>
+                  <p className="text-lg text-green-900">
+                    {safeRenderValue(data.quantity)}
+                  </p>
+                </div>
+              )}
             </div>
-          )}
+          </div>
+        )}
 
         {/* Attachments */}
         {(() => {
@@ -722,8 +625,8 @@ const RecordViewer = () => {
                 {recordData.score >= 8
                   ? "Low Risk"
                   : recordData.score >= 5
-                    ? "Moderate Risk"
-                    : "Higher Risk"}
+                  ? "Moderate Risk"
+                  : "Higher Risk"}
               </p>
             </div>
           </div>
@@ -800,8 +703,8 @@ const RecordViewer = () => {
                 {data.completed_at
                   ? new Date(data.completed_at).toLocaleDateString()
                   : data.completedAt
-                    ? new Date(data.completedAt).toLocaleDateString()
-                    : "Recently"}
+                  ? new Date(data.completedAt).toLocaleDateString()
+                  : "Recently"}
               </p>
             </div>
           </div>
@@ -894,14 +797,16 @@ const RecordViewer = () => {
 
         {/* Recommendations */}
         <div
-          className={`p-4 rounded-lg border ${data.eligible
-            ? "bg-green-50 border-green-200"
-            : "bg-orange-50 border-orange-200"
-            }`}
+          className={`p-4 rounded-lg border ${
+            data.eligible
+              ? "bg-green-50 border-green-200"
+              : "bg-orange-50 border-orange-200"
+          }`}
         >
           <h3
-            className={`text-lg font-bold mb-3 flex items-center gap-2 ${data.eligible ? "text-green-900" : "text-orange-900"
-              }`}
+            className={`text-lg font-bold mb-3 flex items-center gap-2 ${
+              data.eligible ? "text-green-900" : "text-orange-900"
+            }`}
           >
             {data.eligible ? (
               <CheckCircle size={20} />
@@ -911,8 +816,9 @@ const RecordViewer = () => {
             Recommendation
           </h3>
           <p
-            className={`text-lg ${data.eligible ? "text-green-800" : "text-orange-800"
-              }`}
+            className={`text-lg ${
+              data.eligible ? "text-green-800" : "text-orange-800"
+            }`}
           >
             {data.eligible
               ? "Based on your screening results, you are eligible for this service. You can proceed with your service request."
@@ -929,8 +835,8 @@ const RecordViewer = () => {
               {data.completed_at
                 ? new Date(data.completed_at).toLocaleString()
                 : data.completedAt
-                  ? new Date(data.completedAt).toLocaleString()
-                  : "Recently"}
+                ? new Date(data.completedAt).toLocaleString()
+                : "Recently"}
             </p>
           </div>
         </div>
@@ -1172,18 +1078,18 @@ const RecordViewer = () => {
                     {recordData?.created_at
                       ? new Date(recordData.created_at).toLocaleDateString()
                       : recordData?.completed_at
-                        ? new Date(recordData.completed_at).toLocaleDateString()
-                        : record.data?.completedAt
-                          ? new Date(record.data.completedAt).toLocaleDateString()
-                          : record.data?.request?.timestamp
-                            ? new Date(
-                              record.data.request.timestamp
-                            ).toLocaleDateString()
-                            : recordId.startsWith("service_request_")
-                              ? new Date(
-                                parseInt(recordId.split("_")[3])
-                              ).toLocaleDateString()
-                              : "Recently"}
+                      ? new Date(recordData.completed_at).toLocaleDateString()
+                      : record.data?.completedAt
+                      ? new Date(record.data.completedAt).toLocaleDateString()
+                      : record.data?.request?.timestamp
+                      ? new Date(
+                          record.data.request.timestamp
+                        ).toLocaleDateString()
+                      : recordId.startsWith("service_request_")
+                      ? new Date(
+                          parseInt(recordId.split("_")[3])
+                        ).toLocaleDateString()
+                      : "Recently"}
                   </div>
                 </div>
                 <div className="flex items-center gap-2 text-gray-600">
@@ -1197,10 +1103,10 @@ const RecordViewer = () => {
                     {recordType === "service_request"
                       ? "Service Request"
                       : recordType === "screening_result"
-                        ? "Screening Result"
-                        : recordType === "health_survey"
-                          ? "Health Survey"
-                          : "Record"}
+                      ? "Screening Result"
+                      : recordType === "health_survey"
+                      ? "Health Survey"
+                      : "Record"}
                   </div>
                 </div>
                 <div className="flex items-center gap-2 text-gray-600">
@@ -1209,13 +1115,13 @@ const RecordViewer = () => {
                     <strong>Status:</strong>{" "}
                     {recordType === "service_request"
                       ? recordData?.status ||
-                      (record.data?.savedToDatabase
-                        ? "Submitted"
-                        : "Pending Sync") ||
-                      "Submitted"
+                        (record.data?.savedToDatabase
+                          ? "Submitted"
+                          : "Pending Sync") ||
+                        "Submitted"
                       : recordType === "screening_result"
-                        ? "Complete"
-                        : "Complete"}
+                      ? "Complete"
+                      : "Complete"}
                   </div>
                 </div>
               </div>
