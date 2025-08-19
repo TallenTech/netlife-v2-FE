@@ -24,6 +24,7 @@ import {
   useDeleteServiceRequest,
   useDeleteScreeningResult,
 } from "@/hooks/useServiceQueries";
+import { downloadGeneratedPdf } from "@/utils/pdfUtils";
 
 const tabs = ["Services", "Screening", "Records"];
 
@@ -163,39 +164,32 @@ const History = () => {
     }
   };
 
-  const handleDownload = (item) => {
-    toast({
-      title: "Generating PDF...",
-      description: "Your record is being prepared for download.",
-    });
-
-    const doc = new jsPDF();
-    doc.setFontSize(18);
-    doc.text(`NetLife Health Record: ${item.title}`, 14, 22);
-    doc.setFontSize(12);
-    doc.text(`User: ${activeProfile.username}`, 14, 32);
-    doc.text(`Date: ${item.date}`, 14, 38);
-    doc.setLineWidth(0.5);
-    doc.line(14, 45, 196, 45);
-    doc.setFontSize(10);
-    let y = 55;
-
-    if (item.type === "service_request") {
-      Object.entries(item.data.request_data).forEach(([key, value]) => {
-        if (typeof value !== "object" && key !== "_profileInfo") {
-          const fieldLabel = key
-            .replace(/([A-Z])/g, " $1")
-            .replace(/^./, (str) => str.toUpperCase());
-          doc.text(`${fieldLabel}:`, 14, y);
-          doc.text(String(value), 60, y);
-          y += 7;
-        }
+  const handleDownload = async (item) => {
+    if (item.type !== "service_request") {
+      toast({
+        title: "No PDF Available",
+        description: "PDF summaries are only generated for service requests.",
+        variant: "destructive",
       });
+      return;
     }
 
-    doc.save(`netlife-record-${item.title.replace(/\s+/g, "-")}.pdf`);
-  };
+    toast({ title: "Preparing Download..." });
+    const result = await downloadGeneratedPdf(item.data);
 
+    if (result.success) {
+      toast({
+        title: "Download Started",
+        description: "Your record has been downloaded.",
+      });
+    } else {
+      toast({
+        title: "Download Failed",
+        description: result.error,
+        variant: "destructive",
+      });
+    }
+  };
   const handleItemClick = (item) => {
     if (item.isOffline) {
       toast({
@@ -313,10 +307,11 @@ const History = () => {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`w-full py-2.5 text-sm font-semibold rounded-full transition-all duration-300 ${activeTab === tab
-                ? "bg-white text-primary shadow-md"
-                : "text-gray-600 hover:bg-gray-200"
-                }`}
+              className={`w-full py-2.5 text-sm font-semibold rounded-full transition-all duration-300 ${
+                activeTab === tab
+                  ? "bg-white text-primary shadow-md"
+                  : "text-gray-600 hover:bg-gray-200"
+              }`}
             >
               {tab}
             </button>
@@ -364,10 +359,11 @@ const History = () => {
                       </div>
                     )}
                     <span
-                      className={`text-xs font-bold px-3 py-1 rounded-full ${item.isOffline
-                        ? "bg-yellow-100 text-yellow-800"
-                        : "bg-green-100 text-green-800"
-                        }`}
+                      className={`text-xs font-bold px-3 py-1 rounded-full ${
+                        item.isOffline
+                          ? "bg-yellow-100 text-yellow-800"
+                          : "bg-green-100 text-green-800"
+                      }`}
                     >
                       {item.status}
                     </span>
