@@ -22,7 +22,11 @@ import {
   ChevronsRight,
   Users,
   FolderOpen,
+  Share,
+  PlusSquare,
+  ExternalLink,
 } from "lucide-react";
+
 import { useToast } from "@/components/ui/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import MobileConfirmDialog from "@/components/ui/MobileConfirmDialog";
@@ -42,6 +46,7 @@ import {
   useUpdatePhoneNumber,
   useVerifyPhoneUpdate,
 } from "@/hooks/useSettingsQueries";
+import { usePWAInstall } from "@/hooks/usePWAInstall";
 
 const Account = () => {
   const { toast } = useToast();
@@ -60,6 +65,8 @@ const Account = () => {
   const [subCounty, setSubCounty] = useState("");
   const [showPurgeDialog, setShowPurgeDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const { canInstall, handleInstallClick, isIOS, isStandalone } =
+    usePWAInstall();
 
   const [phoneUpdateStep, setPhoneUpdateStep] = useState("idle");
   const [newPhoneNumber, setNewPhoneNumber] = useState("");
@@ -133,22 +140,30 @@ const Account = () => {
       // Upload the photo based on profile type
       let uploadResult;
       if (isMainProfile) {
-        uploadResult = await profileService.uploadProfilePhoto(file, activeProfile.id);
+        uploadResult = await profileService.uploadProfilePhoto(
+          file,
+          activeProfile.id
+        );
       } else {
-        uploadResult = await profileService.uploadManagedProfilePhoto(file, activeProfile.id);
+        uploadResult = await profileService.uploadManagedProfilePhoto(
+          file,
+          activeProfile.id
+        );
       }
 
       if (!uploadResult.success) {
-        throw new Error(uploadResult.error?.message || "Failed to upload photo");
+        throw new Error(
+          uploadResult.error?.message || "Failed to upload photo"
+        );
       }
 
       // Update the local profile data immediately
       const newPictureUrl = uploadResult.data?.url;
 
       if (newPictureUrl) {
-        setProfileData(prev => ({
+        setProfileData((prev) => ({
           ...prev,
-          profile_picture: newPictureUrl
+          profile_picture: newPictureUrl,
         }));
       }
 
@@ -176,9 +191,9 @@ const Account = () => {
       setIsUploadingPhoto(true);
 
       // Update local state immediately for instant UI feedback
-      setProfileData(prev => ({
+      setProfileData((prev) => ({
         ...prev,
-        profile_picture: avatarId
+        profile_picture: avatarId,
       }));
 
       // Update profile with avatar
@@ -192,13 +207,15 @@ const Account = () => {
 
       toast({
         title: "Avatar Updated",
-        description: `Your avatar has been updated to ${getAvatarEmoji(avatarId)}.`,
+        description: `Your avatar has been updated to ${getAvatarEmoji(
+          avatarId
+        )}.`,
       });
     } catch (error) {
       // Revert local state if update failed
-      setProfileData(prev => ({
+      setProfileData((prev) => ({
         ...prev,
-        profile_picture: activeProfile?.profile_picture || null
+        profile_picture: activeProfile?.profile_picture || null,
       }));
 
       toast({
@@ -293,8 +310,6 @@ const Account = () => {
     }
   };
 
-
-
   const handleDataPurge = () => {
     const result = settingsService.purgeLocalData();
     if (result.success) {
@@ -320,7 +335,8 @@ const Account = () => {
       onSuccess: () => {
         toast({
           title: "Account Deleted",
-          description: "Your account and all associated data have been permanently deleted.",
+          description:
+            "Your account and all associated data have been permanently deleted.",
           variant: "destructive",
         });
         setShowDeleteDialog(false);
@@ -331,7 +347,8 @@ const Account = () => {
       onError: (error) => {
         toast({
           title: "Delete Failed",
-          description: error.message || "Could not delete your account. Please try again.",
+          description:
+            error.message || "Could not delete your account. Please try again.",
           variant: "destructive",
         });
       },
@@ -387,6 +404,55 @@ const Account = () => {
       </div>
     );
   }
+
+  const renderAppSection = () => {
+    // Case 1: App is already installed (standalone mode)
+    if (isStandalone) {
+      return (
+        <div className="bg-green-50 p-4 rounded-lg border border-green-200 text-center">
+          <h4 className="font-bold text-green-900 mb-2">App Installed</h4>
+          <p className="text-sm text-green-800">
+            You are currently using the NetLife app. Thank you for installing!
+          </p>
+        </div>
+      );
+    }
+    // Case 2: On iOS (manual installation instructions)
+    if (isIOS) {
+      return (
+        <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+          <h4 className="font-bold text-blue-900 mb-2">
+            Install on your iPhone/iPad
+          </h4>
+          <p className="text-sm text-blue-800">
+            To get the app experience, tap the{" "}
+            <Share className="inline-block h-4 w-4 mx-1" /> Share button in
+            Safari, then tap on{" "}
+            <PlusSquare className="inline-block h-4 w-4 mx-1" /> "Add to Home
+            Screen".
+          </p>
+        </div>
+      );
+    }
+    // Case 3: On Android/Desktop where installation is possible
+    if (canInstall) {
+      return (
+        <Button
+          onClick={handleInstallClick}
+          className="w-full justify-start space-x-2"
+        >
+          <Download size={16} />
+          <span>Install NetLife App</span>
+        </Button>
+      );
+    }
+    // Case 4: Fallback if browser doesn't support installation
+    return (
+      <div className="p-3 border rounded-lg text-center text-sm text-gray-600 bg-gray-50">
+        Your browser does not support direct app installation.
+      </div>
+    );
+  };
 
   return (
     <>
@@ -729,6 +795,13 @@ const Account = () => {
                     }
                   />
                 </div>
+              </div>
+              <div className="bg-white p-4 md:p-6 rounded-2xl border">
+                <h3 className="font-bold text-lg mb-4 flex items-center">
+                  <Download className="w-5 h-5 mr-2 text-primary" />
+                  App Installation
+                </h3>
+                {renderAppSection()}
               </div>
               <div className="bg-white p-4 md:p-6 rounded-2xl border">
                 <h3 className="font-bold text-lg mb-4 flex items-center">
