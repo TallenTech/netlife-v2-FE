@@ -4,13 +4,15 @@ import { ChevronLeft, Shield, Clock, CheckCircle, Smartphone, Calendar } from 'l
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
+import { useNavigate } from 'react-router-dom';
 
 const SurveyIntro = ({ onBack }) => {
   const { activeProfile } = useAuth();
+  const navigate = useNavigate();
   const [lastSurveyDate, setLastSurveyDate] = useState(null);
   const [canTakeSurvey, setCanTakeSurvey] = useState(true);
   const [daysUntilNext, setDaysUntilNext] = useState(0);
-  
+
   // Get user's first name for personalization
   const getUserFirstName = () => {
     if (activeProfile?.username) {
@@ -43,9 +45,9 @@ const SurveyIntro = ({ onBack }) => {
           const lastCompleted = new Date(data[0].completed_at);
           const now = new Date();
           const daysSinceLastSurvey = Math.floor((now - lastCompleted) / (1000 * 60 * 60 * 24));
-          
+
           setLastSurveyDate(lastCompleted);
-          
+
           if (daysSinceLastSurvey < 90) {
             setCanTakeSurvey(false);
             setDaysUntilNext(90 - daysSinceLastSurvey);
@@ -96,7 +98,7 @@ const SurveyIntro = ({ onBack }) => {
         <div className="bg-white border-b border-gray-100">
           <div className="flex items-center px-4 py-3">
             <button
-              onClick={onBack}
+              onClick={onBack || (() => navigate('/dashboard'))}
               className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-gray-200 transition-all"
             >
               <ChevronLeft className="w-5 h-5" />
@@ -236,25 +238,24 @@ const SurveyIntro = ({ onBack }) => {
           >
             <div className="text-center">
               <p className="text-xs md:text-sm text-gray-500 mb-4">
-                {canTakeSurvey 
+                {canTakeSurvey
                   ? "Ready to take this step together? We'll open the survey in a new tab. For the best experience, use a tablet or laptop if available."
                   : "Thank you for completing your recent assessment. We'll remind you when it's time for your next one."
                 }
               </p>
             </div>
-            
+
             <Button
               onClick={handleStartSurvey}
               disabled={!canTakeSurvey}
-              className={`w-full h-12 md:h-16 font-bold text-base md:text-xl rounded-xl shadow-lg transition-all duration-200 ${
-                canTakeSurvey 
-                  ? 'bg-primary text-white hover:bg-primary/90 hover:shadow-xl' 
-                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              }`}
+              className={`w-full h-12 md:h-16 font-bold text-base md:text-xl rounded-xl shadow-lg transition-all duration-200 ${canTakeSurvey
+                ? 'bg-primary text-white hover:bg-primary/90 hover:shadow-xl'
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
             >
               {canTakeSurvey ? 'Begin My Journey 🌟' : `Next Survey in ${daysUntilNext} Days`}
             </Button>
-            
+
             <div className="text-center">
               <p className="text-xs text-gray-400">
                 We're honored you trust us with your health journey. Your privacy is sacred to us.

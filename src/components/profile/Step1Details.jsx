@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
-import { MapPin, AlertCircle, Loader2, Search } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { DateOfBirthPicker } from "@/components/ui/DateOfBirthPicker";
-import { geocodeGoogleAddress } from "@/utils/googleMaps";
+import { DistrictSelector } from "@/components/ui/DistrictSelector";
 
 const ErrorMessage = ({ error }) =>
   error ? (
@@ -12,22 +11,6 @@ const ErrorMessage = ({ error }) =>
       <AlertCircle size={14} /> {error}
     </p>
   ) : null;
-
-// Helper function to extract district from address components
-const extractDistrict = (addressComponents) => {
-  if (addressComponents) {
-    // Extract district (administrative_area_level_1 or locality)
-    const districtComponent = addressComponents.find(
-      (component) =>
-        component.types.includes("administrative_area_level_1") ||
-        component.types.includes("locality")
-    );
-    if (districtComponent) {
-      return districtComponent.long_name;
-    }
-  }
-  return "";
-};
 
 export const Step1Details = ({
   profileData,
@@ -38,48 +21,6 @@ export const Step1Details = ({
   usernameChecking,
   isNewDependent,
 }) => {
-  const [showDistrictSearch, setShowDistrictSearch] = useState(false);
-  const [districtSuggestions, setDistrictSuggestions] = useState([]);
-  const [searchLoading, setSearchLoading] = useState(false);
-
-  // Handle district search
-  const handleDistrictSearch = async (query) => {
-    if (!query || query.length < 3) {
-      setDistrictSuggestions([]);
-      return;
-    }
-
-    setSearchLoading(true);
-    try {
-      const geocodeResult = await geocodeGoogleAddress(query);
-      const district = extractDistrict(geocodeResult.address_components);
-
-      if (district) {
-        setDistrictSuggestions([{
-          district,
-          address: geocodeResult.formatted_address
-        }]);
-      } else {
-        setDistrictSuggestions([]);
-      }
-    } catch (error) {
-      setDistrictSuggestions([]);
-    } finally {
-      setSearchLoading(false);
-    }
-  };
-
-  // Handle district selection
-  const handleDistrictSelect = (suggestion) => {
-    setProfileData((prev) => ({
-      ...prev,
-      district: suggestion.district,
-    }));
-    validateField("district", suggestion.district);
-    setShowDistrictSearch(false);
-    setDistrictSuggestions([]);
-  };
-
   return (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
@@ -103,7 +44,9 @@ export const Step1Details = ({
             className="h-11 md:h-12 text-base pr-10"
           />
           {usernameChecking && (
-            <Loader2 className="w-4 h-4 animate-spin text-gray-400 absolute right-3 top-1/2 -translate-y-1/2" />
+            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+              <div className="w-4 h-4 border-2 border-gray-300 border-t-primary rounded-full animate-spin"></div>
+            </div>
           )}
         </div>
         <ErrorMessage error={errors.username} />
@@ -128,7 +71,7 @@ export const Step1Details = ({
           Gender
         </label>
         <div className="grid grid-cols-2 gap-3">
-          {["Male", "Female", "Other", "Prefer not to say"].map((gender) => (
+          {["Male", "Female"].map((gender) => (
             <button
               key={gender}
               onClick={() => {
@@ -149,74 +92,26 @@ export const Step1Details = ({
 
       {!isNewDependent && (
         <div className="space-y-3">
-          <label className="block text-gray-800 font-medium text-sm md:text-base flex items-center">
-            <MapPin className="w-4 h-4 mr-2" /> Location
+          <label className="block text-gray-800 font-medium text-sm md:text-base">
+            Location
           </label>
 
-          {/* District Search */}
+          {/* District Selection */}
           <div className="space-y-2">
-            <div className="relative">
-              <Input
-                placeholder="Search for your district or location"
-                value={profileData.district}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setProfileData((p) => ({ ...p, district: value }));
-                  validateField("district", value);
-
-                  if (value.length >= 3) {
-                    handleDistrictSearch(value);
-                    setShowDistrictSearch(true);
-                  } else {
-                    setShowDistrictSearch(false);
-                    setDistrictSuggestions([]);
-                  }
-                }}
-                onFocus={() => {
-                  if (profileData.district.length >= 3) {
-                    setShowDistrictSearch(true);
-                  }
-                }}
-                className="h-11 md:h-12 text-base pl-12"
-              />
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-              {searchLoading && (
-                <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 animate-spin text-gray-400" />
-              )}
-            </div>
-
-            {/* District Suggestions */}
-            {showDistrictSearch && districtSuggestions.length > 0 && (
-              <div className="absolute z-50 w-full mt-1">
-                <div className="w-full bg-white border-2 border-gray-200 rounded-xl shadow-2xl max-h-60 overflow-hidden">
-                  <ul className="max-h-60 overflow-y-auto">
-                    {districtSuggestions.map((suggestion, index) => (
-                      <li
-                        key={index}
-                        onClick={() => handleDistrictSelect(suggestion)}
-                        className="p-4 border-b border-gray-100 active:bg-primary/10 cursor-pointer text-gray-700 transition-colors duration-150 flex items-start space-x-3"
-                      >
-                        <div className="flex-shrink-0 mt-1 text-blue-500">
-                          <MapPin className="h-5 w-5" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <span className="text-base font-medium text-gray-900 block truncate">
-                            {suggestion.district}
-                          </span>
-                          <div className="text-sm text-gray-600 mt-1">
-                            {suggestion.address}
-                          </div>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            )}
+            <DistrictSelector
+              value={profileData.district}
+              onChange={(district) => {
+                setProfileData((p) => ({ ...p, district }));
+                validateField("district", district);
+              }}
+              placeholder="Select District"
+              error={errors.district}
+            />
+            <ErrorMessage error={errors.district} />
           </div>
 
-          {/* Sub-county Input (Optional) */}
-          <div className="space-y-1">
+          {/* Sub-county Input (Manual) */}
+          <div className="space-y-2">
             <Input
               placeholder="Sub County (Optional)"
               value={profileData.subCounty}
@@ -226,8 +121,6 @@ export const Step1Details = ({
               className="h-11 md:h-12 text-base"
             />
           </div>
-
-          <ErrorMessage error={errors.district} />
         </div>
       )}
     </motion.div>

@@ -86,6 +86,10 @@ export const settingsService = {
 
   async deleteAccount(userId) {
     try {
+      // Step 1: Delete all user files from storage buckets
+      await this.deleteUserStorageFiles(userId);
+
+      // Step 2: Delete database records using RPC function
       const { data, error } = await supabase.rpc("delete_user_account", {
         target_user_id: userId,
       });
@@ -99,6 +103,95 @@ export const settingsService = {
     } catch (error) {
       console.error("Error deleting account:", error);
       throw error;
+    }
+  },
+
+  async deleteUserStorageFiles(userId) {
+    try {
+      const storageBuckets = [
+        "profile-photos",
+        "userfiles",
+        "service-attachments"
+      ];
+
+      for (const bucketName of storageBuckets) {
+        try {
+          // List all files in the user's folder for this bucket
+          let userFolder = "";
+
+          if (bucketName === "profile-photos") {
+            // Profile photos are stored as: userId/filename or managed-profiles/managedProfileId/filename
+            userFolder = userId;
+          } else if (bucketName === "userfiles") {
+            // User files are stored as: user_userId/filename
+            userFolder = `user_${userId}`;
+          } else if (bucketName === "service-attachments") {
+            // Service attachments are stored as: userId/filename
+            userFolder = userId;
+          }
+
+          if (userFolder) {
+            const { data: files, error: listError } = await supabase.storage
+              .from(bucketName)
+              .list(userFolder);
+
+            if (listError) {
+              console.warn(`Failed to list files in ${bucketName}/${userFolder}:`, listError);
+              continue;
+            }
+
+            if (files && files.length > 0) {
+              // Delete all files in the user's folder
+              const filePaths = files.map(file => `${userFolder}/${file.name}`);
+              const { error: deleteError } = await supabase.storage
+                .from(bucketName)
+                .remove(filePaths);
+
+              if (deleteError) {
+                console.warn(`Failed to delete files from ${bucketName}/${userFolder}:`, deleteError);
+              } else {
+                console.log(`Deleted ${files.length} files from ${bucketName}/${userFolder}`);
+              }
+            }
+          }
+
+          // For managed profiles, also check and delete their files
+          if (bucketName === "profile-photos") {
+            const { data: managedProfiles } = await supabase
+              .from("managed_profiles")
+              .select("id")
+              .eq("user_id", userId);
+
+            if (managedProfiles && managedProfiles.length > 0) {
+              for (const profile of managedProfiles) {
+                const managedFolder = `managed-profiles/${profile.id}`;
+                const { data: managedFiles, error: managedListError } = await supabase.storage
+                  .from(bucketName)
+                  .list(managedFolder);
+
+                if (!managedListError && managedFiles && managedFiles.length > 0) {
+                  const managedFilePaths = managedFiles.map(file => `${managedFolder}/${file.name}`);
+                  const { error: managedDeleteError } = await supabase.storage
+                    .from(bucketName)
+                    .remove(managedFilePaths);
+
+                  if (managedDeleteError) {
+                    console.warn(`Failed to delete managed profile files from ${bucketName}/${managedFolder}:`, managedDeleteError);
+                  } else {
+                    console.log(`Deleted ${managedFiles.length} managed profile files from ${bucketName}/${managedFolder}`);
+                  }
+                }
+              }
+            }
+          }
+
+        } catch (bucketError) {
+          console.warn(`Error processing bucket ${bucketName}:`, bucketError);
+        }
+      }
+    } catch (error) {
+      console.error("Error deleting user storage files:", error);
+      // Don't throw error here - we want to continue with database deletion even if storage cleanup fails
     }
   },
 

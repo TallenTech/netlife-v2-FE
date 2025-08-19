@@ -97,7 +97,8 @@ const HealthSurvey = ({ onBack, onComplete }) => {
     } else if (onBack) {
       onBack();
     } else {
-      setCurrentStep('intro');
+      // If no onBack prop is provided, navigate to dashboard
+      navigate('/dashboard');
     }
   };
 
@@ -178,7 +179,7 @@ const HealthSurvey = ({ onBack, onComplete }) => {
             </p>
           </div>
         </div>
-        
+
         {/* Main content with SurveyQuestion */}
         <div className="flex-1 pt-4 md:pt-6">
           <SurveyQuestion
