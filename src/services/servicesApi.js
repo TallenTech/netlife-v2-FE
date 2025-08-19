@@ -106,6 +106,7 @@ export const servicesApi = {
         "service_id",
         "request_data",
         "username",
+        "service_slug",
       ]);
 
       const attachmentFile = request.attachments;
@@ -116,7 +117,8 @@ export const servicesApi = {
           attachmentFile,
           request.user_id,
           request.username,
-          request.service_number
+          request.service_number,
+          request.service_slug 
         );
       }
 
