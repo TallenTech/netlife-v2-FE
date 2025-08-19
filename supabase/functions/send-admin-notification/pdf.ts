@@ -88,7 +88,7 @@ export async function createRequestPdf(details: any): Promise<Uint8Array> {
   y -= 15;
 
   drawSectionHeader(`${details.service_name || "Service"} Request Details`);
-  drawField("Request ID", details.service_request_id);
+  // drawField("Request ID", details.service_request_id);
   drawField("Date Submitted", details.service_created_at);
   drawField("Status", details.status);
   drawField("Quantity", details.quantity);

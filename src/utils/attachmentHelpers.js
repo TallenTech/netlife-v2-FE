@@ -1,24 +1,42 @@
 import { supabase } from "@/lib/supabase";
 import { logError } from "@/utils/errorHandling";
 
-/**
- * Uploads an attachment to a user-specific folder in the 'service-attachments' bucket.
- * This is the primary function for handling file uploads before creating database records.
- * It follows the security policy of storing files in a folder named after the user's ID.
- * It also constructs a clean, human-readable, and unique filename.
- *
- * @param {File|Blob|null} file The file object to upload. Can be null.
- * @param {string} userId The UUID of the user who is uploading the file.
- * @param {string} username The username of the active profile (for filename).
- * @param {number|string} serviceNumber The number of the service being requested (for filename).
- * @returns {Promise<object|null>} A promise that resolves with metadata for the database record, or null if no file was provided.
- * @throws {Error} Throws a user-friendly error if the upload fails for any reason.
- */
+const capitalize = (s) => {
+  if (typeof s !== "string" || s.length === 0) return "";
+  return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+};
+
+const getStandardizedNameForService = (slug) => {
+  if (!slug) return "Attachment";
+
+  switch (slug) {
+    case "pep":
+    case "prep":
+      return "Latest_HIV_Test_Result";
+    case "art":
+      return "Referral_Slip";
+    case "sti-screening":
+      return "Previous_Lab_Results";
+    case "hts":
+    case "counselling-services":
+      let formattedSlug = slug;
+      if (slug === "counselling-services") {
+        formattedSlug = "Counselling-Services";
+      } else {
+        formattedSlug = slug.toUpperCase();
+      }
+      return `${formattedSlug}_Result`;
+    default:
+      return `${slug.toUpperCase()}_Report`;
+  }
+};
+
 export async function uploadServiceAttachment(
   file,
   userId,
   username,
-  serviceNumber
+  serviceNumber,
+  serviceSlug
 ) {
   if (!file || !(file instanceof File || file instanceof Blob)) {
     return null;
@@ -33,37 +51,27 @@ export async function uploadServiceAttachment(
   }
 
   try {
-    // --- START OF FILENAME FIX ---
-    const originalName = file.name || "attachment";
-    const extension = originalName.split(".").pop()?.toLowerCase() || "dat";
-    const baseName = originalName
-      .substring(0, originalName.lastIndexOf("."))
-      .replace(/[^a-zA-Z0-9-]/g, "_"); // Sanitize base name
+    const extension = file.name
+      ? file.name.split(".").pop()?.toLowerCase()
+      : "dat";
+
+    const capitalizedUsername = capitalize(username);
+    const standardizedName = getStandardizedNameForService(serviceSlug);
 
     const now = new Date();
     const dateString = `${now.getFullYear()}${String(
       now.getMonth() + 1
     ).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
-
     const serviceNumberFormatted = String(serviceNumber || 0).padStart(3, "0");
-
-    // Generate a short, 6-character random string for uniqueness
     const uniqueSuffix = Math.random().toString(36).substring(2, 8);
 
-    // Construct the final, clean, and unique filename
-    const newFileName =
-      `${username}_${baseName}_${dateString}_${serviceNumberFormatted}_${uniqueSuffix}.${extension}`.toLowerCase();
-    // --- END OF FILENAME FIX ---
+    const newFileName = `${capitalizedUsername}_${standardizedName}_${dateString}_${serviceNumberFormatted}_${uniqueSuffix}.${extension}`;
 
-    // The secure file path remains the same: <user_id>/<filename>
     const filePath = `${userId}/${newFileName}`;
 
     const { data, error } = await supabase.storage
       .from("service-attachments")
-      .upload(filePath, file, {
-        cacheControl: "3600",
-        upsert: false,
-      });
+      .upload(filePath, file, { cacheControl: "3600", upsert: false });
 
     if (error) {
       logError(error, "uploadServiceAttachment.supabaseUpload", {
@@ -73,7 +81,6 @@ export async function uploadServiceAttachment(
       throw error;
     }
 
-    // Return all data needed for the `user_attachments` table
     return {
       file_path: data.path,
       original_name: file.name,
@@ -86,7 +93,7 @@ export async function uploadServiceAttachment(
       fileName: file?.name,
     });
     throw new Error(
-      `Failed to process the attachment. Please try again. Reason: ${error.message}`
+      `Failed to process the attachment. Reason: ${error.message}`
     );
   }
 }
