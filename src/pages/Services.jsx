@@ -136,7 +136,7 @@ const Services = () => {
       <Helmet>
         <title>Health Services - NetLife</title>
       </Helmet>
-      <div className="p-4 sm:p-6 bg-gray-50 min-h-screen">
+      <div className="py-4 sm:py-6 bg-white min-h-screen">
         <header className="mb-6">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">

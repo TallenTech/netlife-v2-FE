@@ -74,7 +74,7 @@ const HealthInterests = () => {
             <Helmet>
                 <title>Health Interests - NetLife</title>
             </Helmet>
-            <div className="p-4 md:p-6 bg-gray-50 min-h-screen">
+            <div className="py-4 md:py-6 bg-gray-50 min-h-screen">
                 <header className="flex items-center justify-between mb-6">
                     <div className="flex items-center space-x-4">
                         <button

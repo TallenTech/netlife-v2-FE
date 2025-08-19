@@ -205,7 +205,7 @@ const History = () => {
       });
       return;
     }
-    navigate(`/records/${item.id}`);
+    navigate(`/records/db_service_request_${item.id}`);
   };
 
   const firstName = activeProfile?.username?.split(" ")[0] || "";
@@ -283,7 +283,7 @@ const History = () => {
       <Helmet>
         <title>Health History - NetLife</title>
       </Helmet>
-      <div className="p-4 md:p-6 bg-white min-h-screen">
+      <div className="py-4 md:py-6 bg-white min-h-screen">
         <header className="mb-6">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 truncate">
@@ -313,11 +313,10 @@ const History = () => {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`w-full py-2.5 text-sm font-semibold rounded-full transition-all duration-300 ${
-                activeTab === tab
-                  ? "bg-white text-primary shadow-md"
-                  : "text-gray-600 hover:bg-gray-200"
-              }`}
+              className={`w-full py-2.5 text-sm font-semibold rounded-full transition-all duration-300 ${activeTab === tab
+                ? "bg-white text-primary shadow-md"
+                : "text-gray-600 hover:bg-gray-200"
+                }`}
             >
               {tab}
             </button>
@@ -365,11 +364,10 @@ const History = () => {
                       </div>
                     )}
                     <span
-                      className={`text-xs font-bold px-3 py-1 rounded-full ${
-                        item.isOffline
-                          ? "bg-yellow-100 text-yellow-800"
-                          : "bg-green-100 text-green-800"
-                      }`}
+                      className={`text-xs font-bold px-3 py-1 rounded-full ${item.isOffline
+                        ? "bg-yellow-100 text-yellow-800"
+                        : "bg-green-100 text-green-800"
+                        }`}
                     >
                       {item.status}
                     </span>

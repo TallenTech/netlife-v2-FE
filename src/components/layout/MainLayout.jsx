@@ -95,62 +95,66 @@ const MainLayout = ({ handleLogout }) => {
   };
 
   return (
-    <div className="relative h-screen overflow-hidden bg-gray-50 md:flex">
+    <div className="relative h-screen overflow-hidden bg-white md:flex">
       <SideNav handleLogout={handleLogout} />
       <BottomNav />
 
       <main className="h-full flex-1 overflow-y-auto no-scrollbar md:pl-64 pb-20 md:pb-0">
-        <Routes>
-          <Route index element={<Navigate to="/dashboard" replace />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/services" element={<Services />} />
-          <Route
-            path="/services/:serviceId/intro"
-            element={<ServiceScreeningIntro />}
-          />
-          <Route
-            path="/services/:serviceId/screening"
-            element={<ServiceScreening />}
-          />
-          <Route
-            path="/services/:serviceId/analyzing"
-            element={<AnalyzingResults />}
-          />
-          <Route
-            path="/services/:serviceId/results"
-            element={<ScreeningResults />}
-          />
-          <Route
-            path="/services/:serviceId/request"
-            element={<ServiceRequest />}
-          />
-          <Route path="/videos" element={<Videos />} />
-          <Route path="/videos/:videoId" element={<VideoPlayer />} />
-          <Route path="/history" element={<History />} />
-          <Route path="/records/:recordId" element={<RecordViewer />} />
+        <div className="max-w-5xl mx-auto">
+          <div className="px-4 md:px-6 lg:px-8 xl:px-12">
+            <Routes>
+              <Route index element={<Navigate to="/dashboard" replace />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/services" element={<Services />} />
+              <Route
+                path="/services/:serviceId/intro"
+                element={<ServiceScreeningIntro />}
+              />
+              <Route
+                path="/services/:serviceId/screening"
+                element={<ServiceScreening />}
+              />
+              <Route
+                path="/services/:serviceId/analyzing"
+                element={<AnalyzingResults />}
+              />
+              <Route
+                path="/services/:serviceId/results"
+                element={<ScreeningResults />}
+              />
+              <Route
+                path="/services/:serviceId/request"
+                element={<ServiceRequest />}
+              />
+              <Route path="/videos" element={<Videos />} />
+              <Route path="/videos/:videoId" element={<VideoPlayer />} />
+              <Route path="/history" element={<History />} />
+              <Route path="/records/:recordId" element={<RecordViewer />} />
 
-          <Route
-            path="/account"
-            element={<Account handleLogout={handleLogout} />}
-          />
-          <Route
-            path="/account/health-interests"
-            element={<HealthInterests />}
-          />
-          <Route path="/account/manage-profiles" element={<ManageProfiles />} />
-          <Route path="/account/health-records" element={<HealthRecords />} />
-          <Route path="/my-files" element={<MyFiles />} />
-          <Route path="/add-profile" element={<AddProfileFlow />} />
+              <Route
+                path="/account"
+                element={<Account handleLogout={handleLogout} />}
+              />
+              <Route
+                path="/account/health-interests"
+                element={<HealthInterests />}
+              />
+              <Route path="/account/manage-profiles" element={<ManageProfiles />} />
+              <Route path="/account/health-records" element={<HealthRecords />} />
+              <Route path="/my-files" element={<MyFiles />} />
+              <Route path="/add-profile" element={<AddProfileFlow />} />
 
-          <Route path="/privacy" element={<Privacy />} />
-          <Route path="/terms" element={<TermsOfService />} />
-          <Route path="/notifications" element={<Notifications />} />
-          <Route path="/faqs" element={<FAQs />} />
-          <Route path="/survey/:profileId" element={<HealthSurvey />} />
-          <Route path="/survey-results" element={<SurveyResults />} />
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/terms" element={<TermsOfService />} />
+              <Route path="/notifications" element={<Notifications />} />
+              <Route path="/faqs" element={<FAQs />} />
+              <Route path="/survey/:profileId" element={<HealthSurvey />} />
+              <Route path="/survey-results" element={<SurveyResults />} />
 
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </div>
+        </div>
       </main>
 
       {/* Survey Completion Dialog */}

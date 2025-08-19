@@ -40,11 +40,11 @@ const HealthRecords = () => {
         reader.onload = (e) => {
             const newRecord = { name: recordName, type: recordFile.type, size: recordFile.size, dataUrl: e.target.result, uploadedAt: new Date().toISOString() };
             const updatedRecords = [...records, newRecord];
-            
-            if(activeProfile.isMain) {
+
+            if (activeProfile.isMain) {
                 updateUserData({ ...userData, healthRecords: updatedRecords });
             } else {
-                const updatedDependents = userData.dependents.map(d => 
+                const updatedDependents = userData.dependents.map(d =>
                     d.id === activeProfile.id ? { ...d, healthRecords: updatedRecords } : d
                 );
                 updateUserData({ ...userData, dependents: updatedDependents });
@@ -59,10 +59,10 @@ const HealthRecords = () => {
 
     const handleDelete = (indexToDelete) => {
         const updatedRecords = records.filter((_, index) => index !== indexToDelete);
-        if(activeProfile.isMain) {
+        if (activeProfile.isMain) {
             updateUserData({ ...userData, healthRecords: updatedRecords });
         } else {
-             const updatedDependents = userData.dependents.map(d => 
+            const updatedDependents = userData.dependents.map(d =>
                 d.id === activeProfile.id ? { ...d, healthRecords: updatedRecords } : d
             );
             updateUserData({ ...userData, dependents: updatedDependents });
@@ -86,7 +86,7 @@ const HealthRecords = () => {
     return (
         <>
             <Helmet><title>Health Records - NetLife</title></Helmet>
-            <div className="p-4 md:p-6 bg-gray-50 min-h-screen">
+            <div className="py-4 md:py-6 bg-gray-50 min-h-screen">
                 <header className="flex items-center space-x-4 mb-6">
                     <Button variant="ghost" size="icon" onClick={() => navigate(-1)}><ArrowLeft /></Button>
                     <div>
@@ -125,7 +125,7 @@ const HealthRecords = () => {
                     )}
                 </div>
 
-                 <Dialog open={!!preview} onOpenChange={() => setPreview(null)}>
+                <Dialog open={!!preview} onOpenChange={() => setPreview(null)}>
                     <DialogContent className="max-w-3xl">
                         <DialogHeader>
                             <DialogTitle>{preview?.name}</DialogTitle>

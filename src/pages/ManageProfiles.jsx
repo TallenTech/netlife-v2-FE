@@ -109,7 +109,7 @@ const ManageProfiles = () => {
       <Helmet>
         <title>Manage Profiles - NetLife</title>
       </Helmet>
-      <div className="p-4 md:p-6 bg-gray-50 min-h-screen">
+      <div className="py-4 md:py-6 bg-white min-h-screen">
         <header className="flex items-center space-x-4 mb-6">
           <Button
             variant="ghost"
@@ -130,11 +130,10 @@ const ManageProfiles = () => {
           {allProfiles.map((p) => (
             <div
               key={p.id}
-              className={`flex items-center justify-between p-3 rounded-lg ${
-                activeProfile?.id === p.id
-                  ? "bg-primary/10 border border-primary"
-                  : "bg-gray-50"
-              }`}
+              className={`flex items-center justify-between p-3 rounded-lg ${activeProfile?.id === p.id
+                ? "bg-primary/10 border border-primary"
+                : "bg-gray-50"
+                }`}
             >
               <div className="flex items-center space-x-3">
                 <Avatar className="h-10 w-10">{renderAvatar(p)}</Avatar>

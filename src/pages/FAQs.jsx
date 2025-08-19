@@ -37,8 +37,10 @@ const faqData = {
     ],
     "Services": [
         { q: "What kind of services can I request?", a: "You can request various health services such as HIV testing, PrEP/PEP consultations, STI screenings, and more. Check the 'Services' tab for a full list." },
-        { q:
-        "How do I request a service?", a: "Go to the 'Services' tab, select the service you need, and follow the on-screen instructions to submit your request securely." },
+        {
+            q:
+                "How do I request a service?", a: "Go to the 'Services' tab, select the service you need, and follow the on-screen instructions to submit your request securely."
+        },
         { q: "Is the service delivery discreet?", a: "Yes, all our services are designed to be as discreet and confidential as possible, from request to delivery." },
         { q: "How can I track my service request?", a: "You can see the status of your service requests in the 'History' tab." }
     ],
@@ -65,7 +67,7 @@ const FAQs = () => {
                 <title>FAQs - NetLife</title>
                 <meta name="description" content="Find answers to frequently asked questions about NetLife." />
             </Helmet>
-            <div className="p-4 md:p-6 bg-gray-50 min-h-screen">
+            <div className="py-4 md:py-6 bg-gray-50 min-h-screen">
                 <header className="flex items-center mb-6">
                     <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="mr-2">
                         <ArrowLeft className="h-5 w-5" />

@@ -170,7 +170,7 @@ const Notifications = () => {
       <Helmet>
         <title>Notifications - NetLife</title>
       </Helmet>
-      <div className="p-4 sm:p-6 bg-gray-50 min-h-screen">
+      <div className="py-4 sm:py-6 bg-gray-50 min-h-screen">
         <header className="flex justify-between items-center mb-6">
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <ChevronLeft size={24} />
@@ -205,8 +205,8 @@ const Notifications = () => {
               key={tab.key}
               onClick={() => setFilter(tab.key)}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex-shrink-0 ${filter === tab.key
-                  ? "bg-primary text-white"
-                  : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
+                ? "bg-primary text-white"
+                : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
                 }`}
             >
               {tab.label} {tab.count > 0 && `(${tab.count})`}

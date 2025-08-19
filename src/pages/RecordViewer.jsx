@@ -214,10 +214,10 @@ const RecordViewer = () => {
       const date = recordData.created_at
         ? new Date(recordData.created_at).toLocaleDateString()
         : recordData.completed_at
-        ? new Date(recordData.completed_at).toLocaleDateString()
-        : record.data.completedAt
-        ? new Date(record.data.completedAt).toLocaleDateString()
-        : "Recently";
+          ? new Date(recordData.completed_at).toLocaleDateString()
+          : record.data.completedAt
+            ? new Date(record.data.completedAt).toLocaleDateString()
+            : "Recently";
       pdf.text(`Date: ${date}`, margin, yPosition);
       yPosition += 15;
 
@@ -389,7 +389,7 @@ const RecordViewer = () => {
     return (
       <div className="space-y-6">
         {/* Service Information */}
-        <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+        <div className="bg-blue-50 p-3 md:p-4 rounded-lg border border-blue-200">
           <h3 className="text-lg font-bold text-blue-900 mb-3 flex items-center gap-2">
             <HeartPulse size={20} />
             Service Information
@@ -487,7 +487,7 @@ const RecordViewer = () => {
 
         {/* Personal Information */}
         {(data?.fullName || data?.phoneNumber || data?.email) && (
-          <div className="bg-gray-50 p-4 rounded-lg">
+          <div className="bg-gray-50 p-3 md:p-4 rounded-lg">
             <h3 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
               <User size={20} />
               Personal Information
@@ -538,58 +538,58 @@ const RecordViewer = () => {
         {(data?.deliveryMethod ||
           data?.accessPoint ||
           data?.deliveryLocation) && (
-          <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-            <h3 className="text-lg font-bold text-green-900 mb-3 flex items-center gap-2">
-              <MapPin size={20} />
-              Delivery Information
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {(data.deliveryMethod || data.accessPoint) && (
-                <div>
-                  <p className="text-sm font-semibold text-green-700">
-                    Delivery Method
-                  </p>
-                  <p className="text-lg text-green-900">
-                    {safeRenderValue(data.deliveryMethod || data.accessPoint)}
-                  </p>
-                </div>
-              )}
-              {data.deliveryLocation && (
-                <div>
-                  <p className="text-sm font-semibold text-green-700">
-                    Location
-                  </p>
-                  <p className="text-lg text-green-900">
-                    {safeRenderValue(data.deliveryLocation)}
-                  </p>
-                </div>
-              )}
-              {(data.deliveryDate || data.preferredDate) && (
-                <div>
-                  <p className="text-sm font-semibold text-green-700">
-                    Preferred Date
-                  </p>
-                  <p className="text-lg text-green-900 flex items-center gap-2">
-                    <Clock size={16} />
-                    {new Date(
-                      data.deliveryDate || data.preferredDate
-                    ).toLocaleDateString()}
-                  </p>
-                </div>
-              )}
-              {data.quantity && (
-                <div>
-                  <p className="text-sm font-semibold text-green-700">
-                    Quantity
-                  </p>
-                  <p className="text-lg text-green-900">
-                    {safeRenderValue(data.quantity)}
-                  </p>
-                </div>
-              )}
+            <div className="bg-green-50 p-3 md:p-4 rounded-lg border border-green-200">
+              <h3 className="text-lg font-bold text-green-900 mb-3 flex items-center gap-2">
+                <MapPin size={20} />
+                Delivery Information
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {(data.deliveryMethod || data.accessPoint) && (
+                  <div>
+                    <p className="text-sm font-semibold text-green-700">
+                      Delivery Method
+                    </p>
+                    <p className="text-lg text-green-900">
+                      {safeRenderValue(data.deliveryMethod || data.accessPoint)}
+                    </p>
+                  </div>
+                )}
+                {data.deliveryLocation && (
+                  <div>
+                    <p className="text-sm font-semibold text-green-700">
+                      Location
+                    </p>
+                    <p className="text-lg text-green-900">
+                      {safeRenderValue(data.deliveryLocation)}
+                    </p>
+                  </div>
+                )}
+                {(data.deliveryDate || data.preferredDate) && (
+                  <div>
+                    <p className="text-sm font-semibold text-green-700">
+                      Preferred Date
+                    </p>
+                    <p className="text-lg text-green-900 flex items-center gap-2">
+                      <Clock size={16} />
+                      {new Date(
+                        data.deliveryDate || data.preferredDate
+                      ).toLocaleDateString()}
+                    </p>
+                  </div>
+                )}
+                {data.quantity && (
+                  <div>
+                    <p className="text-sm font-semibold text-green-700">
+                      Quantity
+                    </p>
+                    <p className="text-lg text-green-900">
+                      {safeRenderValue(data.quantity)}
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
         {/* Attachments */}
         {(() => {
@@ -616,7 +616,7 @@ const RecordViewer = () => {
         })()}
 
         {/* Additional Information */}
-        <div className="bg-gray-50 p-4 rounded-lg">
+        <div className="bg-gray-50 p-3 md:p-4 rounded-lg">
           <h3 className="text-lg font-bold text-gray-900 mb-3">
             Additional Details
           </h3>
@@ -721,8 +721,8 @@ const RecordViewer = () => {
                 {recordData.score >= 8
                   ? "Low Risk"
                   : recordData.score >= 5
-                  ? "Moderate Risk"
-                  : "Higher Risk"}
+                    ? "Moderate Risk"
+                    : "Higher Risk"}
               </p>
             </div>
           </div>
@@ -799,8 +799,8 @@ const RecordViewer = () => {
                 {data.completed_at
                   ? new Date(data.completed_at).toLocaleDateString()
                   : data.completedAt
-                  ? new Date(data.completedAt).toLocaleDateString()
-                  : "Recently"}
+                    ? new Date(data.completedAt).toLocaleDateString()
+                    : "Recently"}
               </p>
             </div>
           </div>
@@ -893,16 +893,14 @@ const RecordViewer = () => {
 
         {/* Recommendations */}
         <div
-          className={`p-4 rounded-lg border ${
-            data.eligible
-              ? "bg-green-50 border-green-200"
-              : "bg-orange-50 border-orange-200"
-          }`}
+          className={`p-4 rounded-lg border ${data.eligible
+            ? "bg-green-50 border-green-200"
+            : "bg-orange-50 border-orange-200"
+            }`}
         >
           <h3
-            className={`text-lg font-bold mb-3 flex items-center gap-2 ${
-              data.eligible ? "text-green-900" : "text-orange-900"
-            }`}
+            className={`text-lg font-bold mb-3 flex items-center gap-2 ${data.eligible ? "text-green-900" : "text-orange-900"
+              }`}
           >
             {data.eligible ? (
               <CheckCircle size={20} />
@@ -912,9 +910,8 @@ const RecordViewer = () => {
             Recommendation
           </h3>
           <p
-            className={`text-lg ${
-              data.eligible ? "text-green-800" : "text-orange-800"
-            }`}
+            className={`text-lg ${data.eligible ? "text-green-800" : "text-orange-800"
+              }`}
           >
             {data.eligible
               ? "Based on your screening results, you are eligible for this service. You can proceed with your service request."
@@ -931,8 +928,8 @@ const RecordViewer = () => {
               {data.completed_at
                 ? new Date(data.completed_at).toLocaleString()
                 : data.completedAt
-                ? new Date(data.completedAt).toLocaleString()
-                : "Recently"}
+                  ? new Date(data.completedAt).toLocaleString()
+                  : "Recently"}
             </p>
           </div>
         </div>
@@ -1072,9 +1069,9 @@ const RecordViewer = () => {
       <Helmet>
         <title>{title} - NetLife Records</title>
       </Helmet>
-      <div className="bg-gray-50 min-h-screen">
+      <div className="bg-white min-h-screen">
         {/* Sticky header on mobile */}
-        <header className="sticky top-0 z-10 bg-white border-b border-gray-200 p-4 md:p-6 md:bg-gray-50 md:border-none md:relative md:mb-6">
+        <header className="sticky top-0 z-10 bg-white border-b border-gray-200 p-3 md:p-6 md:bg-white md:border-none md:relative md:mb-6">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center space-x-4 min-w-0 flex-1">
               <Button
@@ -1143,17 +1140,13 @@ const RecordViewer = () => {
         </header>
 
         {/* Main content with proper padding */}
-        <div className="p-4 md:p-6">
+        <div className="p-3 md:p-6">
           {loading ? (
-            <div className="bg-white p-6 rounded-2xl border">
+            <div className="bg-white p-4 md:p-6 rounded-2xl border">
               {renderLoading()}
             </div>
-          ) : error ? (
-            <div className="bg-white p-6 rounded-2xl border">
-              {renderError()}
-            </div>
           ) : record && record.profile ? (
-            <div className="bg-white p-6 rounded-2xl border space-y-6">
+            <div className="bg-white p-4 md:p-6 rounded-2xl border space-y-6">
               {/* Profile Header */}
               <div className="flex items-center gap-4 pb-6 border-b">
                 <Avatar className="h-16 w-16">
@@ -1178,18 +1171,18 @@ const RecordViewer = () => {
                     {recordData?.created_at
                       ? new Date(recordData.created_at).toLocaleDateString()
                       : recordData?.completed_at
-                      ? new Date(recordData.completed_at).toLocaleDateString()
-                      : record.data?.completedAt
-                      ? new Date(record.data.completedAt).toLocaleDateString()
-                      : record.data?.request?.timestamp
-                      ? new Date(
-                          record.data.request.timestamp
-                        ).toLocaleDateString()
-                      : recordId.startsWith("service_request_")
-                      ? new Date(
-                          parseInt(recordId.split("_")[3])
-                        ).toLocaleDateString()
-                      : "Recently"}
+                        ? new Date(recordData.completed_at).toLocaleDateString()
+                        : record.data?.completedAt
+                          ? new Date(record.data.completedAt).toLocaleDateString()
+                          : record.data?.request?.timestamp
+                            ? new Date(
+                              record.data.request.timestamp
+                            ).toLocaleDateString()
+                            : recordId.startsWith("service_request_")
+                              ? new Date(
+                                parseInt(recordId.split("_")[3])
+                              ).toLocaleDateString()
+                              : "Recently"}
                   </div>
                 </div>
                 <div className="flex items-center gap-2 text-gray-600">
@@ -1203,10 +1196,10 @@ const RecordViewer = () => {
                     {recordType === "service_request"
                       ? "Service Request"
                       : recordType === "screening_result"
-                      ? "Screening Result"
-                      : recordType === "health_survey"
-                      ? "Health Survey"
-                      : "Record"}
+                        ? "Screening Result"
+                        : recordType === "health_survey"
+                          ? "Health Survey"
+                          : "Record"}
                   </div>
                 </div>
                 <div className="flex items-center gap-2 text-gray-600">
@@ -1215,13 +1208,13 @@ const RecordViewer = () => {
                     <strong>Status:</strong>{" "}
                     {recordType === "service_request"
                       ? recordData?.status ||
-                        (record.data?.savedToDatabase
-                          ? "Submitted"
-                          : "Pending Sync") ||
-                        "Submitted"
+                      (record.data?.savedToDatabase
+                        ? "Submitted"
+                        : "Pending Sync") ||
+                      "Submitted"
                       : recordType === "screening_result"
-                      ? "Complete"
-                      : "Complete"}
+                        ? "Complete"
+                        : "Complete"}
                   </div>
                 </div>
               </div>
@@ -1234,7 +1227,7 @@ const RecordViewer = () => {
               </div>
             </div>
           ) : (
-            <div className="bg-white p-6 rounded-2xl border">
+            <div className="bg-white p-4 md:p-6 rounded-2xl border">
               {renderEmptyRecord()}
             </div>
           )}

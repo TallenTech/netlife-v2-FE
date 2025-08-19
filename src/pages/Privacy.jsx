@@ -7,15 +7,15 @@ import { Shield, BellOff, Trash2, Download, UserX, ChevronLeft } from 'lucide-re
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 
 
@@ -30,7 +30,7 @@ const Privacy = () => {
     });
 
     const handleSettingChange = (key, value) => {
-        setPrivacySettings(prev => ({...prev, [key]: value}));
+        setPrivacySettings(prev => ({ ...prev, [key]: value }));
         toast({
             title: "Setting Updated",
             description: "Your privacy setting has been saved."
@@ -60,7 +60,7 @@ const Privacy = () => {
             <Helmet>
                 <title>Privacy & Security - NetLife</title>
             </Helmet>
-            <div className="p-6 bg-gray-50 min-h-screen">
+            <div className="py-6 bg-gray-50 min-h-screen">
                 <header className="flex items-center mb-6">
                     <Button variant="ghost" size="icon" className="mr-2" onClick={() => navigate(-1)}>
                         <ChevronLeft size={24} />
@@ -94,7 +94,7 @@ const Privacy = () => {
                                 </SelectContent>
                             </Select>
                         </div>
-                         <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between">
                             <div>
                                 <label htmlFor="silent-notifications" className="font-medium text-gray-800">Silent Notifications</label>
                                 <p className="text-sm text-gray-500">Disguise health alerts</p>
@@ -114,9 +114,9 @@ const Privacy = () => {
                 <div className="bg-white p-6 rounded-2xl border mb-6">
                     <h2 className="text-lg font-bold mb-4 text-destructive">Account Actions</h2>
                     <div className="space-y-3">
-                         <Button variant="outline" className="w-full justify-start" onClick={() => handleAccountAction('Download All Data')}>
-                             <Download size={16} className="mr-2" /> Download All Data
-                         </Button>
+                        <Button variant="outline" className="w-full justify-start" onClick={() => handleAccountAction('Download All Data')}>
+                            <Download size={16} className="mr-2" /> Download All Data
+                        </Button>
 
                         <AlertDialog>
                             <AlertDialogTrigger asChild>
