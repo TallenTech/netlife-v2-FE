@@ -8,10 +8,8 @@ import { logError } from "@/utils/errorHandling";
  * @returns {Promise<{success: boolean, error?: string}>} An object indicating success or failure.
  */
 export async function downloadGeneratedPdf(serviceRequest) {
-  // Find the first PDF record associated with the request.
   const pdfRecord = serviceRequest?.generated_pdfs?.[0];
 
-  // Check if a PDF record exists and has a file path.
   if (!pdfRecord || !pdfRecord.file_path) {
     const message =
       "A downloadable PDF summary is not yet available for this record.";
@@ -39,7 +37,9 @@ export async function downloadGeneratedPdf(serviceRequest) {
     logError(error, "downloadGeneratedPdf", { path: pdfRecord.file_path });
     const message =
       "Could not fetch the PDF. Please check your permissions or try again.";
-      console.log("message:" message);
+
+    console.log("message:", message);
+
     return { success: false, error: message };
   }
 }
