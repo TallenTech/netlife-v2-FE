@@ -172,8 +172,25 @@ serve(async (req) => {
       3,
       "0"
     );
+
+    const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+    const capitalizedPatientName = capitalize(patientName);
+
+    const serviceSlug = service.slug || "service";
+    let formattedServiceSlug: string;
+
+    if (serviceSlug === "sti-screening") {
+      formattedServiceSlug = "STI-Screening";
+    } else if (serviceSlug === "counselling-services") {
+      formattedServiceSlug = "Counselling-Services";
+    } else {
+      formattedServiceSlug = serviceSlug.toUpperCase();
+    }
+
     const pdfFilename =
-      `${patientName}_${serviceSlug}_request_${dateString}_${serviceNumberFormatted}.pdf`.toLowerCase();
+      `${capitalizedPatientName}_${formattedServiceSlug}_request_${dateString}_${serviceNumberFormatted}.pdf`;
+    // const pdfFilename =
+    //   `${patientName}_${serviceSlug}_request_${dateString}_${serviceNumberFormatted}.pdf`.toLowerCase();
 
     const { data: pdfUploadData, error: pdfUploadError } =
       await supabaseAdmin.storage

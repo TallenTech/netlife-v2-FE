@@ -1,19 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import { logError } from "@/utils/errorHandling";
 
-/**
- * Uploads an attachment to a user-specific folder in the 'service-attachments' bucket.
- * This is the primary function for handling file uploads before creating database records.
- * It follows the security policy of storing files in a folder named after the user's ID.
- * It also constructs a clean, human-readable, and unique filename.
- *
- * @param {File|Blob|null} file The file object to upload. Can be null.
- * @param {string} userId The UUID of the user who is uploading the file.
- * @param {string} username The username of the active profile (for filename).
- * @param {number|string} serviceNumber The number of the service being requested (for filename).
- * @returns {Promise<object|null>} A promise that resolves with metadata for the database record, or null if no file was provided.
- * @throws {Error} Throws a user-friendly error if the upload fails for any reason.
- */
 export async function uploadServiceAttachment(
   file,
   userId,
@@ -32,13 +19,20 @@ export async function uploadServiceAttachment(
     throw new Error("Cannot upload file: User information is missing.");
   }
 
+  const capitalize = (s) => {
+    if (typeof s !== 'string' || s.length === 0) return '';
+    return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+  };
+
   try {
-    // --- START OF FILENAME FIX ---
     const originalName = file.name || "attachment";
     const extension = originalName.split(".").pop()?.toLowerCase() || "dat";
-    const baseName = originalName
+    const rawBaseName = originalName
       .substring(0, originalName.lastIndexOf("."))
-      .replace(/[^a-zA-Z0-9-]/g, "_"); // Sanitize base name
+      .replace(/[^a-zA-Z0-9-]/g, "_");
+
+    const capitalizedUsername = capitalize(username);
+    const capitalizedBaseName = rawBaseName.split('_').map(capitalize).join('_');
 
     const now = new Date();
     const dateString = `${now.getFullYear()}${String(
@@ -47,15 +41,11 @@ export async function uploadServiceAttachment(
 
     const serviceNumberFormatted = String(serviceNumber || 0).padStart(3, "0");
 
-    // Generate a short, 6-character random string for uniqueness
     const uniqueSuffix = Math.random().toString(36).substring(2, 8);
 
-    // Construct the final, clean, and unique filename
     const newFileName =
-      `${username}_${baseName}_${dateString}_${serviceNumberFormatted}_${uniqueSuffix}.${extension}`.toLowerCase();
-    // --- END OF FILENAME FIX ---
-
-    // The secure file path remains the same: <user_id>/<filename>
+      `${capitalizedUsername}_${capitalizedBaseName}_${dateString}_${serviceNumberFormatted}_${uniqueSuffix}.${extension}`;
+      
     const filePath = `${userId}/${newFileName}`;
 
     const { data, error } = await supabase.storage
@@ -72,8 +62,6 @@ export async function uploadServiceAttachment(
       });
       throw error;
     }
-
-    // Return all data needed for the `user_attachments` table
     return {
       file_path: data.path,
       original_name: file.name,
