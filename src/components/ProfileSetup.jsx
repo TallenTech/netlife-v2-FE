@@ -17,8 +17,9 @@ const ProfileSetup = ({
   isInitialSetup = false,
   isNewDependent = false,
   existingData = null,
+  isSubmitting: isSubmittingProp = false,
 }) => {
-  const { refreshSession } = useAuth();
+  const { refreshAuthAndProfiles } = useAuth();
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [profileData, setProfileData] = useState({
@@ -32,10 +33,12 @@ const ProfileSetup = ({
   const [profilePhotoFile, setProfilePhotoFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [errors, setErrors] = useState({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [internalIsSubmitting, setInternalIsSubmitting] = useState(false);
   const [usernameChecking, setUsernameChecking] = useState(false);
 
   const { toast } = useToast();
+
+  const isSubmitting = isNewDependent ? isSubmittingProp : internalIsSubmitting;
 
   useEffect(() => {
     if (existingData) {
@@ -52,8 +55,6 @@ const ProfileSetup = ({
       }
     }
   }, [existingData]);
-
-
 
   const validateField = useCallback(
     (name, value) => {
@@ -118,8 +119,9 @@ const ProfileSetup = ({
               newErrors[field] =
                 "You must be at least 15 years old to register.";
             else
-              newErrors[field] = `${field.charAt(0).toUpperCase() + field.slice(1)
-                } is required.`;
+              newErrors[field] = `${
+                field.charAt(0).toUpperCase() + field.slice(1)
+              } is required.`;
           }
         }
       });
@@ -137,14 +139,11 @@ const ProfileSetup = ({
   };
 
   const handleSubmit = async () => {
-    setIsSubmitting(true);
-
     if (onComplete && isNewDependent) {
-      await onComplete(profileData, profilePhotoFile);
-      setIsSubmitting(false);
+      onComplete(profileData, profilePhotoFile);
       return;
     }
-
+    setInternalIsSubmitting(true);
     try {
       const {
         data: { user },
@@ -156,7 +155,7 @@ const ProfileSetup = ({
           description: "Your session has expired. Please log in again.",
           variant: "destructive",
         });
-        setIsSubmitting(false);
+        setInternalIsSubmitting(false);
         return navigate("/welcome/auth");
       }
 
@@ -168,9 +167,14 @@ const ProfileSetup = ({
       if (!profileResult.success) throw profileResult.error;
 
       if (profilePhotoFile) {
-        const uploadResult = await profileService.uploadProfilePhoto(profilePhotoFile, user.id);
+        const uploadResult = await profileService.uploadProfilePhoto(
+          profilePhotoFile,
+          user.id
+        );
         if (!uploadResult.success) {
-          throw new Error(uploadResult.error || "Failed to upload profile photo");
+          throw new Error(
+            uploadResult.error || "Failed to upload profile photo"
+          );
         }
       }
 
@@ -179,7 +183,7 @@ const ProfileSetup = ({
       });
       if (updateUserError) throw updateUserError;
 
-      await refreshSession();
+      await refreshAuthAndProfiles();
 
       toast({ title: "Profile Created!", description: "Welcome to NetLife." });
 
@@ -195,7 +199,7 @@ const ProfileSetup = ({
         variant: "destructive",
       });
     } finally {
-      setIsSubmitting(false);
+      setInternalIsSubmitting(false);
     }
   };
 
@@ -262,8 +266,9 @@ const ProfileSetup = ({
 
             <div className="w-full md:w-2/3 flex flex-col flex-1">
               <div
-                className={`flex-1 overflow-y-auto p-4 md:p-8 ${step === 2 ? "pb-8 md:pb-8" : ""
-                  }`}
+                className={`flex-1 overflow-y-auto p-4 md:p-8 ${
+                  step === 2 ? "pb-8 md:pb-8" : ""
+                }`}
               >
                 {step === 1 ? (
                   <Step1Details
@@ -286,10 +291,11 @@ const ProfileSetup = ({
               </div>
 
               <div
-                className={`p-4 md:p-8 bg-white ${step === 2
-                  ? "pt-6 md:pt-4 border-t md:border-t-0"
-                  : "pt-0 md:pt-4 border-t md:border-t-0"
-                  }`}
+                className={`p-4 md:p-8 bg-white ${
+                  step === 2
+                    ? "pt-6 md:pt-4 border-t md:border-t-0"
+                    : "pt-0 md:pt-4 border-t md:border-t-0"
+                }`}
               >
                 <Button
                   onClick={handleNext}
@@ -305,7 +311,6 @@ const ProfileSetup = ({
                   )}
                 </Button>
 
-                {/* Contact Us Button */}
                 <div className="mt-4 text-center">
                   <Link
                     to="/contact-us"
