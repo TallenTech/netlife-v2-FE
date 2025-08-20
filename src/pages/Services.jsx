@@ -15,6 +15,7 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useServices } from "@/hooks/useServiceQueries";
 import { transformServiceData } from "@/services/servicesApi.utils";
+import { useScrollToTop } from "@/hooks/useScrollToTop";
 
 const iconMap = {
   Heart: Heart,
@@ -82,11 +83,14 @@ const fallbackServices = [
   },
 ];
 
-const filters = ["All", "Urgent", "Routine", "Follow-up"];
+const filters = ["Services", "Screening", "Records"];
 
 const Services = () => {
-  const [activeFilter, setActiveFilter] = useState("All");
+  const [activeFilter, setActiveFilter] = useState("Services");
   const navigate = useNavigate();
+
+  // Ensure page scrolls to top when navigated to
+  useScrollToTop();
 
   const { data, isLoading, isError, refetch, isFetching } = useServices();
 
@@ -116,7 +120,7 @@ const Services = () => {
   };
 
   const filteredServices =
-    activeFilter === "All"
+    activeFilter === "Services"
       ? services
       : services.filter((s) => s.category === activeFilter.toLowerCase());
 
@@ -136,17 +140,55 @@ const Services = () => {
       <Helmet>
         <title>Health Services - NetLife</title>
       </Helmet>
-      <div className="py-4 sm:py-6 bg-white min-h-screen">
-        <header className="mb-6">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
-              Health Services
-            </h1>
-            <p className="text-gray-600 text-base">
-              Choose the service you need
-            </p>
+
+      {/* Fixed Page Title - Desktop Only */}
+      <div className="hidden md:block fixed top-0 left-64 z-30 bg-white/95 backdrop-blur-sm">
+        <div className="px-6 py-4">
+          <h1 className="text-xl font-bold text-gray-900 mb-1">
+            Health Services
+          </h1>
+          <p className="text-sm text-gray-600">
+            Choose the service you need
+          </p>
+        </div>
+      </div>
+
+      {/* Mobile Header - Fixed */}
+      <div className="md:hidden fixed top-0 left-0 right-0 z-30 bg-white">
+        <div className="px-4 py-2">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-lg font-bold text-gray-900">
+                Health Services
+              </h1>
+              <p className="text-xs text-gray-500">
+                Choose the service you need
+              </p>
+            </div>
           </div>
-        </header>
+        </div>
+      </div>
+
+      <div className="py-4 sm:py-6 bg-white min-h-screen pt-16 md:pt-20">
+        {/* Sticky Filter Component - Directly under header */}
+        <div className="sticky top-16 md:top-20 z-20 pb-2">
+          <div className="flex justify-center">
+            <div className="bg-gray-100 rounded-full p-1 inline-flex">
+              {filters.map((filter) => (
+                <button
+                  key={filter}
+                  onClick={() => setActiveFilter(filter)}
+                  className={`px-3 md:px-6 py-1.5 md:py-2.5 rounded-full text-xs md:text-sm font-semibold transition-all duration-200 ${activeFilter === filter
+                    ? "bg-white text-primary shadow-sm"
+                    : "text-gray-600 hover:text-gray-800"
+                    }`}
+                >
+                  {filter}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
 
         {isError && !isFetching && (
           <div className="mb-4 p-3 border rounded-lg flex items-center space-x-2 bg-red-50 border-red-200">
@@ -170,21 +212,6 @@ const Services = () => {
           </div>
         )}
 
-        <div className="flex space-x-3 overflow-x-auto no-scrollbar mb-8 pb-2">
-          {filters.map((filter) => (
-            <button
-              key={filter}
-              onClick={() => setActiveFilter(filter)}
-              className={`px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-200 flex-shrink-0 ${activeFilter === filter
-                ? "bg-primary text-white shadow-md"
-                : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 hover:border-gray-300"
-                }`}
-            >
-              {filter}
-            </button>
-          ))}
-        </div>
-
         <motion.div
           layout
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6"
@@ -202,7 +229,7 @@ const Services = () => {
                 No Services Available
               </h3>
               <p className="text-gray-500 mb-6 max-w-sm mx-auto leading-relaxed">
-                {activeFilter === "All"
+                {activeFilter === "Services"
                   ? "No health services are currently available."
                   : `No ${activeFilter.toLowerCase()} services are currently available.`}
               </p>
