@@ -40,22 +40,7 @@ export async function addToSyncQueue(request) {
 export function getSyncQueue() {
   try {
     const queueJson = localStorage.getItem(SYNC_QUEUE_KEY);
-    if (!queueJson) {
-      return [];
-    }
-
-    const parsedQueue = JSON.parse(queueJson);
-
-    if (Array.isArray(parsedQueue)) {
-      return parsedQueue;
-    } else {
-      logError(
-        new Error("Sync queue was not an array, resetting."),
-        "getSyncQueue.validation"
-      );
-      localStorage.removeItem(SYNC_QUEUE_KEY);
-      return [];
-    }
+    return queueJson ? JSON.parse(queueJson) : [];
   } catch (error) {
     logError(error, "getSyncQueue.parseError");
     localStorage.removeItem(SYNC_QUEUE_KEY);
@@ -63,22 +48,17 @@ export function getSyncQueue() {
   }
 }
 
-export async function processSyncQueue() {
+export async function processSyncQueue(queryClient) {
   let queue = getSyncQueue();
 
   if (!Array.isArray(queue) || queue.length === 0) {
-    if (queue.length > 0) {
-      logError(
-        new Error("processSyncQueue received a non-iterable queue."),
-        "processSyncQueue.precondition"
-      );
-    }
     return true;
   }
 
   console.log(`SYNC: Processing ${queue.length} items from offline queue.`);
 
   const remainingItems = [];
+  const successfullySyncedUserIds = new Set();
 
   for (const request of queue) {
     try {
@@ -86,6 +66,7 @@ export async function processSyncQueue() {
       console.log(
         `SYNC: Successfully submitted queued request for user ${request.user_id}`
       );
+      successfullySyncedUserIds.add(request.user_id);
     } catch (error) {
       logError(error, "processSyncQueue.itemError", { request });
       remainingItems.push(request);
@@ -93,6 +74,13 @@ export async function processSyncQueue() {
   }
 
   localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(remainingItems));
+
+  if (successfullySyncedUserIds.size > 0) {
+    console.log("SYNC: Invalidating queries to refresh history...");
+    successfullySyncedUserIds.forEach((userId) => {
+      queryClient.invalidateQueries({ queryKey: ["serviceRequests", userId] });
+    });
+  }
 
   console.log(`SYNC: ${remainingItems.length} items remaining in queue.`);
   return remainingItems.length === 0;
