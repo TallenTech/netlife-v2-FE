@@ -70,7 +70,10 @@ const History = () => {
       date: formatSmartTime(req.created_at),
       status: req.isOffline
         ? "Pending Sync"
-        : req.status.charAt(0).toUpperCase() + req.status.slice(1),
+        : req.status
+        ? req.status.charAt(0).toUpperCase() + req.status.slice(1)
+        : "Submitted",
+      isOffline: !!req.isOffline,
       icon: req.isOffline ? Clock : HeartPulse,
       data: req,
       type: "service_request",
@@ -193,13 +196,21 @@ const History = () => {
   const handleItemClick = (item) => {
     if (item.isOffline) {
       toast({
-        title: "Pending Sync",
+        title: "Request is Pending Sync",
         description:
-          "This request will be fully available once you are back online.",
+          "Full details will be available after the request is synced with our servers.",
       });
       return;
     }
-    navigate(`/records/db_service_request_${item.id}`);
+    if (item.id && !String(item.id).startsWith("optimistic-")) {
+      navigate(`/records/db_service_request_${item.id}`);
+    } else {
+      toast({
+        title: "Processing Request",
+        description:
+          "Please wait a moment while the request is being processed.",
+      });
+    }
   };
 
   const firstName = activeProfile?.username?.split(" ")[0] || "";

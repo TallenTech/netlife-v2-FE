@@ -33,6 +33,21 @@
   box-sizing: border-box;
 }
 
+/* Remove underlines from input fields */
+input,
+textarea,
+select {
+  text-decoration: none !important;
+  border-bottom: none !important;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  text-decoration: none !important;
+  border-bottom: none !important;
+}
+
 body {
   margin: 0;
   padding: 0;
@@ -88,7 +103,8 @@ body {
 
 .mobile-container {
   width: 100%;
-  max-width: 428px; /* Max width for mobile */
+  max-width: 428px;
+  /* Max width for mobile */
   margin: 0 auto;
   min-height: 100vh;
   position: relative;
@@ -130,6 +146,7 @@ body {
     background-color: #f7f8fa;
     min-height: auto;
   }
+
   .desktop-padding {
     max-width: 1440px;
     margin-left: auto;
@@ -306,20 +323,19 @@ input[type="date"] {
 
 @media (max-width: 767px) {
   .main-content {
-    padding-bottom: 5rem; /* Height of the bottom nav */
+    padding-bottom: 5rem;
+    /* Height of the bottom nav */
   }
 }
 
 /* Landing page specific responsive styles */
 @media (min-width: 1024px) {
   .landing-gradient {
-    background: linear-gradient(
-      135deg,
-      #8e3bff 0%,
-      #9d5cff 25%,
-      #1bdeda 75%,
-      #9cbfa7 100%
-    );
+    background: linear-gradient(135deg,
+        #8e3bff 0%,
+        #9d5cff 25%,
+        #1bdeda 75%,
+        #9cbfa7 100%);
   }
 
   .feature-card {
@@ -347,6 +363,7 @@ input[type="date"] {
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
+
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
@@ -354,17 +371,19 @@ input[type="date"] {
 }
 
 @layer base {
+
   html,
   body,
   #root {
     @apply h-full;
   }
-  
+
   /* Allow scrolling on mobile landing page */
   .mobile-container {
     overflow-y: auto;
   }
 }
+
 /* Form interaction improvements */
 .form-radio:checked {
   background-color: var(--primary);
@@ -377,16 +396,23 @@ input[type="date"] {
 }
 
 /* Smooth transitions for all interactive elements */
-input, textarea, select, button {
+input,
+textarea,
+select,
+button {
   transition: all 0.2s ease-in-out;
 }
 
 /* Better touch targets for mobile */
 @media (max-width: 768px) {
-  input, textarea, select, button {
+
+  input,
+  textarea,
+  select,
+  button {
     min-height: 44px;
   }
-  
+
   label {
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
@@ -436,7 +462,8 @@ html {
 /* Ensure WhatsApp button doesn't interfere with bottom navigation */
 @media (max-width: 768px) {
   .whatsapp-float {
-    bottom: 5.5rem !important; /* Above bottom navigation */
+    bottom: 5.5rem !important;
+    /* Above bottom navigation */
   }
 }
 
@@ -490,7 +517,7 @@ html {
   .mobile-container main {
     min-height: auto;
   }
-  
+
   .mobile-container footer {
     margin-top: 2rem;
   }
@@ -498,15 +525,15 @@ html {
 
 /* Optimize for very small screens without cramping */
 @media (max-height: 568px) {
-  .mobile-container > div {
+  .mobile-container>div {
     padding: 1rem !important;
   }
-  
+
   .mobile-container main {
     padding-top: 2rem !important;
     padding-bottom: 2rem !important;
   }
-  
+
   .mobile-container h1 {
     font-size: 2.5rem !important;
     line-height: 1.1 !important;
@@ -516,19 +543,20 @@ html {
 
 /* Auth page specific improvements */
 @media (max-height: 640px) {
+
   /* Reduce spacing on short screens */
-  .auth-container .space-y-8 > * + * {
+  .auth-container .space-y-8>*+* {
     margin-top: 1.5rem !important;
   }
-  
-  .auth-container .space-y-6 > * + * {
+
+  .auth-container .space-y-6>*+* {
     margin-top: 1rem !important;
   }
-  
+
   .auth-container .mb-8 {
     margin-bottom: 1.5rem !important;
   }
-  
+
   .auth-container .mb-6 {
     margin-bottom: 1rem !important;
   }
@@ -541,6 +569,7 @@ html {
 }
 
 @media (min-width: 640px) {
+
   .auth-form input,
   .auth-form button {
     min-height: 48px;
@@ -592,19 +621,19 @@ html {
     min-height: 44px;
     min-width: 44px;
   }
-  
+
   /* Ensure calendar buttons are touch-friendly */
   .datetime-picker-calendar-day {
     min-height: 44px;
     min-width: 44px;
   }
-  
+
   /* Time slot buttons */
   .datetime-picker-time-slot {
     min-height: 60px;
     min-width: 60px;
   }
-  
+
   /* Quick select buttons */
   .datetime-picker-quick-select {
     min-height: 60px;
@@ -616,11 +645,11 @@ html {
   .datetime-picker-modal {
     max-height: 95vh;
   }
-  
+
   .datetime-picker-content {
     padding: 12px;
   }
-  
+
   .datetime-picker-time-grid {
     grid-template-columns: repeat(3, 1fr);
     gap: 8px;
@@ -632,7 +661,7 @@ html {
   .datetime-picker-time-grid {
     grid-template-columns: repeat(2, 1fr);
   }
-  
+
   .datetime-picker-quick-select {
     padding: 12px;
     font-size: 14px;
@@ -644,7 +673,7 @@ html {
   .datetime-picker-popover {
     box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   }
-  
+
   /* Ensure popover doesn't go off-screen */
   .datetime-picker-popover.popover-right {
     left: auto;
@@ -654,6 +683,7 @@ html {
 
 /* Accessibility improvements */
 @media (prefers-reduced-motion: reduce) {
+
   .datetime-picker-modal,
   .datetime-picker-popover {
     transition: none;

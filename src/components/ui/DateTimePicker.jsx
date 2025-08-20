@@ -4,11 +4,11 @@ import { Calendar, Clock, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-const DateTimePicker = ({ 
-  value, 
-  onChange, 
+const DateTimePicker = ({
+  value,
+  onChange,
   label = "Select Date & Time",
-  placeholder = "Choose date and time",
+  placeholder = "Choose",
   required = false,
   error = null,
   className = ""
@@ -27,7 +27,7 @@ const DateTimePicker = ({
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
     };
-    
+
     checkMobile();
     window.addEventListener('resize', checkMobile);
     window.addEventListener('orientationchange', checkMobile);
@@ -42,28 +42,28 @@ const DateTimePicker = ({
     if (isMobile && isOpen) {
       // Store current scroll position
       const scrollY = window.scrollY;
-      
+
       // Prevent body scroll
       document.body.classList.add('modal-open');
       document.body.style.top = `-${scrollY}px`;
-      
+
       // Prevent touch events on body
       const preventTouch = (e) => {
         if (e.target === document.body) {
           e.preventDefault();
         }
       };
-      
+
       document.addEventListener('touchmove', preventTouch, { passive: false });
-      
+
       return () => {
         // Restore body scroll
         document.body.classList.remove('modal-open');
         document.body.style.top = '';
-        
+
         // Restore scroll position
         window.scrollTo(0, scrollY);
-        
+
         // Remove touch event listener
         document.removeEventListener('touchmove', preventTouch);
       };
@@ -87,7 +87,7 @@ const DateTimePicker = ({
     if (!isMobile && isOpen) {
       const handleClickOutside = (event) => {
         if (popoverRef.current && !popoverRef.current.contains(event.target) &&
-            triggerRef.current && !triggerRef.current.contains(event.target)) {
+          triggerRef.current && !triggerRef.current.contains(event.target)) {
           setIsOpen(false);
           setStep('date');
         }
@@ -126,12 +126,12 @@ const DateTimePicker = ({
     for (let i = 0; i < 42; i++) {
       const date = new Date(startDate);
       date.setDate(startDate.getDate() + i);
-      
+
       const isCurrentMonth = date.getMonth() === month;
       const isToday = date.toDateString() === today.toDateString();
       const isSelected = selectedDate && date.toDateString() === selectedDate.toDateString();
       const isDisabled = date < minDate || date > maxDate;
-      
+
       days.push({
         date,
         day: date.getDate(),
@@ -141,7 +141,7 @@ const DateTimePicker = ({
         isDisabled
       });
     }
-    
+
     return days;
   };
 
@@ -149,7 +149,7 @@ const DateTimePicker = ({
   const getQuickDateOptions = () => {
     const now = new Date();
     const options = [];
-    
+
     // Tomorrow
     const tomorrow = new Date(now);
     tomorrow.setDate(now.getDate() + 1);
@@ -201,7 +201,7 @@ const DateTimePicker = ({
   const handleTimeSelect = (hour, minute = 0) => {
     const time = { hour, minute };
     setSelectedTime(time);
-    
+
     if (selectedDate) {
       const finalDate = new Date(selectedDate);
       finalDate.setHours(hour, minute, 0, 0);
@@ -224,33 +224,33 @@ const DateTimePicker = ({
   const formatDisplayValue = () => {
     if (!value) return '';
     const date = new Date(value);
-    
+
     // Check if mobile for shorter format
     const isSmallScreen = window.innerWidth < 400;
-    
+
     if (isSmallScreen) {
       // Shorter format for small screens
-      const dateStr = date.toLocaleDateString('en-US', { 
-        month: 'short', 
-        day: 'numeric' 
+      const dateStr = date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric'
       });
-      const timeStr = date.toLocaleTimeString('en-US', { 
-        hour: 'numeric', 
+      const timeStr = date.toLocaleTimeString('en-US', {
+        hour: 'numeric',
         minute: '2-digit',
-        hour12: true 
+        hour12: true
       });
       return `${dateStr} at ${timeStr}`;
     } else {
       // Full format for larger screens
-      const dateStr = date.toLocaleDateString('en-US', { 
-        weekday: 'short', 
-        month: 'short', 
-        day: 'numeric' 
+      const dateStr = date.toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric'
       });
-      const timeStr = date.toLocaleTimeString('en-US', { 
-        hour: 'numeric', 
+      const timeStr = date.toLocaleTimeString('en-US', {
+        hour: 'numeric',
         minute: '2-digit',
-        hour12: true 
+        hour12: true
       });
       return `${dateStr} at ${timeStr}`;
     }
@@ -432,7 +432,7 @@ const DateTimePicker = ({
                 </div>
 
                 {/* Content */}
-                <div 
+                <div
                   className="flex-1 overflow-y-auto overscroll-contain touch-pan-y"
                   style={{
                     WebkitOverflowScrolling: 'touch' // Smooth scrolling on iOS
@@ -448,7 +448,7 @@ const DateTimePicker = ({
                     const scrollTop = container.scrollTop;
                     const scrollHeight = container.scrollHeight;
                     const clientHeight = container.clientHeight;
-                    
+
                     // Allow scrolling within bounds
                     if (
                       (scrollTop === 0 && touchCurrent > touchStart) || // At top, scrolling down
@@ -456,7 +456,7 @@ const DateTimePicker = ({
                     ) {
                       e.preventDefault(); // Prevent overscroll
                     }
-                    
+
                     e.stopPropagation(); // Don't let parent handle this
                   }}
                 >
@@ -488,14 +488,14 @@ const DateTimePicker = ({
 };
 
 // Desktop Date Selection Step
-const DesktopDateStep = ({ 
-  currentMonth, 
-  setCurrentMonth, 
-  generateCalendarDays, 
-  handleDateSelect, 
-  getQuickDateOptions, 
+const DesktopDateStep = ({
+  currentMonth,
+  setCurrentMonth,
+  generateCalendarDays,
+  handleDateSelect,
+  getQuickDateOptions,
   handleQuickSelect,
-  monthNames 
+  monthNames
 }) => {
   const days = generateCalendarDays();
   const quickOptions = getQuickDateOptions();
@@ -520,9 +520,9 @@ const DesktopDateStep = ({
             >
               <div className="font-medium text-primary text-sm">{option.label}</div>
               <div className="text-xs text-gray-600 mt-1">
-                {option.date.toLocaleDateString('en-US', { 
-                  month: 'short', 
-                  day: 'numeric' 
+                {option.date.toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric'
                 })} at {option.time.hour}:00
               </div>
             </button>
@@ -533,7 +533,7 @@ const DesktopDateStep = ({
       {/* Calendar */}
       <div className="space-y-3">
         <h4 className="font-medium text-gray-700 text-sm">Or Choose Date</h4>
-        
+
         {/* Month Navigation */}
         <div className="flex items-center justify-between">
           <button
@@ -623,14 +623,14 @@ const DesktopTimeStep = ({ getTimeSlots, handleTimeSelect, selectedTime }) => {
 };
 
 // Mobile Date Selection Step
-const MobileDateStep = ({ 
-  currentMonth, 
-  setCurrentMonth, 
-  generateCalendarDays, 
-  handleDateSelect, 
-  getQuickDateOptions, 
+const MobileDateStep = ({
+  currentMonth,
+  setCurrentMonth,
+  generateCalendarDays,
+  handleDateSelect,
+  getQuickDateOptions,
   handleQuickSelect,
-  monthNames 
+  monthNames
 }) => {
   const days = generateCalendarDays();
   const quickOptions = getQuickDateOptions();
@@ -655,10 +655,10 @@ const MobileDateStep = ({
             >
               <span className="font-semibold text-primary text-base sm:text-lg">{option.label}</span>
               <div className="text-sm text-gray-600 mt-1">
-                {option.date.toLocaleDateString('en-US', { 
-                  weekday: 'short', 
-                  month: 'short', 
-                  day: 'numeric' 
+                {option.date.toLocaleDateString('en-US', {
+                  weekday: 'short',
+                  month: 'short',
+                  day: 'numeric'
                 })} at {option.time.hour}:00
               </div>
             </button>
@@ -669,7 +669,7 @@ const MobileDateStep = ({
       {/* Calendar */}
       <div className="space-y-4">
         <h4 className="font-medium text-gray-700 text-base">Or Choose Date</h4>
-        
+
         {/* Month Navigation */}
         <div className="flex items-center justify-between bg-gray-50 rounded-xl p-2">
           <button
@@ -763,7 +763,7 @@ const MobileTimeStep = ({ getTimeSlots, handleTimeSelect, selectedTime }) => {
           </div>
         </div>
       ))}
-      
+
       {/* Bottom spacing for safe area */}
       <div className="h-4"></div>
     </div>

@@ -5,23 +5,21 @@ export const serviceRequestForms = {
       {
         title: 'Choose Your Test',
         fields: [
-          { name: 'testOption', label: 'Preferred Test Option', type: 'radio', options: ['Oral fluid self-test kit', 'Finger-prick self-test kit', 'Facility-based HIV testing appointment'], required: true },
+          { name: 'testOption', label: 'Preferred Test Option', type: 'radio', options: ['Oral fluid self-test kit', 'Finger-prick self-test kit', 'Facility-based HIV testing'], required: true },
           { name: 'quantity', label: 'Number of kits needed', type: 'number', placeholder: 'e.g., 1', required: true },
         ],
       },
       {
         title: 'Delivery & Support',
         fields: [
-          { name: 'deliveryMethod', label: 'Delivery Method', type: 'radio', options: ['Home Delivery', 'Pick-up from facility', 'Community Group Delivery'], condition: (data) => data.testOption !== 'Facility-based HIV testing appointment', required: true },
-          { name: 'deliveryLocation', label: 'Preferred Delivery Location', type: 'map', placeholder: 'Search for a location...', condition: (data) => ['Home Delivery', 'Community Group Delivery'].includes(data.deliveryMethod), required: true },
+          { name: 'deliveryMethod', label: 'Delivery Method', type: 'radio', options: ['Home/Workplace', 'Pick-up from facility', 'Community Group'], condition: (data) => data.testOption !== 'Facility-based HIV testing', required: true },
+          { name: 'deliveryLocation', label: 'Preferred Delivery Location', type: 'map', placeholder: 'Search for a location...', condition: (data) => ['Home/Workplace', 'Community Group'].includes(data.deliveryMethod), required: true },
           { name: 'preferredDateTime', label: 'Preferred Delivery/Appointment Date & Time', type: 'datetime-local', required: true },
         ],
       },
       {
-        title: 'Counselling & Comments',
+        title: 'Additional Information',
         fields: [
-          { name: 'counsellingSupport', label: 'Do you require counselling support?', type: 'radio', options: ['Yes', 'No'], required: true },
-          { name: 'counsellingChannel', label: 'Preferred channel for counselling?', type: 'select', options: ['Phone Call', 'WhatsApp', 'Video (Zoom/Google Meet)', 'In-Person'], condition: (data) => data.counsellingSupport === 'Yes', required: true },
           { name: 'comments', label: 'General Comment', type: 'textarea', placeholder: 'Share any other details or questions you have for the health provider.' },
         ],
       },
@@ -41,15 +39,15 @@ export const serviceRequestForms = {
       {
         title: 'Delivery & Follow-up',
         fields: [
-          { name: 'deliveryMethod', label: 'Preferred Delivery Method', type: 'radio', options: ['Home Delivery', 'Pickup at health facility', 'Community Group Delivery'], required: true },
-          { name: 'deliveryLocation', label: 'Preferred Delivery Location', type: 'map', placeholder: 'Search for a location...', condition: (data) => ['Home Delivery', 'Community Group Delivery'].includes(data.deliveryMethod), required: true },
+          { name: 'deliveryMethod', label: 'Preferred Delivery Method', type: 'radio', options: ['Home/Workplace', 'Pickup at health facility', 'Community Group'], required: true },
+          { name: 'deliveryLocation', label: 'Preferred Delivery Location', type: 'map', placeholder: 'Search for a location...', condition: (data) => ['Home/Workplace', 'Community Group'].includes(data.deliveryMethod), required: true },
           { name: 'preferredDateTime', label: 'Preferred Delivery/Appointment Date & Time', type: 'datetime-local', required: true },
-          { name: 'contactChannel', label: 'Preferred Contact Channel for Follow-Up', type: 'select', options: ['Phone call', 'WhatsApp', 'Not Needed'], required: true },
         ],
       },
       {
         title: 'Additional Information',
         fields: [
+          { name: 'contactChannel', label: 'Preferred Contact Channel for Follow-Up', type: 'select', options: ['Phone call', 'WhatsApp', 'Not Needed'], required: true },
           { name: 'comments', label: 'General Comment', type: 'textarea', placeholder: 'Share any other details or questions you have for the health provider.' },
         ],
       },
@@ -61,19 +59,17 @@ export const serviceRequestForms = {
       {
         title: 'Request Details',
         fields: [
-          { name: 'requestType', label: 'Request Type', type: 'radio', options: ['Start PEP (exposure within 72 hours)', 'Continue/refill PEP', 'Follow-up test or medical review'], required: true },
-          { name: 'accessPoint', label: 'Preferred Access Point for Medication', type: 'radio', options: ['Home Delivery', 'Facility pickup', 'Community Group Delivery'], required: true },
+          { name: 'requestType', label: 'Request Type', type: 'radio', options: ['Start PEP (New User)', 'Continue/refill PEP'], required: true },
+          { name: 'accessPoint', label: 'Preferred Access Point for Medication', type: 'radio', options: ['Home/Workplace', 'Facility pickup', 'Community Group'], required: true },
           { name: 'quantity', label: 'Quantity (e.g., packs)', type: 'number', placeholder: 'e.g., 1', required: true },
           { name: 'labResults', label: 'Attach Latest Lab Results', type: 'file', accept: '.pdf,.jpg,.png', required: true },
         ],
       },
       {
-        title: 'Location & Counselling',
+        title: 'Location & Scheduling',
         fields: [
-          { name: 'deliveryLocation', label: 'Preferred Delivery Location', type: 'map', placeholder: 'Search for a location...', condition: (data) => ['Home Delivery', 'Community Group Delivery'].includes(data.accessPoint), required: true },
+          { name: 'deliveryLocation', label: 'Preferred Delivery Location', type: 'map', placeholder: 'Search for a location...', condition: (data) => ['Home/Workplace', 'Community Group'].includes(data.accessPoint), required: true },
           { name: 'preferredDateTime', label: 'Preferred Delivery/Appointment Date & Time', type: 'datetime-local', required: true },
-          { name: 'counsellingSupport', label: 'Do you need counselling or psychosocial support?', type: 'radio', options: ['Yes', 'No'], required: true },
-          { name: 'counsellingChannel', label: 'Preferred channel for counselling?', type: 'select', options: ['Phone Call', 'WhatsApp Call', 'Video (Zoom/Google Meet)', 'In-Person'], condition: (data) => data.counsellingSupport === 'Yes', required: true },
         ],
       },
       {
@@ -98,17 +94,15 @@ export const serviceRequestForms = {
       {
         title: 'Delivery & Clinical Needs',
         fields: [
-          { name: 'deliveryMethod', label: 'Preferred Pickup or Delivery', type: 'radio', options: ['Home Delivery', 'Facility pickup', 'Community Group Delivery'], required: true },
-          { name: 'deliveryLocation', label: 'Preferred Delivery Location', type: 'map', placeholder: 'Search for a location...', condition: (data) => ['Home Delivery', 'Community Group Delivery'].includes(data.deliveryMethod), required: true },
+          { name: 'deliveryMethod', label: 'Preferred Pickup or Delivery', type: 'radio', options: ['Home/Workplace', 'Facility pickup', 'Community Group'], required: true },
+          { name: 'deliveryLocation', label: 'Preferred Delivery Location', type: 'map', placeholder: 'Search for a location...', condition: (data) => ['Home/Workplace', 'Community Group'].includes(data.deliveryMethod), required: true },
           { name: 'preferredDateTime', label: 'Preferred Delivery/Appointment Date & Time', type: 'datetime-local', required: true },
           { name: 'clinicalReview', label: 'Do you need clinical review or lab tests scheduled?', type: 'radio', options: ['Yes (e.g., viral load, CD4)', 'No'], required: true },
         ],
       },
       {
-        title: 'Support & Comments',
+        title: 'Additional Information',
         fields: [
-          { name: 'counsellingSupport', label: 'Do you need counselling or psychosocial support?', type: 'radio', options: ['Yes', 'No'], required: true },
-          { name: 'counsellingChannel', label: 'Preferred channel for counselling?', type: 'select', options: ['Phone Call', 'WhatsApp Call', 'Video (Zoom/Google Meet)', 'In-Person'], condition: (data) => data.counsellingSupport === 'Yes', required: true },
           { name: 'comments', label: 'General Comment', type: 'textarea', placeholder: 'Share any other details or questions you have for the health provider.' },
         ],
       },
@@ -120,15 +114,15 @@ export const serviceRequestForms = {
       {
         title: 'Service Details',
         fields: [
-          { name: 'serviceRequested', label: 'Service Requested', type: 'radio', options: ['Book in-person STI screening', 'Request home sample collection', 'Request online consultation', 'Request medication refill'], required: true },
+          { name: 'serviceRequested', label: 'Service Requested', type: 'radio', options: ['Facility Based STI screening', 'Online/Virtual Consultation', 'Medication Refill'], required: true },
           { name: 'labResults', label: 'Attach Previous Lab Results or Treatment Notes (Optional)', type: 'file', accept: '.pdf,.jpg,.png', required: false },
         ],
       },
       {
         title: 'Location & Delivery',
         fields: [
-          { name: 'deliveryMethod', label: 'Preferred Method of Delivery/Service', type: 'radio', options: ['Home Delivery', 'Facility pickup', 'Community Group Delivery'], required: true },
-          { name: 'deliveryLocation', label: 'Preferred Location', type: 'map', placeholder: 'Search for a location...', condition: (data) => ['Home Delivery', 'Community Group Delivery'].includes(data.deliveryMethod), required: true },
+          { name: 'deliveryMethod', label: 'Preferred Method of Delivery/Service', type: 'radio', options: ['Home/Workplace', 'Facility pickup', 'Community Group'], required: true },
+          { name: 'deliveryLocation', label: 'Preferred Location', type: 'map', placeholder: 'Search for a location...', condition: (data) => ['Home/Workplace', 'Community Group'].includes(data.deliveryMethod), required: true },
           { name: 'preferredDateTime', label: 'Preferred Appointment Date & Time', type: 'datetime-local', required: true },
         ],
       },
