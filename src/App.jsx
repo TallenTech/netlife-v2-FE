@@ -86,59 +86,12 @@ function AppRoutes() {
   } = useAuth();
 
   if (isLoading) {
-    return (
-      <>
-        {/* Mobile Layout */}
-        <div className="lg:hidden mobile-container bg-white">
-          <div className="h-screen flex items-center justify-center">
-            <div className="text-center px-6">
-              <div className="mb-6">
-                <NetLifeLogo className="w-20 h-20 animate-pulse mx-auto" />
-              </div>
-              <h2 className="text-xl font-bold text-gray-800 mb-2">
-                Welcome to NetLife
-              </h2>
-              <p className="text-gray-600 font-medium mb-4">
-                Connecting to NetLife...
-              </p>
-              <div className="flex justify-center">
-                <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Desktop Layout */}
-        <div className="hidden lg:block min-h-screen bg-white">
-          <div className="h-screen flex items-center justify-center">
-            <div className="text-center max-w-md mx-auto px-8">
-              <div className="mb-8">
-                <NetLifeLogo className="w-32 h-32 animate-pulse mx-auto" />
-              </div>
-              <h1 className="text-3xl font-bold text-gray-800 mb-3">
-                Welcome to NetLife
-              </h1>
-              <p className="text-lg text-gray-600 font-medium mb-6">
-                Connecting to NetLife...
-              </p>
-              <div className="flex justify-center mb-8">
-                <div className="w-10 h-10 border-3 border-primary border-t-transparent rounded-full animate-spin"></div>
-              </div>
-              <div className="space-y-2 text-sm text-gray-500">
-                <p>Your Health. Your Privacy. Your Power.</p>
-                <p>Secure, stigma-free digital health services</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </>
-    );
+    return null;
   }
 
   if (error) {
     return (
       <>
-        {/* Mobile Layout */}
         <div className="lg:hidden mobile-container bg-white">
           <div className="h-screen flex items-center justify-center">
             <div className="text-center px-6">
@@ -160,8 +113,6 @@ function AppRoutes() {
             </div>
           </div>
         </div>
-
-        {/* Desktop Layout */}
         <div className="hidden lg:block min-h-screen bg-white">
           <div className="h-screen flex items-center justify-center">
             <div className="text-center max-w-md mx-auto px-8">

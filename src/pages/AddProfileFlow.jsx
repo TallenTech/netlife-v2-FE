@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import ProfileSetup from "@/components/ProfileSetup";
 import { useAuth } from "@/contexts/AuthContext";
@@ -9,8 +9,10 @@ import { profileService } from "@/services/profileService";
 const AddProfileFlow = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { profile, fetchManagedProfiles } = useAuth();
+  const { profile, refreshAuthAndProfiles } = useAuth();
   const location = useLocation();
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const searchParams = new URLSearchParams(location.search);
   const editProfileId = searchParams.get("edit");
@@ -28,63 +30,69 @@ const AddProfileFlow = () => {
       return;
     }
 
-    const payload = {
-      manager_id: profile.id,
-      username: dependentProfileData.username,
-      date_of_birth: dependentProfileData.birthDate,
-      gender: dependentProfileData.gender,
-      profile_picture: photoFile ? null : dependentProfileData.avatar,
-      updated_at: new Date().toISOString(),
-    };
+    setIsSubmitting(true);
+    try {
+      const payload = {
+        manager_id: profile.id,
+        username: dependentProfileData.username,
+        date_of_birth: dependentProfileData.birthDate,
+        gender: dependentProfileData.gender,
+        profile_picture: photoFile ? null : dependentProfileData.avatar,
+        updated_at: new Date().toISOString(),
+      };
 
-    let response;
-    if (editProfileId) {
-      response = await supabase
-        .from("managed_profiles")
-        .update(payload)
-        .eq("id", editProfileId)
-        .select()
-        .single();
-    } else {
-      response = await supabase
-        .from("managed_profiles")
-        .insert(payload)
-        .select()
-        .single();
-    }
+      let response;
+      if (editProfileId) {
+        response = await supabase
+          .from("managed_profiles")
+          .update(payload)
+          .eq("id", editProfileId)
+          .select()
+          .single();
+      } else {
+        response = await supabase
+          .from("managed_profiles")
+          .insert(payload)
+          .select()
+          .single();
+      }
 
-    const { data, error } = response;
+      const { data, error } = response;
 
-    if (error) {
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      if (photoFile && data.id) {
+        const uploadResult = await profileService.uploadManagedProfilePhoto(
+          photoFile,
+          data.id
+        );
+        if (!uploadResult.success) {
+          toast({
+            title: "Profile saved, but photo upload failed.",
+            description: uploadResult.error.message,
+            variant: "destructive",
+          });
+        }
+      }
+
+      toast({
+        title: `Profile ${editProfileId ? "Updated" : "Created"}!`,
+        description: `${data.username}'s profile is now ready.`,
+      });
+
+      await refreshAuthAndProfiles();
+      navigate("/account/manage-profiles");
+    } catch (error) {
       toast({
         title: "Failed to save profile",
         description: error.message,
         variant: "destructive",
       });
-      return;
+    } finally {
+      setIsSubmitting(false);
     }
-
-    if (photoFile && data.id) {
-      const uploadResult = await profileService.uploadManagedProfilePhoto(
-        photoFile,
-        data.id
-      );
-      if (!uploadResult.success) {
-        toast({
-          title: "Profile saved, but photo upload failed.",
-          description: uploadResult.error.message,
-          variant: "destructive",
-        });
-      }
-    }
-
-    toast({
-      title: `Profile ${editProfileId ? "Updated" : "Created"}!`,
-      description: `${data.username}'s profile is now ready.`,
-    });
-
-    await fetchManagedProfiles();
-    navigate("/account/manage-profiles");
   };
 
   const existingData = location.state?.profileData;
@@ -95,6 +103,7 @@ const AddProfileFlow = () => {
       onComplete={handleCreateOrUpdateDependent}
       onBack={() => navigate("/account/manage-profiles")}
       existingData={editProfileId ? existingData : null}
+      isSubmitting={isSubmitting}
     />
   );
 };

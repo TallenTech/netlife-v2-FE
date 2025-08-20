@@ -27,6 +27,7 @@ const ServiceRequest = () => {
   const [step, setStep] = useState(0);
   const [formData, setFormData] = useState({});
   const [showSuccess, setShowSuccess] = useState(false);
+  const [isOfflineSuccess, setIsOfflineSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [progressLoaded, setProgressLoaded] = useState(false);
   const [currentStepValid, setCurrentStepValid] = useState(false);
@@ -48,10 +49,7 @@ const ServiceRequest = () => {
   }, [getProgressKey]);
 
   const handleSubmit = useCallback(async () => {
-    if (isSubmitting) {
-      console.log("Submission blocked: already in progress.");
-      return;
-    }
+    if (isSubmitting) return;
 
     setIsSubmitting(true);
 
@@ -84,10 +82,8 @@ const ServiceRequest = () => {
     };
 
     try {
-      console.log("Attempting to submit service request online...");
       await servicesApi.submitServiceRequest(serviceRequestData);
 
-      console.log("Submission successful (online).");
       clearProgress();
       await queryClient.invalidateQueries({
         queryKey: ["serviceRequests", profile.id],
@@ -118,13 +114,14 @@ const ServiceRequest = () => {
         };
         return [optimisticRequest, ...oldData];
       });
-      toast({
-        title: "You seem to be offline",
-        description:
-          "Your request has been saved and will be submitted when you're back online.",
-      });
+
       clearProgress();
-      navigate("/history");
+      setIsOfflineSuccess(true);
+
+      setTimeout(() => {
+        setIsOfflineSuccess(false);
+        navigate("/history");
+      }, 7000);
     } finally {
       setIsSubmitting(false);
     }
@@ -136,12 +133,10 @@ const ServiceRequest = () => {
     serviceData,
     queryClient,
     navigate,
-    toast,
     clearProgress,
   ]);
 
   let formConfig = serviceRequestForms[serviceId];
-
   if (!formConfig && serviceData?.name) {
     const serviceName = serviceData.name.toLowerCase();
     const nameToFormMap = {
@@ -282,14 +277,16 @@ const ServiceRequest = () => {
     );
   };
 
-  if (showSuccess) {
+  if (showSuccess || isOfflineSuccess) {
     return (
       <SuccessConfirmation
         onClose={() => {
           setShowSuccess(false);
+          setIsOfflineSuccess(false);
           navigate("/history");
         }}
         userData={activeProfile}
+        isOffline={isOfflineSuccess}
       />
     );
   }
