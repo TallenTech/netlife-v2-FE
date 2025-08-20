@@ -44,6 +44,7 @@ import {
   useMarkAllNotificationsAsRead,
   useDeleteNotification,
 } from "@/hooks/useNotificationQueries";
+import { useScrollToTop } from "@/hooks/useScrollToTop";
 
 const Notifications = () => {
   const navigate = useNavigate();
@@ -51,6 +52,9 @@ const Notifications = () => {
   const { profile } = useAuth();
   const [filter, setFilter] = useState("all");
   const [deleteAllDialogOpen, setDeleteAllDialogOpen] = useState(false);
+
+  // Ensure page scrolls to top when navigated to
+  useScrollToTop();
 
   const {
     data: notifications = [],

@@ -25,6 +25,7 @@ import {
   useDeleteScreeningResult,
 } from "@/hooks/useServiceQueries";
 import { downloadGeneratedPdf } from "@/utils/pdfUtils";
+import { useScrollToTop } from "@/hooks/useScrollToTop";
 
 const tabs = ["Services", "Screening", "Records"];
 
@@ -36,6 +37,9 @@ const History = () => {
   const { activeProfile } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Ensure page scrolls to top when navigated to
+  useScrollToTop();
 
   const {
     data: serviceRequests,
@@ -288,45 +292,67 @@ const History = () => {
       <Helmet>
         <title>Health History - NetLife</title>
       </Helmet>
-      <div className="py-4 md:py-6 bg-white min-h-screen">
-        <header className="mb-6">
+
+      {/* Fixed Page Title - Desktop Only */}
+      <div className="hidden md:block fixed top-0 left-64 z-30 bg-white/95 backdrop-blur-sm">
+        <div className="px-6 py-4">
+          <h1 className="text-xl font-bold text-gray-900 mb-1">
+            Health History
+          </h1>
+          <p className="text-sm text-gray-600">
+            Your health records and activities
+          </p>
+        </div>
+      </div>
+
+      {/* Mobile Header - Fixed */}
+      <div className="md:hidden fixed top-0 left-0 right-0 z-30 bg-white">
+        <div className="px-4 py-2">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 truncate">
-              Health History
-            </h1>
+            <div>
+              <h1 className="text-lg font-bold text-gray-900">
+                Health History
+              </h1>
+              <p className="text-xs text-gray-500">
+                Your health records and activities
+              </p>
+            </div>
             <Button
               variant="outline"
               size="sm"
               onClick={handleRefresh}
               disabled={isRefreshing}
-              className="flex items-center space-x-2 hover:bg-gray-50"
+              className="flex items-center space-x-1 hover:bg-gray-50"
             >
               <RefreshCw
                 size={14}
                 className={isRefreshing ? "animate-spin" : ""}
               />
-              <span>{isRefreshing ? "Refreshing..." : "Refresh"}</span>
+              <span className="text-xs">{isRefreshing ? "Refreshing..." : "Refresh"}</span>
             </Button>
           </div>
-          <p className="text-gray-500 text-sm sm:text-base">
-            Hi {usernameElement}, here's a summary of your activities.
-          </p>
-        </header>
+        </div>
+      </div>
 
-        <div className="bg-gray-100 p-1 rounded-full flex justify-around items-center mb-6">
-          {tabs.map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`w-full py-2.5 text-sm font-semibold rounded-full transition-all duration-300 ${
-                activeTab === tab
-                  ? "bg-white text-primary shadow-md"
-                  : "text-gray-600 hover:bg-gray-200"
-              }`}
-            >
-              {tab}
-            </button>
-          ))}
+      <div className="py-4 md:py-6 bg-white min-h-screen pt-16 md:pt-20">
+        {/* Sticky Filter Component - Directly under header */}
+        <div className="sticky top-16 md:top-20 z-20 pb-2">
+          <div className="flex justify-center">
+            <div className="bg-gray-100 rounded-full p-1 inline-flex">
+              {tabs.map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`px-3 md:px-6 py-1.5 md:py-2.5 rounded-full text-xs md:text-sm font-semibold transition-all duration-200 ${activeTab === tab
+                    ? "bg-white text-primary shadow-sm"
+                    : "text-gray-600 hover:text-gray-800"
+                    }`}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
         <div className="space-y-4">
@@ -370,11 +396,10 @@ const History = () => {
                       </div>
                     )}
                     <span
-                      className={`text-xs font-bold px-3 py-1 rounded-full ${
-                        item.isOffline
-                          ? "bg-yellow-100 text-yellow-800"
-                          : "bg-green-100 text-green-800"
-                      }`}
+                      className={`text-xs font-bold px-3 py-1 rounded-full ${item.isOffline
+                        ? "bg-yellow-100 text-yellow-800"
+                        : "bg-green-100 text-green-800"
+                        }`}
                     >
                       {item.status}
                     </span>

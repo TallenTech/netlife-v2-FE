@@ -47,6 +47,7 @@ import {
   useVerifyPhoneUpdate,
 } from "@/hooks/useSettingsQueries";
 import { usePWAInstall } from "@/hooks/usePWAInstall";
+import { useScrollToTop } from "@/hooks/useScrollToTop";
 
 const Account = () => {
   const { toast } = useToast();
@@ -59,6 +60,9 @@ const Account = () => {
     refreshAuthAndProfiles,
     isLoading: isAuthLoading,
   } = useAuth();
+
+  // Ensure page scrolls to top when navigated to
+  useScrollToTop();
 
   const [profileData, setProfileData] = useState({});
   const [district, setDistrict] = useState("");
