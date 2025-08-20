@@ -60,13 +60,14 @@ export const useVideoById = (videoId) =>
     enabled: !!videoId,
   });
 
-// --- START OF THE MAIN FIX ---
-
 export const useSubmitServiceRequest = ({ onSuccess, onError } = {}) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: servicesApi.submitServiceRequest,
+    mutationFn: (request) => {
+      console.log("LOG: [Hook] mutationFn started.", { request });
+      return servicesApi.submitServiceRequest(request);
+    },
 
     onMutate: async (newRequest) => {
       await queryClient.cancelQueries({
@@ -80,9 +81,9 @@ export const useSubmitServiceRequest = ({ onSuccess, onError } = {}) => {
         ...newRequest,
         attachments: newRequest.attachments
           ? {
-            name: newRequest.attachments.name,
-            size: newRequest.attachments.size,
-          }
+              name: newRequest.attachments.name,
+              size: newRequest.attachments.size,
+            }
           : null,
         id: `optimistic-${Date.now()}`,
         created_at: new Date().toISOString(),
@@ -97,16 +98,19 @@ export const useSubmitServiceRequest = ({ onSuccess, onError } = {}) => {
       return { previousRequests };
     },
 
-    // This callback runs when the mutationFn succeeds
     onSuccess: (data) => {
-      if (onSuccess) onSuccess(data);
+      console.log(
+        "LOG: [Hook] onSuccess fired. Checking for component callback."
+      );
+      if (onSuccess) {
+        onSuccess(data);
+      }
     },
 
-    // This callback runs when the mutationFn fails
     onError: (error, newRequest, context) => {
-      console.warn(
-        "Mutation failed, reverting optimistic update and calling the onError callback.",
-        error
+      console.error(
+        "LOG: [Hook] onError fired. Checking for component callback.",
+        { error }
       );
       if (context?.previousRequests) {
         queryClient.setQueryData(
@@ -114,14 +118,15 @@ export const useSubmitServiceRequest = ({ onSuccess, onError } = {}) => {
           context.previousRequests
         );
       }
-      addToSyncQueue(newRequest); // Simplified offline handling
+      addToSyncQueue(newRequest);
       logError(error, "useSubmitServiceRequest:onError", {
         request: newRequest,
       });
-      if (onError) onError(error);
+      if (onError) {
+        onError(error);
+      }
     },
 
-    // This callback runs after success or error
     onSettled: (data, error, newRequest) => {
       queryClient.invalidateQueries({
         queryKey: ["serviceRequests", newRequest.user_id],
@@ -129,8 +134,6 @@ export const useSubmitServiceRequest = ({ onSuccess, onError } = {}) => {
     },
   });
 };
-
-// --- END OF THE MAIN FIX ---
 
 export const useDeleteServiceRequest = () => {
   const queryClient = useQueryClient();

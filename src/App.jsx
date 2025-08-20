@@ -4,6 +4,7 @@ import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/components/ui/use-toast";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { useQueryClient } from "@tanstack/react-query";
 import ScrollToTop from "@/components/ScrollToTop";
 import MainLayout from "@/components/layout/MainLayout";
 import NetLifeLogo from "@/components/NetLifeLogo";
@@ -28,11 +29,12 @@ function App() {
 
 function AppWrapper() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     const handleOnline = () => {
       console.log("App is online. Processing offline queue...");
-      processSyncQueue();
+      processSyncQueue(queryClient);
     };
 
     const handleSyncSuccess = (event) => {
@@ -54,7 +56,7 @@ function AppWrapper() {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("requestSynced", handleSyncSuccess);
     };
-  }, [toast]);
+  }, [toast, queryClient]);
 
   return (
     <>

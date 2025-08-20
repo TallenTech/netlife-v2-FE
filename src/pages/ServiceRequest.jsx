@@ -6,85 +6,55 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/components/ui/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
 import { serviceRequestForms } from "@/data/serviceRequestForms";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
+import { servicesApi } from "@/services/servicesApi";
+import { addToSyncQueue } from "@/services/offlineSync";
 import ServiceRequestStep from "@/components/service-request/ServiceRequestStep";
 import PreviewStep from "@/components/service-request/PreviewStep";
 import SuccessConfirmation from "@/components/service-request/SuccessConfirmation";
-import {
-  useServiceBySlug,
-  useSubmitServiceRequest,
-} from "@/hooks/useServiceQueries";
+import { useServiceBySlug } from "@/hooks/useServiceQueries";
 
 const ServiceRequest = () => {
   const { serviceId } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { activeProfile, profile } = useAuth();
+  const queryClient = useQueryClient();
 
   const [step, setStep] = useState(0);
   const [formData, setFormData] = useState({});
   const [showSuccess, setShowSuccess] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [progressLoaded, setProgressLoaded] = useState(false);
   const [currentStepValid, setCurrentStepValid] = useState(false);
   const [validationErrors, setValidationErrors] = useState([]);
 
   const { data: serviceData } = useServiceBySlug(serviceId);
 
-  // --- START OF THE MAIN FIX ---
-
-  // 1. Define stable callbacks for the hook
-  const handleSuccess = useCallback(() => {
-    clearProgress();
-    setShowSuccess(true);
-    setTimeout(() => {
-      setShowSuccess(false);
-      navigate("/history");
-    }, 7000);
-  }, [navigate]);
-
-  const handleError = useCallback(
-    (error) => {
-      toast({
-        title: "Submission Failed",
-        description:
-          error.message || "An unexpected error occurred. Please try again.",
-        variant: "destructive",
-      });
-    },
-    [toast]
+  const getProgressKey = useCallback(
+    () => `service_request_progress_${serviceId}_${activeProfile?.id}`,
+    [serviceId, activeProfile]
   );
 
-  // 2. Pass the callbacks to the hook and get the correct `mutate` function
-  const { mutate: submitRequest, isLoading: isSubmitting } =
-    useSubmitServiceRequest({
-      onSuccess: handleSuccess,
-      onError: handleError,
-    });
-
-
-
-  // This is a stable function now thanks to useCallback
   const clearProgress = useCallback(() => {
     try {
       localStorage.removeItem(getProgressKey());
-    } catch (error) { }
-  }, []);
+    } catch (error) {
+      console.error("Failed to clear progress", error);
+    }
+  }, [getProgressKey]);
 
-  // 3. The new handleSubmit is NOT async and does NOT use try/catch
-  const handleSubmit = useCallback(() => {
+  const handleSubmit = useCallback(async () => {
     if (isSubmitting) {
+      console.log("Submission blocked: already in progress.");
       return;
     }
-    if (!serviceData || !profile || !activeProfile) {
-      toast({
-        title: "Error",
-        description: "User or service data is missing.",
-        variant: "destructive",
-      });
-      return;
-    }
+
+    setIsSubmitting(true);
+
     const finalFormData = { ...formData };
     const fileFieldKey = Object.keys(finalFormData).find(
       (key) => finalFormData[key] instanceof File
@@ -94,6 +64,7 @@ const ServiceRequest = () => {
     if (fileFieldKey) {
       delete finalFormData[fileFieldKey];
     }
+
     const serviceRequestData = {
       user_id: profile.id,
       service_id: serviceData.id,
@@ -112,17 +83,62 @@ const ServiceRequest = () => {
       },
     };
 
-    submitRequest(serviceRequestData);
+    try {
+      console.log("Attempting to submit service request online...");
+      await servicesApi.submitServiceRequest(serviceRequestData);
+
+      console.log("Submission successful (online).");
+      clearProgress();
+      await queryClient.invalidateQueries({
+        queryKey: ["serviceRequests", profile.id],
+      });
+      setShowSuccess(true);
+      setTimeout(() => {
+        setShowSuccess(false);
+        navigate("/history");
+      }, 7000);
+    } catch (error) {
+      console.warn("Submission failed, treating as offline.", error);
+      addToSyncQueue(serviceRequestData);
+      const queryKey = ["serviceRequests", profile.id];
+      queryClient.setQueryData(queryKey, (oldData = []) => {
+        const optimisticRequest = {
+          ...serviceRequestData,
+          id: `optimistic-${Date.now()}`,
+          created_at: new Date().toISOString(),
+          status: "pending",
+          isOffline: true,
+          services: {
+            name: serviceData.name || "Service",
+            slug: serviceData.slug,
+          },
+          attachments: attachmentFile
+            ? { name: attachmentFile.name, size: attachmentFile.size }
+            : null,
+        };
+        return [optimisticRequest, ...oldData];
+      });
+      toast({
+        title: "You seem to be offline",
+        description:
+          "Your request has been saved and will be submitted when you're back online.",
+      });
+      clearProgress();
+      navigate("/history");
+    } finally {
+      setIsSubmitting(false);
+    }
   }, [
     isSubmitting,
-    serviceData,
+    formData,
     profile,
     activeProfile,
-    formData,
-    submitRequest,
+    serviceData,
+    queryClient,
+    navigate,
+    toast,
+    clearProgress,
   ]);
-
-  // --- END OF THE MAIN FIX ---
 
   let formConfig = serviceRequestForms[serviceId];
 
@@ -148,15 +164,34 @@ const ServiceRequest = () => {
     }
   }
 
+  const loadSavedProgress = useCallback(() => {
+    try {
+      const saved = localStorage.getItem(getProgressKey());
+      if (saved) {
+        const data = JSON.parse(saved);
+        if (
+          data.serviceId === serviceId &&
+          formConfig &&
+          data.totalSteps === formConfig.steps.length &&
+          Date.now() - data.timestamp < 24 * 60 * 60 * 1000
+        ) {
+          setFormData(data.formData || {});
+          setStep(data.step || 0);
+        } else {
+          clearProgress();
+        }
+      }
+    } catch (error) {
+      clearProgress();
+    }
+  }, [serviceId, formConfig, getProgressKey, clearProgress]);
+
   useEffect(() => {
     if (formConfig && activeProfile && !progressLoaded) {
       loadSavedProgress();
       setProgressLoaded(true);
     }
-  }, [formConfig, activeProfile, progressLoaded]);
-
-  const getProgressKey = () =>
-    `service_request_progress_${serviceId}_${activeProfile?.id}`;
+  }, [formConfig, activeProfile, progressLoaded, loadSavedProgress]);
 
   const saveProgress = (currentFormData, currentStep) => {
     try {
@@ -170,32 +205,13 @@ const ServiceRequest = () => {
           totalSteps: formConfig.steps.length,
         })
       );
-    } catch (error) { }
+    } catch (error) {}
   };
 
   const handleInputChange = (name, value) => {
     const newFormData = { ...formData, [name]: value };
     setFormData(newFormData);
     saveProgress(newFormData, step);
-  };
-
-  const loadSavedProgress = () => {
-    try {
-      const saved = localStorage.getItem(getProgressKey());
-      if (saved) {
-        const data = JSON.parse(saved);
-        if (
-          data.serviceId === serviceId &&
-          data.totalSteps === formConfig.steps.length &&
-          Date.now() - data.timestamp < 24 * 60 * 60 * 1000
-        ) {
-          setFormData(data.formData || {});
-          setStep(data.step || 0);
-        }
-      }
-    } catch (error) {
-      clearProgress();
-    }
   };
 
   if (!activeProfile) return <div>Loading profile...</div>;
@@ -344,7 +360,7 @@ const ServiceRequest = () => {
                     className={cn(
                       "w-full h-14 text-lg font-bold rounded-xl",
                       !currentStepValid &&
-                      "bg-gray-300 text-gray-500 cursor-not-allowed"
+                        "bg-gray-300 text-gray-500 cursor-not-allowed"
                     )}
                   >
                     {step === totalSteps - 1 ? "Review Request" : "Next Step"}
@@ -409,7 +425,7 @@ const ServiceRequest = () => {
                       className={cn(
                         "h-14 px-8 text-lg font-bold rounded-xl shadow-lg",
                         !currentStepValid &&
-                        "bg-gray-300 text-gray-500 cursor-not-allowed hover:bg-gray-300 shadow-none"
+                          "bg-gray-300 text-gray-500 cursor-not-allowed hover:bg-gray-300 shadow-none"
                       )}
                     >
                       {step === totalSteps - 1 ? "Review Request" : "Next Step"}
