@@ -31,6 +31,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useVideos, useUserServiceRequests } from "@/hooks/useServiceQueries";
 import { useUnreadNotificationCount } from "@/hooks/useNotificationQueries";
 import { useSurveyStatus } from "@/hooks/useSurveyQueries";
+import { useScrollToTop } from "@/hooks/useScrollToTop";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -39,6 +40,9 @@ const Dashboard = () => {
   const queryClient = useQueryClient();
 
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+
+  // Ensure page scrolls to top when navigated to
+  useScrollToTop();
 
   const { data: videos, isLoading: videosLoading } = useVideos();
   const { data: allServiceRequests, isLoading: serviceRequestsLoading } =
@@ -204,7 +208,33 @@ const Dashboard = () => {
         </div>
       </div>
 
-      <div className="py-4 md:py-6 bg-white min-h-screen pt-16 md:pt-4">
+      {/* Sticky header bar for desktop */}
+      <div className="hidden md:block fixed top-0 left-64 right-0 z-40 bg-white/95 backdrop-blur-sm">
+        <div className="flex justify-between items-center px-6 py-4">
+          <div className="flex items-center">
+            <div className="flex items-center">
+              <HeartPulse size={20} className="text-gray-600 mr-3" />
+              <span className="text-lg font-semibold text-gray-600">Health First</span>
+            </div>
+          </div>
+
+          <button
+            onClick={() => navigate("/notifications")}
+            className="relative p-3 rounded-full bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 hover:shadow-lg transition-all duration-200"
+          >
+            <Bell size={22} />
+            {unreadNotificationCount > 0 && (
+              <span className="absolute -top-1 -right-1 h-6 w-6 rounded-full bg-red-500 text-white text-xs flex items-center justify-center ring-2 ring-white font-bold">
+                {unreadNotificationCount > 99
+                  ? "99+"
+                  : unreadNotificationCount}
+              </span>
+            )}
+          </button>
+        </div>
+      </div>
+
+      <div className="py-4 md:py-6 bg-white min-h-screen pt-16 md:pt-20">
         <header className="hidden md:flex justify-between items-center gap-4 mb-6">
           <div className="flex-1">
             <h1 className="text-xl md:text-2xl font-bold text-gray-900">
@@ -212,28 +242,17 @@ const Dashboard = () => {
             </h1>
             <p className="text-sm text-gray-500">How are you feeling today?</p>
           </div>
-          <div className="flex-shrink-0">
-            <button
-              onClick={() => navigate("/notifications")}
-              className="relative p-2 rounded-full bg-white border text-gray-600 hover:bg-gray-50 transition-colors"
-            >
-              <Bell size={22} />
-              {unreadNotificationCount > 0 && (
-                <span className="absolute top-0 right-0 h-5 w-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center ring-2 ring-white">
-                  {unreadNotificationCount > 99
-                    ? "99+"
-                    : unreadNotificationCount}
-                </span>
-              )}
-            </button>
-          </div>
         </header>
 
-        <div className="md:hidden mb-6">
-          <h1 className="text-xl font-bold text-gray-900">
-            {getGreeting()}, {usernameElement}!
-          </h1>
-          <p className="text-sm text-gray-500">How are you feeling today?</p>
+        <div className="md:hidden mb-2">
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">
+                {getGreeting()}, {usernameElement}!
+              </h1>
+              <p className="text-xs text-gray-500">How are you feeling today?</p>
+            </div>
+          </div>
         </div>
 
         <section className="mb-8">
@@ -491,7 +510,7 @@ const Dashboard = () => {
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-3 mb-3">
+                          <div className="flex items-center justify-between mb-3">
                             <h3 className="font-semibold text-gray-900 text-lg">
                               {getServiceRequestTitle(request)}
                             </h3>

@@ -37,6 +37,7 @@ import {
   useUploadUserFiles,
   useDeleteUserFile,
 } from "@/hooks/useFileQueries";
+import { useScrollToTop } from "@/hooks/useScrollToTop";
 
 const fileTypes = ["All", "Images", "PDFs", "Documents"];
 
@@ -48,6 +49,9 @@ const MyFiles = () => {
 
   const { activeProfile } = useAuth();
   const { toast } = useToast();
+
+  // Ensure page scrolls to top when navigated to
+  useScrollToTop();
 
   const {
     data: files = [],
@@ -189,14 +193,28 @@ const MyFiles = () => {
       <Helmet>
         <title>My Files - NetLife</title>
       </Helmet>
-      <div className="py-4 sm:py-6 bg-white min-h-screen">
-        <header className="mb-6">
-          <div className="flex items-center justify-between mb-4">
+
+      {/* Fixed Page Title - Desktop Only */}
+      <div className="hidden md:block fixed top-0 left-64 z-30 bg-white/95 backdrop-blur-sm">
+        <div className="px-6 py-4">
+          <h1 className="text-xl font-bold text-gray-900 mb-1">
+            My Files
+          </h1>
+          <p className="text-sm text-gray-600">
+            Store and manage your documents
+          </p>
+        </div>
+      </div>
+
+      {/* Mobile Header - Fixed */}
+      <div className="md:hidden fixed top-0 left-0 right-0 z-30 bg-white">
+        <div className="px-4 py-2">
+          <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+              <h1 className="text-lg font-bold text-gray-900">
                 My Files
               </h1>
-              <p className="text-gray-600">Store and manage your documents</p>
+              <p className="text-xs text-gray-500">Store and manage your documents</p>
             </div>
             <div className="relative">
               <input
@@ -210,21 +228,28 @@ const MyFiles = () => {
               <Button
                 disabled={uploading}
                 className="bg-primary hover:bg-primary/90"
+                size="sm"
               >
                 {uploading ? (
                   <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Uploading...
+                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
+                    <span className="text-xs">Uploading...</span>
                   </>
                 ) : (
                   <>
-                    <Plus size={16} className="mr-2" />
-                    Upload
+                    <Plus size={14} className="mr-1" />
+                    <span className="text-xs">Upload</span>
                   </>
                 )}
               </Button>
             </div>
           </div>
+        </div>
+      </div>
+
+      <div className="py-4 sm:py-6 bg-white min-h-screen pt-16 md:pt-20">
+        {/* Sticky Search and Filter Component - Directly under header */}
+        <div className="sticky top-16 md:top-20 z-20 pb-2 space-y-3">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="relative flex-1">
               <Search
@@ -236,25 +261,29 @@ const MyFiles = () => {
                 placeholder="Search files..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-gray-900 placeholder-gray-400 text-sm"
               />
             </div>
-            <div className="flex space-x-2 overflow-x-auto no-scrollbar">
-              {fileTypes.map((type) => (
+          </div>
+
+          <div className="flex justify-center">
+            <div className="bg-gray-100 rounded-full p-1 inline-flex">
+              {fileTypes.map((filter) => (
                 <button
-                  key={type}
-                  onClick={() => setActiveFilter(type)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex-shrink-0 ${activeFilter === type
-                    ? "bg-primary text-white"
-                    : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
+                  key={filter}
+                  onClick={() => setActiveFilter(filter)}
+                  className={`px-3 md:px-6 py-1.5 md:py-2.5 rounded-full text-xs md:text-sm font-semibold transition-all duration-200 ${activeFilter === filter
+                    ? "bg-white text-primary shadow-sm"
+                    : "text-gray-600 hover:text-gray-800"
                     }`}
                 >
-                  {type}
+                  {filter}
                 </button>
               ))}
             </div>
           </div>
-        </header>
+        </div>
+
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {[...Array(8)].map((_, i) => (
