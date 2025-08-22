@@ -10,6 +10,16 @@ let isGoogleMapsLoaded = false;
 let googleMapsPromise = null;
 
 /**
+ * Check if Google Maps API key is configured
+ * @returns {boolean}
+ */
+export const isGoogleMapsConfigured = () => {
+    return !!GOOGLE_MAPS_API_KEY &&
+        GOOGLE_MAPS_API_KEY !== "your_google_maps_api_key_here" &&
+        GOOGLE_MAPS_API_KEY.startsWith("AIza");
+};
+
+/**
  * Load Google Maps JavaScript API
  * @returns {Promise<void>}
  */
@@ -20,6 +30,10 @@ const loadGoogleMaps = () => {
 
     if (googleMapsPromise) {
         return googleMapsPromise;
+    }
+
+    if (!isGoogleMapsConfigured()) {
+        return Promise.reject(new Error('Google Maps API key not configured. Please set VITE_GOOGLE_MAPS_API_KEY in your environment variables.'));
     }
 
     googleMapsPromise = new Promise((resolve, reject) => {
@@ -63,8 +77,8 @@ export const searchGooglePlaces = async (query, limit = 8) => {
         return [];
     }
 
-    if (!GOOGLE_MAPS_API_KEY) {
-        console.error('Google Maps API key not found');
+    if (!isGoogleMapsConfigured()) {
+        console.warn('Google Maps API key not configured - returning empty results');
         return [];
     }
 
@@ -86,17 +100,29 @@ export const searchGooglePlaces = async (query, limit = 8) => {
                     return;
                 }
 
-                // Return predictions immediately without getting details for faster response
-                const results = predictions.slice(0, limit).map(prediction => ({
-                    address: prediction.description,
-                    lat: null, // Will be filled when user selects
-                    lng: null, // Will be filled when user selects
-                    place_id: prediction.place_id,
-                    types: prediction.types,
-                    source: 'google',
-                    name: prediction.structured_formatting?.main_text || null,
-                    formatted_address: prediction.structured_formatting?.secondary_text || null
-                }));
+                // Return predictions with enhanced information
+                const results = predictions.slice(0, limit).map(prediction => {
+                    const mainText = prediction.structured_formatting?.main_text || '';
+                    const secondaryText = prediction.structured_formatting?.secondary_text || '';
+
+                    // Determine if this is a business/establishment or address
+                    const isEstablishment = prediction.types?.some(type =>
+                        ['establishment', 'point_of_interest', 'business'].includes(type)
+                    );
+
+                    return {
+                        address: prediction.description,
+                        lat: null, // Will be filled when user selects
+                        lng: null, // Will be filled when user selects
+                        place_id: prediction.place_id,
+                        types: prediction.types,
+                        source: 'google',
+                        name: isEstablishment ? mainText : null,
+                        formatted_address: isEstablishment ? secondaryText : prediction.description,
+                        isEstablishment: isEstablishment,
+                        category: prediction.types?.[0] || 'geocode'
+                    };
+                });
 
                 resolve(results);
             });
@@ -114,8 +140,8 @@ export const searchGooglePlaces = async (query, limit = 8) => {
  * @returns {Promise<Object>} Coordinates and formatted address
  */
 export const geocodeGoogleAddress = async (address) => {
-    if (!GOOGLE_MAPS_API_KEY) {
-        throw new Error('Google Maps API key not found');
+    if (!isGoogleMapsConfigured()) {
+        throw new Error('Google Maps API key not configured. Please set VITE_GOOGLE_MAPS_API_KEY in your environment variables.');
     }
 
     try {
@@ -158,8 +184,8 @@ export const geocodeGoogleAddress = async (address) => {
  * @returns {Promise<string>} Formatted address
  */
 export const reverseGeocodeGoogle = async (lat, lng) => {
-    if (!GOOGLE_MAPS_API_KEY) {
-        throw new Error('Google Maps API key not found');
+    if (!isGoogleMapsConfigured()) {
+        throw new Error('Google Maps API key not configured. Please set VITE_GOOGLE_MAPS_API_KEY in your environment variables.');
     }
 
     try {
@@ -180,6 +206,46 @@ export const reverseGeocodeGoogle = async (lat, lng) => {
 
     } catch (error) {
         console.error('Google Reverse Geocoding failed:', error);
+        throw error;
+    }
+};
+
+/**
+ * Initialize Google Maps for interactive map component
+ * @param {HTMLElement} container - Map container element
+ * @param {Object} options - Map options
+ * @returns {Promise<Object>} Map instance
+ */
+export const initializeGoogleMap = async (container, options = {}) => {
+    if (!isGoogleMapsConfigured()) {
+        throw new Error('Google Maps API key not configured. Please set VITE_GOOGLE_MAPS_API_KEY in your environment variables.');
+    }
+
+    try {
+        await loadGoogleMaps();
+
+        const defaultOptions = {
+            center: { lat: 0.3476, lng: 32.5825 }, // Kampala, Uganda
+            zoom: 13,
+            mapTypeId: window.google.maps.MapTypeId.ROADMAP,
+            disableDefaultUI: true,
+            zoomControl: true,
+            streetViewControl: false,
+            mapTypeControl: false,
+            fullscreenControl: false,
+            styles: [
+                {
+                    featureType: 'poi',
+                    elementType: 'labels',
+                    stylers: [{ visibility: 'off' }]
+                }
+            ],
+            ...options
+        };
+
+        return new window.google.maps.Map(container, defaultOptions);
+    } catch (error) {
+        console.error('Failed to initialize Google Map:', error);
         throw error;
     }
 };

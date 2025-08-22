@@ -105,8 +105,8 @@ CREATE TABLE public.service_feedback (
   rating text NOT NULL CHECK (rating = ANY (ARRAY['Excellent'::text, 'Good'::text, 'Poor'::text])),
   comments text,
   CONSTRAINT service_feedback_pkey PRIMARY KEY (id),
-  CONSTRAINT service_feedback_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id),
-  CONSTRAINT service_feedback_service_request_id_fkey FOREIGN KEY (service_request_id) REFERENCES public.service_requests(id)
+  CONSTRAINT service_feedback_service_request_id_fkey FOREIGN KEY (service_request_id) REFERENCES public.service_requests(id),
+  CONSTRAINT service_feedback_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id)
 );
 CREATE TABLE public.service_questions (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -177,8 +177,8 @@ CREATE TABLE public.user_health_interests (
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
   CONSTRAINT user_health_interests_pkey PRIMARY KEY (id),
-  CONSTRAINT user_health_interests_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id),
-  CONSTRAINT user_health_interests_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.health_interests_categories(id)
+  CONSTRAINT user_health_interests_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.health_interests_categories(id),
+  CONSTRAINT user_health_interests_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id)
 );
 CREATE TABLE public.user_screening_answers (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -230,8 +230,8 @@ CREATE TABLE public.video_likes (
   user_id uuid NOT NULL,
   liked_at timestamp with time zone DEFAULT now(),
   CONSTRAINT video_likes_pkey PRIMARY KEY (id),
-  CONSTRAINT video_likes_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id),
-  CONSTRAINT video_likes_video_id_fkey FOREIGN KEY (video_id) REFERENCES public.videos(id)
+  CONSTRAINT video_likes_video_id_fkey FOREIGN KEY (video_id) REFERENCES public.videos(id),
+  CONSTRAINT video_likes_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id)
 );
 CREATE TABLE public.video_shares (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
