@@ -190,23 +190,23 @@ const AddressMap = ({ field, value, onLocationSelect }) => {
             marker.setMap(null);
         }
 
-                 const newMarker = new window.google.maps.Marker({
-             position: coordinates,
-             map: map,
-             draggable: true,
-             animation: window.google.maps.Animation.DROP,
-             icon: {
-                 url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+        const newMarker = new window.google.maps.Marker({
+            position: coordinates,
+            map: map,
+            draggable: true,
+            animation: window.google.maps.Animation.DROP,
+            icon: {
+                url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
            <svg width="24" height="32" viewBox="0 0 24 32" fill="none" xmlns="http://www.w3.org/2000/svg">
              <path d="M12 0C5.373 0 0 5.373 0 12c0 9 12 20 12 20s12-11 12-20c0-6.627-5.373-12-12-12z" fill="#8e3bff"/>
              <circle cx="12" cy="12" r="6" fill="white"/>
              <circle cx="12" cy="12" r="3" fill="#8e3bff"/>
            </svg>
          `),
-                 scaledSize: new window.google.maps.Size(24, 32),
-                 anchor: new window.google.maps.Point(12, 32)
-             }
-         });
+                scaledSize: new window.google.maps.Size(24, 32),
+                anchor: new window.google.maps.Point(12, 32)
+            }
+        });
 
         // Add drag listener
         newMarker.addListener('dragend', async (event) => {
