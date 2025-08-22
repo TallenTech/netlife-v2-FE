@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/select";
 import { AlertCircle } from "lucide-react";
 import LocationSearch from "@/components/LocationSearch";
+import AddressMap from "@/components/map/AddressMap";
 import FileUpload from "@/components/FileUpload";
 import DateTimePicker from "@/components/ui/DateTimePicker";
 import ValidationSummary from "./ValidationSummary";
@@ -353,7 +354,7 @@ const ServiceRequestStep = ({
         );
       case "map":
         return (
-          <LocationSearch
+          <AddressMap
             key={field.name}
             field={field}
             value={formData[field.name]}
