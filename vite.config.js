@@ -85,6 +85,7 @@ export default defineConfig({
         globPatterns: ["**/*.{js,css,html,ico,png,svg,json,woff,woff2}"],
         navigateFallback: "index.html",
         navigateFallbackAllowlist: [/^[^.]+$/],
+        maximumFileSizeToCacheInBytes: 3145728,
       },
       devOptions: {
         enabled: true,
