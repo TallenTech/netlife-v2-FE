@@ -87,15 +87,17 @@ export const useWhatsAppAuth = (onSuccess) => {
     } catch (error) {
       // Check if the error occurred but we actually have a valid session
       // This can happen when Supabase returns an error but authentication succeeds
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
       if (session && session.user && onSuccess) {
         // Authentication actually succeeded despite the error
-        console.log('Authentication succeeded despite error:', error);
+        console.log("Authentication succeeded despite error:", error);
         await onSuccess(session.user, activeTab === "login");
       } else {
         // Genuine error - just reset the form, no toast
-        console.log('Authentication failed:', error);
+        console.log("Authentication failed:", error);
         setVerificationCode("");
         setIsLoading((prev) => ({ ...prev, verify: false }));
       }

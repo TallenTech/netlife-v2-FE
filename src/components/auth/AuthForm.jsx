@@ -67,14 +67,14 @@ const AuthForm = ({
             onChange={handlePhoneChange}
             disabled={isLoading}
           >
-            {/* We now use our new MaskedInput component here */}
             {(inputProps) => (
               <MaskedInput
                 {...inputProps}
                 type="tel"
                 placeholder="+256 XXX XXX XXX"
-                className={`text-base sm:text-lg h-12 sm:h-14 ${phoneError ? "border-red-500 focus:border-red-500" : ""
-                  }`}
+                className={`text-base sm:text-lg h-12 sm:h-14 ${
+                  phoneError ? "border-red-500 focus:border-red-500" : ""
+                }`}
               />
             )}
           </InputMask>
@@ -103,11 +103,15 @@ const AuthForm = ({
         className="w-full h-12 sm:h-14 bg-primary text-white hover:bg-primary/90 font-semibold text-base sm:text-lg rounded-xl mb-4 sm:mb-6"
       >
         <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-        <span className="truncate">{isLogin ? "Login with WhatsApp" : "Join with WhatsApp"}</span>
+        <span className="truncate">
+          {isLogin ? "Login with WhatsApp" : "Join with WhatsApp"}
+        </span>
       </LoadingButton>
 
       <div className="text-center space-y-2">
-        <p className="text-gray-600 text-xs sm:text-sm">No passwords. No emails.</p>
+        <p className="text-gray-600 text-xs sm:text-sm">
+          No passwords. No emails.
+        </p>
         <p className="text-gray-500 text-xs leading-relaxed px-2">
           By proceeding, you accept our{" "}
           <Link to="/terms" className="text-primary underline">
@@ -120,7 +124,6 @@ const AuthForm = ({
         </p>
       </div>
 
-      {/* Contact Us Button */}
       <div className="mt-4 sm:mt-6 text-center">
         <Link
           to="/contact-us"

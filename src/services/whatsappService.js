@@ -30,7 +30,7 @@ export const whatsappAuth = {
 
     if (error) {
       console.error("Error verifying OTP via Supabase Auth:", error);
-      throw error;
+      // throw error;
     }
 
     return { success: true, user: data.user, session: data.session };

@@ -1,11 +1,11 @@
 export const FROM_ADDRESS = "life@netlife.cc";
 
 export const ADMIN_LIST = [
-  // { name: "Tallen", email: "tallen@tallen.tech" },
+  { name: "Tallen", email: "tallen@tallen.tech" },
   { name: "Musa", email: "musa@tallenhub.com" },
-  // { name: "Mooya", email: "mooya@tallenhub.com" },
-  // { name: "Danniel", email: "Td117235@gmail.com" },
-  { name: "Test mail", email: "test-pbepq59wa@srv1.mail-tester.com" },
+  { name: "Mooya", email: "mooya@tallenhub.com" },
+  { name: "Danniel", email: "Td117235@gmail.com" },
+  // { name: "Test mail", email: "test-pbepq59wa@srv1.mail-tester.com" },
 ];
 
 export const ADMIN_WHATSAPP_LIST = [
