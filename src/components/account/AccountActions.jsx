@@ -5,28 +5,51 @@ import MobileConfirmDialog from "@/components/ui/MobileConfirmDialog";
 import { Download, Trash2, Settings } from "lucide-react";
 import { useDeleteAccount } from "@/hooks/useSettingsQueries";
 import { settingsService } from "@/services/settingsService";
+import { DownloadProgressModal } from "./DownloadProgressModal";
 
 export const AccountActions = ({ activeProfileId, logout }) => {
   const { toast } = useToast();
   const [showPurgeDialog, setShowPurgeDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState(0);
+  const [downloadStatus, setDownloadStatus] = useState("");
+
   const { mutate: deleteAccount, isLoading: isDeletingAccount } =
     useDeleteAccount();
 
   const handleDataDownload = async () => {
-    const result = await settingsService.downloadAllData(activeProfileId);
-    if (result.success) {
-      toast({
-        title: "Data Downloaded",
-        description: "Your data has been successfully downloaded.",
-      });
-    } else {
+    setIsDownloading(true);
+    setDownloadProgress(0);
+    setDownloadStatus("Initializing export...");
+
+    try {
+      const onProgress = ({ stage, percent }) => {
+        setDownloadStatus(stage);
+        if (percent) {
+          setDownloadProgress(percent);
+        }
+      };
+
+      const result = await settingsService.downloadAllData(
+        activeProfileId,
+        onProgress
+      );
+
+      if (result.success) {
+        setTimeout(() => {
+          setIsDownloading(false);
+        }, 2000);
+      }
+    } catch (error) {
       toast({
         title: "Download Failed",
-        description: "Could not prepare your data for download.",
+        description:
+          "Could not prepare your data for download. Please try again.",
         variant: "destructive",
       });
+      setIsDownloading(false);
     }
   };
 
@@ -77,6 +100,12 @@ export const AccountActions = ({ activeProfileId, logout }) => {
 
   return (
     <>
+      <DownloadProgressModal
+        isOpen={isDownloading}
+        progress={downloadProgress}
+        statusMessage={downloadStatus}
+      />
+
       <div className="bg-white p-4 md:p-6 rounded-2xl border">
         <h3 className="font-bold text-lg mb-4 flex items-center">
           <Settings className="w-5 h-5 mr-2 text-primary" />
