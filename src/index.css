@@ -101,6 +101,10 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
+.app-bg {
+  @apply bg-gray-50 dark:bg-gray-900;
+}
+
 .mobile-container {
   width: 100%;
   max-width: 428px;
@@ -331,11 +335,13 @@ input[type="date"] {
 /* Landing page specific responsive styles */
 @media (min-width: 1024px) {
   .landing-gradient {
-    background: linear-gradient(135deg,
-        #8e3bff 0%,
-        #9d5cff 25%,
-        #1bdeda 75%,
-        #9cbfa7 100%);
+    background: linear-gradient(
+      135deg,
+      #8e3bff 0%,
+      #9d5cff 25%,
+      #1bdeda 75%,
+      #9cbfa7 100%
+    );
   }
 
   .feature-card {
@@ -371,7 +377,6 @@ input[type="date"] {
 }
 
 @layer base {
-
   html,
   body,
   #root {
@@ -405,7 +410,6 @@ button {
 
 /* Better touch targets for mobile */
 @media (max-width: 768px) {
-
   input,
   textarea,
   select,
@@ -541,7 +545,7 @@ html {
 
 /* Optimize for very small screens without cramping */
 @media (max-height: 568px) {
-  .mobile-container>div {
+  .mobile-container > div {
     padding: 1rem !important;
   }
 
@@ -559,13 +563,12 @@ html {
 
 /* Auth page specific improvements */
 @media (max-height: 640px) {
-
   /* Reduce spacing on short screens */
-  .auth-container .space-y-8>*+* {
+  .auth-container .space-y-8 > * + * {
     margin-top: 1.5rem !important;
   }
 
-  .auth-container .space-y-6>*+* {
+  .auth-container .space-y-6 > * + * {
     margin-top: 1rem !important;
   }
 
@@ -585,7 +588,6 @@ html {
 }
 
 @media (min-width: 640px) {
-
   .auth-form input,
   .auth-form button {
     min-height: 48px;
@@ -687,7 +689,8 @@ html {
 /* Desktop popover positioning */
 @media (min-width: 768px) {
   .datetime-picker-popover {
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
+      0 10px 10px -5px rgba(0, 0, 0, 0.04);
   }
 
   /* Ensure popover doesn't go off-screen */
@@ -699,7 +702,6 @@ html {
 
 /* Accessibility improvements */
 @media (prefers-reduced-motion: reduce) {
-
   .datetime-picker-modal,
   .datetime-picker-popover {
     transition: none;
