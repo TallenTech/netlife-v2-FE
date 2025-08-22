@@ -28,7 +28,13 @@ export const ProfileTab = ({
 }) => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [profileData, setProfileData] = useState({});
+  const [profileData, setProfileData] = useState({
+    username: "",
+    date_of_birth: "",
+    gender: "",
+    profile_picture: null,
+  });
+
   const [district, setDistrict] = useState("");
   const [subCounty, setSubCounty] = useState("");
   const [isEditingPicture, setIsEditingPicture] = useState(false);
