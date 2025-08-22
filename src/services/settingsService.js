@@ -1,18 +1,20 @@
 import { supabase } from "@/lib/supabase";
 import JSZip from "jszip";
-import { formatReportAsText } from "@/lib/exportUtils";
+import {
+  createEligibilityReportPdf,
+  createComprehensiveProfilePdf,
+} from "@/lib/exportUtils";
 
 async function downloadAllData(userId, onProgress) {
   try {
     const zip = new JSZip();
-    const totalSteps = 6; // We've added a step for user files
+    const totalSteps = 6;
 
     const updateProgress = (stepNumber, message) => {
       const percent = (stepNumber / totalSteps) * 100;
       onProgress({ stage: message, percent });
     };
 
-    // STEP 1: GET PROFILES
     updateProgress(1, "Gathering profile data...");
     const { data: mainProfile, error: mainProfileError } = await supabase
       .from("profiles")
@@ -33,36 +35,45 @@ async function downloadAllData(userId, onProgress) {
     const mainFirstName = mainProfile.username.split(" ")[0] || "user";
     const rootFolder = zip.folder(`NetLife_Data_Export_${mainFirstName}`);
 
-    // STEP 2: DOWNLOAD PROFILE PICTURES
-    updateProgress(2, "Downloading profile pictures...");
-    const profilePicturesFolder = rootFolder.folder("Profile_Pictures");
+    updateProgress(2, "Processing profiles...");
+    const profilesFolder = rootFolder.folder("Profiles");
+
     for (const profile of allProfiles) {
-      if (
-        profile.profile_picture &&
-        profile.profile_picture.startsWith("http")
-      ) {
+      if (profile.profile_picture) {
+        let imageUrl = "";
+        let imageType = "png";
+        if (profile.profile_picture.startsWith("http")) {
+          imageUrl = profile.profile_picture;
+          imageType =
+            profile.profile_picture.split(".").pop().split("?")[0] || "png";
+        } else {
+          imageUrl = `${window.location.origin}/avatars/${profile.profile_picture}.png`;
+        }
         try {
-          const response = await fetch(profile.profile_picture);
+          const response = await fetch(imageUrl);
           if (response.ok) {
-            const blob = await response.blob();
+            const imageBytes = await response.arrayBuffer();
             const profileFirstName = profile.username.split(" ")[0];
-            const fileExtension =
-              profile.profile_picture.split(".").pop().split("?")[0] || "jpg";
-            profilePicturesFolder.file(
-              `${profileFirstName}_profile_picture.${fileExtension}`,
-              blob
+            profilesFolder.file(
+              `${profileFirstName}_profile_image.${imageType}`,
+              imageBytes
             );
           }
         } catch (e) {
-          console.warn(
-            `Could not download profile picture for ${profile.username}`,
-            e
-          );
+          console.warn(`Could not fetch image for ${profile.username}`);
         }
       }
     }
 
-    // STEP 3: GATHER & FORMAT ELIGIBILITY REPORTS
+    const profilePdfBytes = await createComprehensiveProfilePdf(
+      mainProfile,
+      managedProfiles
+    );
+    profilesFolder.file(
+      `${mainFirstName}_Account_Summary.pdf`,
+      profilePdfBytes
+    );
+
     updateProgress(3, "Processing eligibility reports...");
     const eligibilityReportsFolder = rootFolder.folder("Eligibility_Reports");
     const { data: screeningResults } = await supabase
@@ -73,7 +84,7 @@ async function downloadAllData(userId, onProgress) {
     if (screeningResults) {
       for (const result of screeningResults) {
         const profile = allProfiles.find((p) => p.id === result.user_id);
-        const reportText = formatReportAsText(result, profile);
+        const pdfBytes = await createEligibilityReportPdf(result, profile);
         const profileFirstName = profile
           ? profile.username.split(" ")[0]
           : "unknown";
@@ -81,62 +92,65 @@ async function downloadAllData(userId, onProgress) {
           result.services?.name.replace(/\s+/g, "_") || "Unknown";
         const date = new Date(result.completed_at).toISOString().split("T")[0];
         eligibilityReportsFolder.file(
-          `${profileFirstName}_${serviceName}_Report_${date}.txt`,
-          reportText
+          `${profileFirstName}_${serviceName}_Report_${date}.pdf`,
+          pdfBytes
         );
       }
     }
 
-    // STEP 4: GATHER YOUR UPLOADED FILES (This is the added part)
-    updateProgress(4, "Downloading your uploaded files...");
-    const userFilesFolder = rootFolder.folder("My_Uploaded_Files");
-    const { data: userAttachments } = await supabase
-      .from("user_attachments")
-      .select("*")
-      .in("user_id", allProfileIds);
-
-    if (userAttachments) {
-      for (const attachment of userAttachments) {
-        const { data: fileData, error } = await supabase.storage
-          .from("service-attachments")
-          .download(attachment.file_path);
-        if (!error) {
-          userFilesFolder.file(attachment.original_name, fileData);
-        }
-      }
-    }
-
-    // STEP 5: GATHER SERVICE REQUEST PDFS
-    updateProgress(5, "Downloading service request reports...");
-    const servicePdfsFolder = rootFolder.folder("Service_Request_Reports");
+    updateProgress(4, "Processing service requests and attachments...");
+    const requestsFolder = rootFolder.folder("Service_Requests");
     const { data: serviceRequests } = await supabase
       .from("service_requests")
-      .select("id")
+      .select("*, services(name)")
       .in("user_id", allProfileIds);
 
-    if (serviceRequests && serviceRequests.length > 0) {
-      const requestIds = serviceRequests.map((r) => r.id);
-      const { data: generatedPdfs } = await supabase
-        .from("generated_pdfs")
-        .select("*")
-        .in("service_request_id", requestIds);
+    if (serviceRequests) {
+      for (const request of serviceRequests) {
+        const profile = allProfiles.find((p) => p.id === request.user_id);
+        const profileFirstName = profile
+          ? profile.username.split(" ")[0]
+          : "unknown";
+        const serviceName =
+          request.services?.name.replace(/\s+/g, "_") || "Request";
+        const requestIdShort = request.id.slice(0, 8);
+        const requestFolder = requestsFolder.folder(
+          `${profileFirstName}_${serviceName}_${requestIdShort}`
+        );
 
-      if (generatedPdfs) {
-        for (const pdf of generatedPdfs) {
-          const { data: fileData, error } = await supabase.storage
-            .from("generated-service-pdfs")
-            .download(pdf.file_path);
-          if (!error) {
-            servicePdfsFolder.file(pdf.file_name, fileData);
+        const { data: generatedPdfs } = await supabase
+          .from("generated_pdfs")
+          .select("*")
+          .eq("service_request_id", request.id);
+        if (generatedPdfs) {
+          for (const pdf of generatedPdfs) {
+            const { data: fileData, error } = await supabase.storage
+              .from("generated-service-pdfs")
+              .download(pdf.file_path);
+            if (!error) requestFolder.file(pdf.file_name, fileData);
+          }
+        }
+
+        const { data: userAttachments } = await supabase
+          .from("user_attachments")
+          .select("*")
+          .eq("service_request_id", request.id);
+        if (userAttachments) {
+          for (const attachment of userAttachments) {
+            const { data: fileData, error } = await supabase.storage
+              .from("service-attachments")
+              .download(attachment.file_path);
+            if (!error) requestFolder.file(attachment.original_name, fileData);
           }
         }
       }
     }
 
-    // STEP 6: COMPRESSING FILES
+    updateProgress(5, "Finalizing package...");
+
     updateProgress(6, "Compressing your data...");
     const zipBlob = await zip.generateAsync({ type: "blob" }, (metadata) => {
-      const compressionProgress = 83 + (metadata.percent / 100) * 17; // Scale 0-100% to fit the 83-100% range
+      const compressionProgress = 83 + (metadata.percent / 100) * 17;
       onProgress({
         stage: "Compressing your data...",
         percent: compressionProgress,
@@ -162,7 +176,6 @@ async function downloadAllData(userId, onProgress) {
   }
 }
 
-// Your other service functions remain here
 export const settingsService = {
   async saveSettings(userId, settings) {
     try {
@@ -349,5 +362,6 @@ export const settingsService = {
       console.error("Error deleting user storage files:", error);
     }
   },
+
   downloadAllData,
 };
