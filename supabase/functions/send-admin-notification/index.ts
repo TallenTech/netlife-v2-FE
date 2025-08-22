@@ -73,8 +73,11 @@ serve(async (req) => {
         `Could not find requester profile for ID: ${record.user_id}`
       );
 
-    const patientName = patientProfile.username || "user";
-    const requesterName = requesterProfile.username || "user";
+    const patientFullName = patientProfile.username || "user";
+    const requesterFullName = requesterProfile.username || "user";
+    const patientFirstName = patientFullName.split(" ")[0];
+    const requesterFirstName = requesterFullName.split(" ")[0];
+
     const deliveryDate = record.preferred_date
       ? new Date(record.preferred_date)
       : null;
@@ -120,10 +123,10 @@ serve(async (req) => {
     }
 
     const pdfPayload = {
-      patient_name: patientName,
+      patient_name: patientFullName,
       patient_gender: patientProfile.gender,
       patient_age: calculateAge(patientProfile.date_of_birth),
-      requester_name: requesterName,
+      requester_name: requesterFullName,
       requester_phone: requesterProfile.whatsapp_number,
       requester_whatsapp: requesterProfile.whatsapp_number,
       requester_email: requesterProfile.email || "N/A",
@@ -160,8 +163,10 @@ serve(async (req) => {
       "0"
     );
 
-    const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
-    const capitalizedPatientName = capitalize(patientName);
+    const capitalize = (s: string) =>
+      s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+
+    const capitalizedPatientName = capitalize(patientFirstName);
 
     const serviceSlug = service.slug || "service";
     let formattedServiceSlug: string;
@@ -176,8 +181,7 @@ serve(async (req) => {
 
     const uniqueSuffix = Math.random().toString(36).substring(2, 8);
 
-    const pdfFilename =
-      `${capitalizedPatientName}_${formattedServiceSlug}_request_${dateString}_${serviceNumberFormatted}_${uniqueSuffix}.pdf`;
+    const pdfFilename = `${capitalizedPatientName}_${formattedServiceSlug}_request_${dateString}_${serviceNumberFormatted}_${uniqueSuffix}.pdf`;
 
     const { data: pdfUploadData, error: pdfUploadError } =
       await supabaseAdmin.storage
@@ -213,23 +217,28 @@ serve(async (req) => {
 
     if (zeptoTemplateKey) {
       for (const admin of ADMIN_LIST) {
-        const subject = `New ${
+        const subjectForApi = `New ${
           service.name
-        } Request from ${patientName} - #${record.id.slice(0, 8)}`;
+        } Request from ${patientFirstName} - #${record.id.slice(0, 8)}`;
+
         const mergeInfo = {
           admin_name: admin.name,
-          requester_name: requesterName,
-          patient_name: patientName,
           service_request_id: record.id,
+          patient_name_subject: patientFirstName,
+          requester_name_subject: requesterFirstName,
+          patient_name_body: `<strong>${patientFirstName}</strong>`,
+          requester_name_body: `<strong>${requesterFirstName}</strong>`,
         };
+
         const emailApiPayload = {
           template_key: zeptoTemplateKey,
           from: { address: FROM_ADDRESS, name: "NetLife Platform" },
           to: [{ email_address: { address: admin.email, name: admin.name } }],
-          subject: subject,
+          subject: subjectForApi,
           merge_info: mergeInfo,
           attachments: emailAttachments,
         };
+
         const response = await fetch(ZEPTOMAIL_API_URL_TEMPLATE, {
           method: "POST",
           headers: {
@@ -255,7 +264,7 @@ serve(async (req) => {
     );
     if (recipientPhoneNumber && twilioUserTemplateSid) {
       await sendWhatsappTemplate(recipientPhoneNumber, twilioUserTemplateSid, {
-        "1": requesterName,
+        "1": `*${requesterFirstName}*`,
       });
     }
 

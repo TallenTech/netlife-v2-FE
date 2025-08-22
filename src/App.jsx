@@ -7,9 +7,9 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import ScrollToTop from "@/components/ScrollToTop";
 import MainLayout from "@/components/layout/MainLayout";
-import NetLifeLogo from "@/components/NetLifeLogo";
 import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 import AutoLogoutWarning from "@/components/AutoLogoutWarning";
+import ProtectedRoute from "@/components/ProtectedRoute";
 import LandingPage from "@/pages/LandingPage";
 import WhatsAppAuth from "@/components/auth/WhatsAppAuth";
 import ProfileSetup from "@/components/ProfileSetup";
@@ -77,92 +77,26 @@ function AppWrapper() {
 }
 
 function AppRoutes() {
-  const {
-    isAuthenticated,
-    isPartiallyAuthenticated,
-    isLoading,
-    error,
-    logout,
-  } = useAuth();
-
-  if (isLoading) {
-    return null;
-  }
-
-  if (error) {
-    return (
-      <>
-        <div className="lg:hidden mobile-container bg-white">
-          <div className="h-screen flex items-center justify-center">
-            <div className="text-center px-6">
-              <div className="mb-6">
-                <NetLifeLogo className="w-20 h-20 mx-auto" />
-              </div>
-              <h2 className="text-xl font-bold text-gray-800 mb-2">
-                Connection Issue
-              </h2>
-              <p className="text-gray-600 mb-6">
-                We're having trouble connecting to our services right now.
-              </p>
-              <button
-                onClick={() => window.location.reload()}
-                className="bg-primary text-white px-8 py-3 rounded-xl font-semibold hover:bg-primary/90 transition-colors duration-200 shadow-lg"
-              >
-                Try Again
-              </button>
-            </div>
-          </div>
-        </div>
-        <div className="hidden lg:block min-h-screen bg-white">
-          <div className="h-screen flex items-center justify-center">
-            <div className="text-center max-w-md mx-auto px-8">
-              <div className="mb-8">
-                <NetLifeLogo className="w-32 h-32 mx-auto" />
-              </div>
-              <h1 className="text-3xl font-bold text-gray-800 mb-3">
-                Connection Issue
-              </h1>
-              <p className="text-lg text-gray-600 mb-8">
-                We're having trouble connecting to our services right now.
-              </p>
-              <button
-                onClick={() => window.location.reload()}
-                className="bg-primary text-white px-10 py-4 rounded-xl font-semibold hover:bg-primary/90 transition-colors duration-200 shadow-lg text-lg"
-              >
-                Try Again
-              </button>
-              <div className="mt-8 space-y-2 text-sm text-gray-500">
-                <p>Your Health. Your Privacy. Your Power.</p>
-                <p>Secure, stigma-free digital health services</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </>
-    );
-  }
+  const { isAuthenticated, isPartiallyAuthenticated, logout } = useAuth();
 
   return (
     <Routes>
       <Route
         path="/*"
         element={
-          isAuthenticated ? (
+          <ProtectedRoute>
             <MainLayout handleLogout={logout} />
-          ) : isPartiallyAuthenticated ? (
-            <Navigate to="/welcome/profile-setup" replace />
-          ) : (
-            <Navigate to="/welcome" replace />
-          )
+          </ProtectedRoute>
         }
       />
+
       <Route
         path="/welcome/*"
         element={
-          !isAuthenticated ? (
-            <OnboardingFlow isPartiallyAuthed={isPartiallyAuthenticated} />
-          ) : (
+          isAuthenticated ? (
             <Navigate to="/dashboard" replace />
+          ) : (
+            <OnboardingFlow isPartiallyAuthed={isPartiallyAuthenticated} />
           )
         }
       />
