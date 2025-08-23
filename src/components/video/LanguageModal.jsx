@@ -22,25 +22,7 @@ const LanguageModal = ({
         onClose();
     };
 
-    const handleSelectAll = () => {
-        // For single selection, "Select All" means show all videos (no language filter)
-        const allLanguageCodes = availableLanguages.length > 0
-            ? availableLanguages.map(lang => lang.code)
-            : SUPPORTED_LANGUAGES.map(lang => lang.code);
-        onLanguageChange(allLanguageCodes);
-        onClose();
-    };
 
-    const handleClearAll = () => {
-        // Clear means go back to default language
-        const defaultLang = getDefaultLanguage();
-        onLanguageChange([defaultLang.code]);
-        onClose();
-    };
-
-    const isAllSelected = selectedLanguages.length === (availableLanguages.length > 0 ? availableLanguages.length : SUPPORTED_LANGUAGES.length);
-    const isOnlyDefaultSelected = selectedLanguages.length === 1 &&
-        selectedLanguages[0] === getDefaultLanguage().code;
 
     return (
         <AnimatePresence>
@@ -61,10 +43,10 @@ const LanguageModal = ({
                         animate={{ y: 0 }}
                         exit={{ y: '100%' }}
                         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                        className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-3xl shadow-2xl"
+                        className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-3xl shadow-2xl min-h-[50vh] max-h-[90vh] flex flex-col"
                     >
                         {/* Handle */}
-                        <div className="flex justify-center pt-3 pb-2">
+                        <div className="flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing">
                             <div className="w-12 h-1 bg-gray-300 rounded-full"></div>
                         </div>
 
@@ -86,31 +68,10 @@ const LanguageModal = ({
                             </div>
                         </div>
 
-                        {/* Quick Actions */}
-                        <div className="px-6 py-3 border-b border-gray-100">
-                            <div className="flex gap-2">
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={handleSelectAll}
-                                    className="flex-1 h-9 text-sm"
-                                >
-                                    Show All
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={handleClearAll}
-                                    disabled={isOnlyDefaultSelected}
-                                    className="flex-1 h-9 text-sm"
-                                >
-                                    Default
-                                </Button>
-                            </div>
-                        </div>
+
 
                         {/* Language Options */}
-                        <div className="max-h-96 overflow-y-auto px-6 py-4">
+                        <div className="flex-1 overflow-y-auto px-6 py-4 min-h-0" style={{ WebkitOverflowScrolling: 'touch' }}>
                             <div className="space-y-2">
                                 {(availableLanguages.length > 0 ? availableLanguages : SUPPORTED_LANGUAGES).map((language) => {
                                     const isSelected = selectedLanguages.includes(language.code);
@@ -157,6 +118,11 @@ const LanguageModal = ({
 
                         {/* Bottom padding for safe area */}
                         <div className="h-6"></div>
+
+                        {/* Scroll indicator */}
+                        <div className="flex justify-center pb-2">
+                            <div className="w-8 h-1 bg-gray-200 rounded-full opacity-50"></div>
+                        </div>
                     </motion.div>
                 </>
             )}

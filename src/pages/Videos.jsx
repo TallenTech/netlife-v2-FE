@@ -17,7 +17,7 @@ import { getDefaultLanguage, getLanguageByCode } from "@/data/languages";
 const Videos = () => {
   const [activeFilter, setActiveFilter] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedLanguages, setSelectedLanguages] = useState([getDefaultLanguage().code]);
+  const [selectedLanguages, setSelectedLanguages] = useState([]);
 
   const { user } = useAuth() || {};
   const navigate = useNavigate();
@@ -74,9 +74,9 @@ const Videos = () => {
         .includes(searchTerm.toLowerCase()) ||
         (video.description && video.description.toLowerCase().includes(searchTerm.toLowerCase()));
 
-      // Language filter - check if video has any of the selected languages
+      // Language filter - show all videos if no languages selected (All), otherwise filter by selected languages
       const videoLanguage = video.language_code || 'en';
-      const matchesLanguage = selectedLanguages.includes(videoLanguage);
+      const matchesLanguage = selectedLanguages.length === 0 || selectedLanguages.includes(videoLanguage);
 
       return matchesFilter && matchesSearch && matchesLanguage;
     });
@@ -332,7 +332,7 @@ const Videos = () => {
 
         <div className="space-y-3 md:space-y-6 px-4 md:px-0">
           {/* Filter Status Indicator */}
-          {(activeFilter !== "All" || searchTerm || (selectedLanguages.length === 1 && selectedLanguages[0] !== getDefaultLanguage().code)) && (
+          {(activeFilter !== "All" || searchTerm || selectedLanguages.length > 0) && (
             <div className="text-center py-2">
               <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary/10 text-primary text-sm rounded-full">
                 <span>Filtered results</span>
@@ -346,9 +346,12 @@ const Videos = () => {
                     "{searchTerm}"
                   </span>
                 )}
-                {selectedLanguages.length === 1 && selectedLanguages[0] !== getDefaultLanguage().code && (
+                {selectedLanguages.length > 0 && (
                   <span className="bg-primary text-white px-2 py-0.5 rounded text-xs">
-                    {getLanguageByCode(selectedLanguages[0])?.name || selectedLanguages[0]}
+                    {selectedLanguages.length === 1
+                      ? getLanguageByCode(selectedLanguages[0])?.name || selectedLanguages[0]
+                      : `${selectedLanguages.length} languages`
+                    }
                   </span>
                 )}
               </div>
@@ -405,22 +408,7 @@ const Videos = () => {
                         description: "Thank you for your feedback.",
                       });
                     }}
-                    onShare={() => {
-                      // Handle share functionality
-                      if (navigator.share) {
-                        navigator.share({
-                          title: video.title,
-                          text: video.description,
-                          url: window.location.href,
-                        });
-                      } else {
-                        navigator.clipboard.writeText(window.location.href);
-                        toast({
-                          title: "Link copied!",
-                          description: "Video link copied to clipboard.",
-                        });
-                      }
-                    }}
+
                     showLanguageInfo={true}
                     showTranslationStatus={true}
                   />
