@@ -7,7 +7,6 @@ import {
     Clock,
     Eye,
     Heart,
-    Share2,
     Globe,
     Languages,
     Subtitles,
@@ -20,7 +19,6 @@ const VideoCard = ({
     video,
     onPlay,
     onLike,
-    onShare,
     className = "",
     showLanguageInfo = true,
     showTranslationStatus = true
@@ -39,7 +37,6 @@ const VideoCard = ({
         audio_track_url,
         view_count = 0,
         like_count = 0,
-        share_count = 0,
         duration_seconds = 0,
         tags = [],
         created_at
@@ -213,10 +210,7 @@ const VideoCard = ({
                                 <Heart className="h-4 w-4" />
                                 <span>{formatViewCount(like_count)}</span>
                             </div>
-                            <div className="flex items-center gap-1">
-                                <Share2 className="h-4 w-4" />
-                                <span>{formatViewCount(share_count)}</span>
-                            </div>
+
                         </div>
 
                         {/* Date */}
@@ -247,14 +241,7 @@ const VideoCard = ({
                             <Heart className="h-4 w-4" />
                         </Button>
 
-                        <Button
-                            onClick={() => onShare?.(video)}
-                            variant="outline"
-                            size="sm"
-                            className="flex items-center gap-1"
-                        >
-                            <Share2 className="h-4 w-4" />
-                        </Button>
+
                     </div>
                 </CardContent>
             </Card>
