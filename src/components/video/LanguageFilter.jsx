@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -34,13 +34,7 @@ const LanguageFilter = ({
     const [isOpen, setIsOpen] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-    // Initialize with default language if none selected
-    useEffect(() => {
-        if (selectedLanguages.length === 0) {
-            const defaultLang = getDefaultLanguage();
-            onLanguageChange([defaultLang.code]);
-        }
-    }, [selectedLanguages.length, onLanguageChange]);
+
 
     const handleLanguageSelect = (languageCode) => {
         // Single selection - just select the tapped language
