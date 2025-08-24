@@ -17,6 +17,7 @@ import { ProfilePictureEditor } from "@/components/profile/ProfilePictureEditor"
 import { profileService } from "@/services/profileService";
 import { useDistricts } from "@/hooks/useSettingsQueries";
 import { PhoneNumberManager } from "@/components/account/PhoneNumberManager";
+import InvitationStats from "@/components/invitation/InvitationStats";
 
 export const ProfileTab = ({
   activeProfile,
@@ -87,9 +88,9 @@ export const ProfileTab = ({
       const uploadResult = isMainProfile
         ? await profileService.uploadProfilePhoto(file, activeProfile.id)
         : await profileService.uploadManagedProfilePhoto(
-            file,
-            activeProfile.id
-          );
+          file,
+          activeProfile.id
+        );
 
       if (!uploadResult.success)
         throw new Error(
@@ -278,6 +279,10 @@ export const ProfileTab = ({
           </Button>
         </div>
       </div>
+
+      {/* Invitation Stats - Commented out for now, will restore in future */}
+      {/* <InvitationStats userId={activeProfile?.id} /> */}
+
       <div className="bg-white p-4 rounded-2xl border mb-6 space-y-2">
         <button
           onClick={() => navigate("/account/manage-profiles")}

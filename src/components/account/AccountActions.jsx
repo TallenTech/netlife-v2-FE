@@ -2,15 +2,17 @@ import React, { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import MobileConfirmDialog from "@/components/ui/MobileConfirmDialog";
-import { Download, Trash2, Settings } from "lucide-react";
+import { Download, Trash2, Settings, Users } from "lucide-react";
 import { useDeleteAccount } from "@/hooks/useSettingsQueries";
 import { settingsService } from "@/services/settingsService";
 import { DownloadProgressModal } from "./DownloadProgressModal";
+import InvitationModal from "@/components/invitation/InvitationModal";
 
 export const AccountActions = ({ activeProfileId, logout }) => {
   const { toast } = useToast();
   const [showPurgeDialog, setShowPurgeDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showInvitationModal, setShowInvitationModal] = useState(false);
 
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
@@ -113,6 +115,14 @@ export const AccountActions = ({ activeProfileId, logout }) => {
         </h3>
         <div className="space-y-3">
           <Button
+            onClick={() => setShowInvitationModal(true)}
+            variant="outline"
+            className="w-full justify-start space-x-2 bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
+          >
+            <Users size={16} />
+            <span>Invite Friends</span>
+          </Button>
+          <Button
             onClick={handleDataDownload}
             variant="outline"
             className="w-full justify-start space-x-2"
@@ -155,6 +165,12 @@ export const AccountActions = ({ activeProfileId, logout }) => {
         description="This action is permanent and cannot be undone. This will delete your account, all your data, files, and profile pictures from our servers."
         confirmText="Yes, delete my account"
         isLoading={isDeletingAccount}
+      />
+
+      <InvitationModal
+        isOpen={showInvitationModal}
+        onClose={() => setShowInvitationModal(false)}
+        userId={activeProfileId}
       />
     </>
   );

@@ -7,6 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { profileService } from "@/services/profileService";
+
 import { Step1Details } from "@/components/profile/Step1Details";
 import { Step2Avatar } from "@/components/profile/Step2Avatar";
 import { supabase } from "@/lib/supabase";
@@ -19,7 +20,7 @@ const ProfileSetup = ({
   existingData = null,
   isSubmitting: isSubmittingProp = false,
 }) => {
-  const { refreshAuthAndProfiles } = useAuth();
+  const { refreshAuthAndProfiles, profile } = useAuth();
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [profileData, setProfileData] = useState({
@@ -40,6 +41,7 @@ const ProfileSetup = ({
 
   const isSubmitting = isNewDependent ? isSubmittingProp : internalIsSubmitting;
 
+  // Load existing data if editing
   useEffect(() => {
     if (existingData) {
       setProfileData({
@@ -119,9 +121,8 @@ const ProfileSetup = ({
               newErrors[field] =
                 "You must be at least 15 years old to register.";
             else
-              newErrors[field] = `${
-                field.charAt(0).toUpperCase() + field.slice(1)
-              } is required.`;
+              newErrors[field] = `${field.charAt(0).toUpperCase() + field.slice(1)
+                } is required.`;
           }
         }
       });
@@ -266,10 +267,10 @@ const ProfileSetup = ({
 
             <div className="w-full md:w-2/3 flex flex-col flex-1">
               <div
-                className={`flex-1 overflow-y-auto p-4 md:p-8 ${
-                  step === 2 ? "pb-8 md:pb-8" : ""
-                }`}
+                className={`flex-1 overflow-visible p-4 md:p-8 ${step === 2 ? "pb-8 md:pb-8" : ""
+                  }`}
               >
+
                 {step === 1 ? (
                   <Step1Details
                     profileData={profileData}
@@ -291,11 +292,10 @@ const ProfileSetup = ({
               </div>
 
               <div
-                className={`p-4 md:p-8 bg-white ${
-                  step === 2
-                    ? "pt-6 md:pt-4 border-t md:border-t-0"
-                    : "pt-0 md:pt-4 border-t md:border-t-0"
-                }`}
+                className={`p-4 md:p-8 bg-white ${step === 2
+                  ? "pt-6 md:pt-4 border-t md:border-t-0"
+                  : "pt-0 md:pt-4 border-t md:border-t-0"
+                  }`}
               >
                 <Button
                   onClick={handleNext}

@@ -14,12 +14,12 @@ const ContactUs = () => {
             value: "+256772416701",
             href: "tel:+256772416701"
         },
-        {
-            icon: Phone,
-            title: "Phone",
-            value: "+256756306001",
-            href: "tel:+256756306001"
-        },
+        // {
+        //     icon: Phone,
+        //     title: "Phone",
+        //     value: "+256756306001",
+        //     href: "tel:+256756306001"
+        // },
         {
             icon: Mail,
             title: "Email",
@@ -94,7 +94,7 @@ const ContactUs = () => {
                         <p className="text-xl text-gray-500">We're here to help!</p>
                     </header>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+                    <div className="grid grid-cols-1 gap-6 max-w-2xl mx-auto">
                         {contactDetails.map((item, index) => (
                             <div key={index} className="bg-white p-6 rounded-2xl border shadow-sm hover:shadow-md transition-shadow duration-200 flex items-start space-x-4">
                                 <div className="flex-shrink-0 w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
