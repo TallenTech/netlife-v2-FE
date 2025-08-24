@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -84,20 +85,40 @@ const InvitationModal = ({ isOpen, onClose, userId }) => {
 
     if (!isOpen) return null;
 
-    return (
+    const modalContent = (
         <AnimatePresence>
             <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                    backdropFilter: 'blur(4px)',
+                    zIndex: 999999,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '1rem'
+                }}
                 onClick={onClose}
             >
                 <motion.div
                     initial={{ scale: 0.95, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     exit={{ scale: 0.95, opacity: 0 }}
-                    className="bg-white rounded-2xl w-full max-w-md overflow-hidden"
+                    style={{
+                        backgroundColor: 'white',
+                        borderRadius: '1rem',
+                        width: '100%',
+                        maxWidth: '28rem',
+                        overflow: 'hidden',
+                        zIndex: 1000000
+                    }}
                     onClick={(e) => e.stopPropagation()}
                 >
                     {/* Header */}
@@ -180,6 +201,9 @@ const InvitationModal = ({ isOpen, onClose, userId }) => {
             </motion.div>
         </AnimatePresence>
     );
+
+    // Use React Portal to render at document body level
+    return createPortal(modalContent, document.body);
 };
 
 export default InvitationModal;
