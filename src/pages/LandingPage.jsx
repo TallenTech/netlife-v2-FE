@@ -1,10 +1,21 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { motion } from "framer-motion";
 import { ShieldCheck, HeartPulse, FileLock as UserLock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import NetLifeLogo from "@/components/NetLifeLogo";
+import { useSearchParams } from "react-router-dom";
 
 const LandingPage = ({ onJoin }) => {
+  const [searchParams] = useSearchParams();
+
+  // Capture referral code from URL
+  useEffect(() => {
+    const refCode = searchParams.get('ref');
+    if (refCode) {
+      localStorage.setItem('netlife_referral_code', refCode);
+    }
+  }, [searchParams]);
+
   return (
     <>
       {/* Mobile Layout*/}

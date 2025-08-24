@@ -6,6 +6,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/lib/supabase";
 import { profileService } from "@/services/profileService";
 
+
 const AddProfileFlow = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -62,6 +63,8 @@ const AddProfileFlow = () => {
       if (error) {
         throw new Error(error.message);
       }
+
+
 
       if (photoFile && data.id) {
         const uploadResult = await profileService.uploadManagedProfilePhoto(

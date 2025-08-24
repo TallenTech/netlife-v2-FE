@@ -9,6 +9,7 @@ import {
   LogOut,
   Users,
   ChevronsRight,
+  Share2,
 } from "lucide-react";
 import NetLifeLogo from "@/components/NetLifeLogo";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getAvatarEmoji } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import InvitationModal from "@/components/invitation/InvitationModal";
 
 const navItems = [
   { path: "/dashboard", icon: Home, label: "Home" },
@@ -29,6 +31,7 @@ const SideNav = () => {
   const { activeProfile, logout } = useAuth();
   const navigate = useNavigate();
   const [imageError, setImageError] = useState(false);
+  const [showInvitationModal, setShowInvitationModal] = useState(false);
 
   // Reset image error when profile picture changes
   React.useEffect(() => {
@@ -127,7 +130,23 @@ const SideNav = () => {
           </div>
           <ChevronsRight className="w-4 h-4 text-gray-400" />
         </button>
+
+        <button
+          onClick={() => setShowInvitationModal(true)}
+          className="flex items-center w-full text-left space-x-3 px-4 py-3 rounded-lg transition-colors duration-200 text-green-600 hover:bg-green-50"
+        >
+          <Share2 className="w-6 h-6 text-green-600" />
+          <div className="flex-1">
+            <p className="font-semibold text-sm">Invite Friends</p>
+          </div>
+        </button>
       </div>
+
+      <InvitationModal
+        isOpen={showInvitationModal}
+        onClose={() => setShowInvitationModal(false)}
+        userId={activeProfile?.id}
+      />
     </aside>
   );
 };
