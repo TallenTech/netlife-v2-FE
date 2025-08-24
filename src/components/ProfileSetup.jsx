@@ -41,9 +41,29 @@ const ProfileSetup = ({
 
   const isSubmitting = isNewDependent ? isSubmittingProp : internalIsSubmitting;
 
-  // Load existing data if editing
+  const getSessionKey = useCallback(() => {
+    if (isNewDependent) {
+      return existingData
+        ? `editDependent_${existingData.id}`
+        : "addDependentProfileData";
+    }
+    if (isInitialSetup) {
+      return "initialProfileSetupData";
+    }
+    return `profileSetup_${profile?.id || "unknown"}`;
+  }, [isNewDependent, isInitialSetup, existingData, profile]);
+
+  const sessionStorageKey = getSessionKey();
+
   useEffect(() => {
-    if (existingData) {
+    const savedData = sessionStorage.getItem(sessionStorageKey);
+    if (savedData) {
+      const parsedData = JSON.parse(savedData);
+      setProfileData(parsedData);
+      if (parsedData.avatar?.startsWith("http")) {
+        setPreviewUrl(parsedData.avatar);
+      }
+    } else if (existingData) {
       setProfileData({
         username: existingData.username || "",
         birthDate: existingData.date_of_birth || "",
@@ -56,7 +76,16 @@ const ProfileSetup = ({
         setPreviewUrl(existingData.profile_picture);
       }
     }
-  }, [existingData]);
+  }, [existingData, sessionStorageKey]);
+
+  useEffect(() => {
+    const isFormTouched = Object.values(profileData).some(
+      (value) => value !== "" && value !== "avatar-2"
+    );
+    if (isFormTouched) {
+      sessionStorage.setItem(sessionStorageKey, JSON.stringify(profileData));
+    }
+  }, [profileData, sessionStorageKey]);
 
   const validateField = useCallback(
     (name, value) => {
@@ -121,8 +150,9 @@ const ProfileSetup = ({
               newErrors[field] =
                 "You must be at least 15 years old to register.";
             else
-              newErrors[field] = `${field.charAt(0).toUpperCase() + field.slice(1)
-                } is required.`;
+              newErrors[field] = `${
+                field.charAt(0).toUpperCase() + field.slice(1)
+              } is required.`;
           }
         }
       });
@@ -140,8 +170,11 @@ const ProfileSetup = ({
   };
 
   const handleSubmit = async () => {
+    const clearSessionData = () => sessionStorage.removeItem(sessionStorageKey);
+
     if (onComplete && isNewDependent) {
-      onComplete(profileData, profilePhotoFile);
+      await onComplete(profileData, profilePhotoFile);
+      clearSessionData();
       return;
     }
     setInternalIsSubmitting(true);
@@ -188,6 +221,8 @@ const ProfileSetup = ({
 
       toast({ title: "Profile Created!", description: "Welcome to NetLife." });
 
+      clearSessionData();
+
       if (onComplete) {
         onComplete();
       } else {
@@ -205,8 +240,12 @@ const ProfileSetup = ({
   };
 
   const handleBack = () => {
-    if (step === 2) setStep(1);
-    else if (onBack) onBack();
+    if (step === 2) {
+      setStep(1);
+    } else if (onBack) {
+      sessionStorage.removeItem(sessionStorageKey);
+      onBack();
+    }
   };
 
   const onFileSelect = useCallback((file, isReset = false) => {
@@ -267,10 +306,10 @@ const ProfileSetup = ({
 
             <div className="w-full md:w-2/3 flex flex-col flex-1">
               <div
-                className={`flex-1 overflow-visible p-4 md:p-8 ${step === 2 ? "pb-8 md:pb-8" : ""
-                  }`}
+                className={`flex-1 overflow-visible p-4 md:p-8 ${
+                  step === 2 ? "pb-8 md:pb-8" : ""
+                }`}
               >
-
                 {step === 1 ? (
                   <Step1Details
                     profileData={profileData}
@@ -292,10 +331,11 @@ const ProfileSetup = ({
               </div>
 
               <div
-                className={`p-4 md:p-8 bg-white ${step === 2
-                  ? "pt-6 md:pt-4 border-t md:border-t-0"
-                  : "pt-0 md:pt-4 border-t md:border-t-0"
-                  }`}
+                className={`p-4 md:p-8 bg-white ${
+                  step === 2
+                    ? "pt-6 md:pt-4 border-t md:border-t-0"
+                    : "pt-0 md:pt-4 border-t md:border-t-0"
+                }`}
               >
                 <Button
                   onClick={handleNext}

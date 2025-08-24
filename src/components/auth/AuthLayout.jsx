@@ -14,7 +14,9 @@ const AuthLayout = ({ onBack, children }) => {
               <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
           </header>
-          <main className="flex-1 flex flex-col px-4 sm:px-6 pb-4 sm:pb-6 min-h-0 auth-form">{children}</main>
+          <main className="flex-1 flex flex-col px-4 sm:px-6 pb-4 sm:pb-6 min-h-0 auth-form">
+            {children}
+          </main>
         </div>
       </div>
 
