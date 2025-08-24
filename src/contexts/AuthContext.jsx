@@ -8,6 +8,7 @@ import React, {
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { profileService } from "@/services/profileService";
+import { invitationService } from "@/services/invitationService";
 import useAutoLogout from "@/hooks/useAutoLogout";
 import { getAutoLogoutConfig } from "@/config/autoLogout";
 
@@ -27,9 +28,23 @@ export const AuthProvider = ({ children }) => {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
+
+      // Process referral code when user signs up
+      if (_event === "SIGNED_IN" && session?.user) {
+        const storedReferralCode = localStorage.getItem('netlife_referral_code');
+        if (storedReferralCode) {
+          try {
+            await invitationService.processReferralCode(storedReferralCode, session.user.id);
+            localStorage.removeItem('netlife_referral_code');
+          } catch (error) {
+            console.error('Error processing referral code:', error);
+          }
+        }
+      }
+
       if (_event === "SIGNED_OUT") {
         queryClient.clear();
         localStorage.removeItem("netlife_active_profile_id");

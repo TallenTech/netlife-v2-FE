@@ -16,6 +16,7 @@ import {
   FolderOpen,
   LogOut,
   Clock,
+  Share2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
@@ -30,8 +31,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useQueryClient } from "@tanstack/react-query";
 import { useVideos, useUserServiceRequests } from "@/hooks/useServiceQueries";
 import { useUnreadNotificationCount } from "@/hooks/useNotificationQueries";
+import { useInvitationStats } from "@/hooks/useInvitationQueries";
 import { useSurveyStatus } from "@/hooks/useSurveyQueries";
 import { useScrollToTop } from "@/hooks/useScrollToTop";
+import InvitationModal from "@/components/invitation/InvitationModal";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -40,6 +43,7 @@ const Dashboard = () => {
   const queryClient = useQueryClient();
 
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [showInvitationModal, setShowInvitationModal] = useState(false);
 
   // Ensure page scrolls to top when navigated to
   useScrollToTop();
@@ -254,6 +258,10 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
+
+
+
+
 
         <section className="mb-8">
           <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
@@ -695,6 +703,25 @@ const Dashboard = () => {
                     </div>
                     <ChevronRight className="w-5 h-5 text-gray-400" />
                   </button>
+
+                  <button
+                    onClick={() => {
+                      setShowMobileMenu(false);
+                      setShowInvitationModal(true);
+                    }}
+                    className="flex items-center w-full text-left space-x-4 p-4 rounded-xl hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                      <Share2 className="w-5 h-5 text-green-600" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-gray-900">Invite Friends</h3>
+                      <p className="text-sm text-gray-500">
+                        Share NetLife with others
+                      </p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-gray-400" />
+                  </button>
                 </div>
                 <div className="mt-8 pt-6 border-t border-gray-200">
                   <button
@@ -717,6 +744,13 @@ const Dashboard = () => {
           </>
         )}
       </AnimatePresence>
+
+      {/* Invitation Modal */}
+      <InvitationModal
+        isOpen={showInvitationModal}
+        onClose={() => setShowInvitationModal(false)}
+        userId={activeProfile?.id}
+      />
     </>
   );
 };
