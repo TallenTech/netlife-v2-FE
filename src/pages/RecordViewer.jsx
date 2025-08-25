@@ -35,7 +35,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/components/ui/use-toast";
-import jsPDF from "jspdf";
 import { useAuth } from "@/contexts/AuthContext";
 import { serviceRequestForms } from "@/data/serviceRequestForms";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";

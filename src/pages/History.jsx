@@ -15,7 +15,6 @@ import {
   Clock,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import jsPDF from "jspdf";
 import { useNavigate } from "react-router-dom";
 import { formatSmartTime } from "@/utils/timeUtils";
 import {
@@ -328,7 +327,9 @@ const History = () => {
                 size={14}
                 className={isRefreshing ? "animate-spin" : ""}
               />
-              <span className="text-xs">{isRefreshing ? "Refreshing..." : "Refresh"}</span>
+              <span className="text-xs">
+                {isRefreshing ? "Refreshing..." : "Refresh"}
+              </span>
             </Button>
           </div>
         </div>
@@ -343,10 +344,11 @@ const History = () => {
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`px-3 md:px-6 py-1.5 md:py-2.5 rounded-full text-xs md:text-sm font-semibold transition-all duration-200 ${activeTab === tab
-                    ? "bg-white text-primary shadow-sm"
-                    : "text-gray-600 hover:text-gray-800"
-                    }`}
+                  className={`px-3 md:px-6 py-1.5 md:py-2.5 rounded-full text-xs md:text-sm font-semibold transition-all duration-200 ${
+                    activeTab === tab
+                      ? "bg-white text-primary shadow-sm"
+                      : "text-gray-600 hover:text-gray-800"
+                  }`}
                 >
                   {tab}
                 </button>
@@ -396,10 +398,11 @@ const History = () => {
                       </div>
                     )}
                     <span
-                      className={`text-xs font-bold px-3 py-1 rounded-full ${item.isOffline
-                        ? "bg-yellow-100 text-yellow-800"
-                        : "bg-green-100 text-green-800"
-                        }`}
+                      className={`text-xs font-bold px-3 py-1 rounded-full ${
+                        item.isOffline
+                          ? "bg-yellow-100 text-yellow-800"
+                          : "bg-green-100 text-green-800"
+                      }`}
                     >
                       {item.status}
                     </span>
