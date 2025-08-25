@@ -2,6 +2,7 @@ import path from "node:path";
 import react from "@vitejs/plugin-react";
 import { createLogger, defineConfig } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
+import { visualizer } from "rollup-plugin-visualizer";
 
 const isDev = process.env.NODE_ENV !== "production";
 const enableVisualEditor = false;
@@ -80,13 +81,13 @@ export default defineConfig({
     ...(enableVisualEditor ? [addTransformIndexHtml] : []),
     VitePWA({
       registerType: "autoUpdate",
-      injectRegister: "auto",
-      workbox: {
-        globPatterns: ["**/*.{js,css,html,ico,png,svg,json,woff,woff2}"],
-        navigateFallback: "index.html",
-        navigateFallbackAllowlist: [/^[^.]+$/],
-        maximumFileSizeToCacheInBytes: 3145728,
-      },
+      strategies: "injectManifest",
+      srcDir: "src",
+      filename: "service-worker.js",
+      // injectManifest: {
+      //   maximumFileSizeToCacheInBytes: 3145728,
+      // },
+
       devOptions: {
         enabled: true,
       },
@@ -117,6 +118,7 @@ export default defineConfig({
         ],
       },
     }),
+    visualizer({ open: true }),
   ],
   server: {
     cors: true,

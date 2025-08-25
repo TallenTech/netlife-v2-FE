@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Helmet } from "react-helmet";
 import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
@@ -18,6 +18,7 @@ import TermsOfService from "@/pages/TermsOfService";
 import ContactUs from "@/pages/ContactUs";
 import NotFound from "@/pages/NotFound";
 import { processSyncQueue } from "@/services/offlineSync.js";
+import NotificationPrompt from "@/components/NotificationPrompt";
 
 function App() {
   return (
@@ -103,27 +104,47 @@ function AppRoutes() {
       <Route path="/privacy" element={<PrivacyPolicy />} />
       <Route path="/terms" element={<TermsOfService />} />
       <Route path="/contact-us" element={<ContactUs />} />
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }
 
 const OnboardingFlow = ({ isPartiallyAuthed }) => {
   const navigate = useNavigate();
+  const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
+
+  const handleProfileComplete = () => {
+    if (Notification.permission === "default") {
+      setShowNotificationPrompt(true);
+    } else {
+      navigate("/dashboard");
+    }
+  };
+
+  const handlePromptDismiss = () => {
+    setShowNotificationPrompt(false);
+    navigate("/dashboard");
+  };
 
   if (isPartiallyAuthed) {
     return (
-      <Routes>
-        <Route
-          path="/profile-setup"
-          element={
-            <ProfileSetup
-              onComplete={() => navigate("/dashboard")}
-              isInitialSetup={true}
-            />
-          }
-        />
-        <Route path="*" element={<Navigate to="/profile-setup" replace />} />
-      </Routes>
+      <>
+        <Routes>
+          <Route
+            path="/profile-setup"
+            element={
+              <ProfileSetup
+                onComplete={handleProfileComplete}
+                isInitialSetup={true}
+              />
+            }
+          />
+          <Route path="*" element={<Navigate to="/profile-setup" replace />} />
+        </Routes>
+        {showNotificationPrompt && (
+          <NotificationPrompt onDismiss={handlePromptDismiss} />
+        )}
+      </>
     );
   }
 
