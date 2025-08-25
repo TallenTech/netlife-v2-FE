@@ -1,5 +1,18 @@
 import React from "react";
-import { Button } from "@/components/ui/button";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
+import { Switch } from "@/components/ui/switch";
+import {
+  Loader2,
+  Shield,
+  Bell,
+  Download,
+  Lock,
+  Share,
+  PlusSquare,
+} from "lucide-react";
+import { usePWAInstall } from "@/hooks/usePWAInstall";
+import { useUserSettings } from "@/hooks/useSettingsQueries";
+import { AccountActions } from "@/components/account/AccountActions";
 import {
   Select,
   SelectContent,
@@ -7,11 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { Shield, Bell, Download, Lock, Share, PlusSquare } from "lucide-react";
-import { usePWAInstall } from "@/hooks/usePWAInstall";
-import { useUserSettings } from "@/hooks/useSettingsQueries";
-import { AccountActions } from "@/components/account/AccountActions";
+import { Button } from "@/components/ui/button";
 
 export const SettingsTab = ({
   activeProfile,
@@ -23,6 +32,23 @@ export const SettingsTab = ({
   const { canInstall, handleInstallClick, isIOS, isStandalone } =
     usePWAInstall();
   const { data: settings } = useUserSettings(activeProfile?.id, isMainProfile);
+
+  const {
+    isSubscribed,
+    subscribe,
+    unsubscribe,
+    isSubscribing,
+    permission,
+    error: pushError,
+  } = usePushNotifications();
+
+  const handlePushToggleChange = () => {
+    if (isSubscribed) {
+      unsubscribe();
+    } else {
+      subscribe();
+    }
+  };
 
   const renderAppSection = () => {
     if (isStandalone) {
@@ -119,17 +145,50 @@ export const SettingsTab = ({
           <Bell className="w-5 h-5 mr-2 text-primary" />
           Notifications
         </h3>
-        <div className="flex items-center justify-between rounded-lg border p-3">
-          <div>
-            <h4 className="font-medium">Silent Alerts</h4>
-            <p className="text-xs text-gray-500">Disguise notifications</p>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between rounded-lg border p-3">
+            <div>
+              <h4 className="font-medium">Silent Alerts</h4>
+              <p className="text-xs text-gray-500">
+                Disguise in-app notifications
+              </p>
+            </div>
+            <Switch
+              checked={settings?.silentAlerts || false}
+              onCheckedChange={(val) =>
+                handleSettingsSave({ ...settings, silentAlerts: val })
+              }
+            />
           </div>
-          <Switch
-            checked={settings?.silentAlerts || false}
-            onCheckedChange={(val) =>
-              handleSettingsSave({ ...settings, silentAlerts: val })
-            }
-          />
+
+          {permission === "denied" ? (
+            <div className="p-3 border border-yellow-300 bg-yellow-50 rounded-lg text-sm text-yellow-800">
+              <span className="font-semibold">
+                Push notifications are blocked.
+              </span>{" "}
+              Please enable them in your browser settings to receive alerts.
+            </div>
+          ) : (
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <div>
+                <h4 className="font-medium">Push Notifications</h4>
+                <p className="text-xs text-gray-500">
+                  Get alerts on this device
+                </p>
+              </div>
+              <div className="flex items-center space-x-2">
+                {isSubscribing && <Loader2 className="h-4 w-4 animate-spin" />}
+                <Switch
+                  checked={isSubscribed}
+                  onCheckedChange={handlePushToggleChange}
+                  disabled={isSubscribing}
+                />
+              </div>
+            </div>
+          )}
+          {pushError && (
+            <p className="text-xs text-red-600 pl-1">{pushError}</p>
+          )}
         </div>
       </div>
       <div className="bg-white p-4 md:p-6 rounded-2xl border">
